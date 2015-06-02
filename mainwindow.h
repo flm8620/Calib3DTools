@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <solver.h>
+#include <solverthread.h>
 template<typename T> class QList;
 class ImageListWidget;
 class ImageListModel;
@@ -53,6 +54,7 @@ private:
     bool calculateK();
 
 private:
+    SolverThread solverThread;
     Solver* solver;
     ImageListWidget* photoWidget;
     ImageListWidget* photoCircleWidget;

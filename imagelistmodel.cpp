@@ -1,9 +1,11 @@
 #include "imagelistmodel.h"
 #include <QImage>
+#include <QDebug>
+#include <QThread>
 ImageListModel::ImageListModel(QObject *parent)
     :QAbstractListModel(parent)
 {
-
+    connect(this,SIGNAL(requestImageList()),this,SLOT(prepareImageList()));
 }
 
 bool ImageListModel::isEmpty()
@@ -17,6 +19,29 @@ void ImageListModel::makeEmpty()
     if(rowCount()>0)
         removeRows(0,rowCount());
     endResetModel();
+}
+
+QList<QImage> ImageListModel::getImageList()
+{
+    QList<QImage> imageList;
+    int rows=rowCount();
+    for(int i=0;i<rows;++i){
+        QModelIndex id=index(i);
+        imageList.append( qvariant_cast<QImage>(data(id,Qt::UserRole)));
+    }
+    return imageList;
+}
+
+QList<QImage> ImageListModel::getImageList_threadSafe()
+{
+    QMutexLocker locker(&mutex);
+    qDebug()<<"emit requestImageList();";
+    emit requestImageList();
+    qDebug()<<"condition.wait(&mutex);";
+    condition.wait(&mutex);
+    qDebug()<<"waked up by condition";
+    return preparedList;
+    //auto-unlock by locker
 }
 
 int ImageListModel::rowCount(const QModelIndex &/*parent*/) const
@@ -85,6 +110,14 @@ bool ImageListModel::removeRows(int row, int count, const QModelIndex &parent)
     }
     endRemoveRows();
     return true;
+}
+
+void ImageListModel::prepareImageList()
+{
+    QMutexLocker locker(&mutex);
+    preparedList=getImageList();
+    condition.wakeAll();
+    //auto-unlock by locker
 }
 
 

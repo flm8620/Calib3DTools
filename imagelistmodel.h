@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QAbstractListModel>
 #include <QImage>
+#include <QMutex>
+#include <QWaitCondition>
 template<typename T> class QList;
 
 class QString;
@@ -15,6 +17,8 @@ public:
     bool isEmpty();
     void makeEmpty();
 
+    QList<QImage> getImageList();
+    QList<QImage> getImageList_threadSafe();
     int rowCount(const QModelIndex & index=QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
@@ -23,9 +27,19 @@ public:
     bool removeRows(int row, int count, const QModelIndex &parent=QModelIndex());
 public slots:
 
+signals:
+    void requestImageList();
+private slots:
+    void prepareImageList();
+
 private:
     QList<QImage> imageList;
     QList<QString> imageName;
+    QMutex mutex;
+    QWaitCondition condition;
+    QList<QImage> preparedList;//locked by mutex
+
+
 };
 
 #endif // IMAGELISTMODEL_H

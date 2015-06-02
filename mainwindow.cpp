@@ -8,12 +8,15 @@
 #include "point3dwidget.h"
 #include "point3dmodel.h"
 #include "console.h"
+#include "worker.h"
 #include <QtWidgets>
 #include <QPushButton>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),console(new Console()),con(*console)
 {
     solver=new Solver(this);
+
+
 
     setupPhotoWidgets();
     setupKMatrixWidget();
@@ -45,7 +48,7 @@ MainWindow::MainWindow(QWidget *parent)
     QPushButton* saveDistortionButton=new QPushButton(tr("Save Distortion"));
     QPushButton* saveKMatrixButton=new QPushButton(tr("Save K Matrix"));
 
-    connect(generateButton,SIGNAL(clicked(bool)),this,SLOT(startSolve()));
+    //connect(generateButton,SIGNAL(clicked(bool)),this,SLOT(startSolve()));
 
     bLayout->addWidget(generateButton);
     bLayout->addWidget(saveDistortionButton);
@@ -67,6 +70,11 @@ MainWindow::MainWindow(QWidget *parent)
     center->setLayout(layout);
     setCentralWidget(center);
     statusBar();
+
+    Worker* worker=new Worker(photoModel);
+    worker->moveToThread(&solverThread);
+    solverThread.start();
+    connect(generateButton,SIGNAL(clicked(bool)),worker,SLOT(solve()));
 }
 
 void MainWindow::startSolve()

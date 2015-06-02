@@ -32,7 +32,9 @@ SOURCES += main.cpp\
     ClickImage/myscene.cpp \
     ClickImage/mytest.cpp \
     ClickImage/clickdialog.cpp \
-    console.cpp
+    console.cpp \
+    solverthread.cpp \
+    worker.cpp
 
 HEADERS  += mainwindow.h \
     solver.h \
@@ -53,4 +55,6 @@ HEADERS  += mainwindow.h \
     ClickImage/myscene.h \
     ClickImage/mytest.h \
     ClickImage/clickdialog.h \
-    console.h
+    console.h \
+    solverthread.h \
+    worker.h
