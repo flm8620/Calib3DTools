@@ -2,30 +2,32 @@
 #define SOLVER_H
 
 #include <QObject>
-template<typename T> class QList;
+#include <QList>
+#include <QPointF>
+#include <QVector3D>
 class QImage;
 struct KMatrix{
-    double a;
+    double fx,fy,x0,y0,s;
 };
 
 struct Distortion{
-    double a2,a4,a6,a8,a10;
+    QList<double> data;
 };
 struct Target2D{
-    double a;
+    QList<QList<QPointF> > data;
 };
 struct Target3D{
-    double a;
+    QList<QVector3D> data;
 };
 struct CameraPosSolution{
-    double a;
+    QList<QVector3D> data;
 };
 
-class solver : public QObject
+class Solver : public QObject
 {
     Q_OBJECT
 public:
-    explicit solver(QObject *parent = 0);
+    explicit Solver(QObject *parent = 0);
     Distortion calculateDistortion(const QList<QImage>& imageList);
     QImage correctDistortion(const QImage& image,const Distortion& distortion);
     KMatrix calculateK(const QList<QImage>& circlePhotoList);

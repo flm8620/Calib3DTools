@@ -6,6 +6,19 @@ ImageListModel::ImageListModel(QObject *parent)
 
 }
 
+bool ImageListModel::isEmpty()
+{
+    return rowCount()==0;
+}
+
+void ImageListModel::makeEmpty()
+{
+    beginResetModel();
+    if(rowCount()>0)
+        removeRows(0,rowCount());
+    endResetModel();
+}
+
 int ImageListModel::rowCount(const QModelIndex &/*parent*/) const
 {
     return imageList.size();

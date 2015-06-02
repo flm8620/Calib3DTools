@@ -4,11 +4,12 @@
 #include <QWidget>
 class ImageListView;
 class QAbstractListModel;
+class QString;
 class ImageListWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ImageListWidget(QWidget *parent = 0);
+    explicit ImageListWidget(const QString& label,QWidget *parent = 0);
     void setModel(QAbstractListModel* model);
 signals:
 

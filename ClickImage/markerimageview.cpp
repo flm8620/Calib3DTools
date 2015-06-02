@@ -6,6 +6,7 @@
 #include <QItemSelectionModel>
 #include <QSignalMapper>
 #include <QPixmap>
+#include <QWheelEvent>
 MarkerImageView::MarkerImageView(QWidget *parent)
     :QGraphicsView(parent),model(0),selectionModel(0)
 {
@@ -86,6 +87,15 @@ void MarkerImageView::resizeMarker(int id)
         marker->setTransform(QTransform( matrix().inverted()));
 }
 
+void MarkerImageView::wheelEvent(QWheelEvent *event)
+{
+    int a=event->angleDelta().y();
+    if(a>0)
+        zoomIn();
+    else
+        zoomOut();
+}
+
 void MarkerImageView::zoomIn()
 {
     scale(1.25,1.25);
@@ -109,21 +119,18 @@ void MarkerImageView::zoomRestore()
 
 void MarkerImageView::insertMarkerOnScreen(double x, double y)
 {
-    QModelIndex current=selectionModel->currentIndex();
-    if(!current.isValid()){
-        int rowCount=model->rowCount();
-        model->insertRow(rowCount);
-        QModelIndex index1=model->index(rowCount,0);
-        QModelIndex index2=model->index(rowCount,2);
-        model->setData(index1,x);
-        model->setData(index2,y);
-    }else{
-        int row=current.row();
-        QModelIndex index1=model->index(row,0);
-        QModelIndex index2=model->index(row,1);
-        model->setData(index1,x);
-        model->setData(index2,y);
-    }
+
+    QItemSelection s = selectionModel->selection();
+    if(s.isEmpty())return;
+    QModelIndex selected=s.first().indexes().first();
+    if(!selected.isValid())return;
+
+    int row=selected.row();
+    QModelIndex index1=model->index(row,0);
+    QModelIndex index2=model->index(row,1);
+    model->setData(index1,x);
+    model->setData(index2,y);
+
     emit markerInsertedOnScreen();
 }
 
@@ -138,7 +145,6 @@ void MarkerImageView::selectionChanged(const QItemSelection & selected)
 
 void MarkerImageView::sceneSelectionChanged()
 {
-    qDebug()<<"changed"<<rand();
     if(scene->selectedItems().isEmpty())return;
     QGraphicsItem* item= scene->selectedItems().first();
     int i=markerList.indexOf(static_cast<Marker*>(item));

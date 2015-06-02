@@ -24,7 +24,15 @@ SOURCES += main.cpp\
     point2dmodel.cpp \
     point2dview.cpp \
     point2dwidget.cpp \
-    point3dwidget.cpp
+    point3dwidget.cpp \
+    point3dmodel.cpp \
+    ClickImage/controllertableview.cpp \
+    ClickImage/marker.cpp \
+    ClickImage/markerimageview.cpp \
+    ClickImage/myscene.cpp \
+    ClickImage/mytest.cpp \
+    ClickImage/clickdialog.cpp \
+    console.cpp
 
 HEADERS  += mainwindow.h \
     solver.h \
@@ -37,4 +45,12 @@ HEADERS  += mainwindow.h \
     point2dmodel.h \
     point2dview.h \
     point2dwidget.h \
-    point3dwidget.h
+    point3dwidget.h \
+    point3dmodel.h \
+    ClickImage/controllertableview.h \
+    ClickImage/marker.h \
+    ClickImage/markerimageview.h \
+    ClickImage/myscene.h \
+    ClickImage/mytest.h \
+    ClickImage/clickdialog.h \
+    console.h

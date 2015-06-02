@@ -12,12 +12,15 @@ class ImageListModel : public QAbstractListModel
     Q_OBJECT
 public:
     ImageListModel(QObject* parent=0);
-    int rowCount(const QModelIndex &) const;
+    bool isEmpty();
+    void makeEmpty();
+
+    int rowCount(const QModelIndex & index=QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
     bool setData(const QModelIndex &index, const QVariant &value, int role);
-    bool insertRows(int row, int count, const QModelIndex &parent);
-    bool removeRows(int row, int count, const QModelIndex &parent);
+    bool insertRows(int row, int count, const QModelIndex &parent=QModelIndex());
+    bool removeRows(int row, int count, const QModelIndex &parent=QModelIndex());
 public slots:
 
 private:

@@ -9,7 +9,11 @@ class Point2DModel : public QStandardItemModel
     Q_OBJECT
 public:
     Point2DModel(QObject* parent=0);
+    bool isEmpty();
+    void makeEmpty();
+    int pointCount();
     void setImageModel(ImageListModel* model);
+    QImage getImage(int row);
     QModelIndex index(int row, int column, const QModelIndex &parent=QModelIndex()) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
 public slots:

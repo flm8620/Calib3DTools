@@ -6,6 +6,19 @@ KMatrixModel::KMatrixModel(QObject *parent)
     fx=fy=s=x0=y0=0;
 }
 
+bool KMatrixModel::isEmpty()
+{
+    return fx==0&&fy==0&&s==0&&x0==0&&y0==0;
+}
+
+void KMatrixModel::makeEmpty()
+{
+    for(int i=0;i<5;i++){
+        QModelIndex id=index(i,0);
+        setData(id,0);
+    }
+}
+
 int KMatrixModel::rowCount(const QModelIndex &) const
 {
     return 5;
@@ -15,7 +28,7 @@ QVariant KMatrixModel::data(const QModelIndex &index, int role) const
 {
     if(!index.isValid())return QVariant();
     int row=index.row();
-    if(role==Qt::DisplayRole){
+    if(role==Qt::DisplayRole||role==Qt::EditRole){
         switch (row) {
         case 0:
             return fx;
@@ -53,19 +66,19 @@ bool KMatrixModel::setData(const QModelIndex &index, const QVariant &value, int 
     if(role==Qt::EditRole){
         switch (row) {
         case 0:
-            fx=value.toInt();
+            fx=value.toDouble();
             break;
         case 1:
-            fy=value.toInt();
+            fy=value.toDouble();
             break;
         case 2:
-            x0=value.toInt();
+            x0=value.toDouble();
             break;
         case 3:
-            y0=value.toInt();
+            y0=value.toDouble();
             break;
         case 4:
-            s=value.toInt();
+            s=value.toDouble();
             break;
         default:
             return false;

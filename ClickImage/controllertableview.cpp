@@ -6,35 +6,6 @@ ControllerTableView::ControllerTableView(QWidget *parent)
     setSelectionMode(QAbstractItemView::SingleSelection);
 }
 
-void ControllerTableView::addOneItem()
-{
-    QAbstractItemModel *itemModel=model();
-    if(itemModel==0)return;
-    QItemSelectionModel *sModel=selectionModel();
-    QModelIndexList list= sModel->selectedRows();
-    int row;
-    if(list.isEmpty())row=itemModel->rowCount();
-    else row=list.first().row();
-    Q_ASSERT(row>=0 && row<=itemModel->rowCount());
-    itemModel->insertRow(row);
-    QModelIndex xIndex=itemModel->index(row,0);
-    QModelIndex yIndex=itemModel->index(row,1);
-    itemModel->setData(xIndex,0.0);
-    itemModel->setData(yIndex,0.0);
-}
-
-void ControllerTableView::removeOneItem()
-{
-    QAbstractItemModel *itemModel=model();
-    if(itemModel==0)return;
-    QItemSelectionModel *sModel=selectionModel();
-    QModelIndexList list= sModel->selectedRows();
-    if(list.isEmpty())return;
-
-    int row=list.first().row();
-    Q_ASSERT(row>=0 && row<itemModel->rowCount());
-    itemModel->removeRow(row);
-}
 
 void ControllerTableView::moveUp()
 {

@@ -2,11 +2,14 @@
 #define CONSOLE_H
 
 #include <QObject>
-
-class Console : public QPlainTextEdit
+#include <QTextEdit>
+class Console : public QTextEdit
 {
+    Q_OBJECT
 public:
-    Console();
+    Console(QWidget* parent=0);
+    Console& operator <<(const char* s);
+    void warning(const char* s);
 };
 
 #endif // CONSOLE_H

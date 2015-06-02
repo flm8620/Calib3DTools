@@ -9,7 +9,19 @@ DistortionModel::DistortionModel(QObject *parent)
 
 }
 
-int DistortionModel::rowCount(const QModelIndex &) const
+bool DistortionModel::isEmpty()
+{
+    return rowCount()==0;
+}
+
+void DistortionModel::makeEmpty()
+{
+    beginResetModel();
+    para.clear();
+    endResetModel();
+}
+
+int DistortionModel::rowCount(const QModelIndex &index) const
 {
     return para.size();
 }
@@ -18,7 +30,7 @@ QVariant DistortionModel::data(const QModelIndex &index, int role) const
 {
     if(!index.isValid())return QVariant();
     int row=index.row();
-    if(role==Qt::DisplayRole){
+    if(role==Qt::DisplayRole||role==Qt::EditRole){
     return para.value(row);
     }
     return QVariant();
@@ -36,7 +48,7 @@ bool DistortionModel::setData(const QModelIndex &index, const QVariant &value, i
     int row=index.row();
     if(row<0||row>=para.size())return false;
     if(role==Qt::DisplayRole){
-        para[row]=value.toInt();
+        para[row]=value.toDouble();
         return true;
     }
     return false;

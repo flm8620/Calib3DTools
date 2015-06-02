@@ -10,12 +10,40 @@ Point2DModel::Point2DModel(QObject *parent)
     setHorizontalHeaderLabels(list);
 }
 
+bool Point2DModel::isEmpty()
+{
+    return rowCount()==0;
+}
+
+void Point2DModel::makeEmpty()
+{
+    beginResetModel();
+    if(rowCount()>0)
+        removeRows(0,rowCount());
+    endResetModel();
+}
+
+int Point2DModel::pointCount()
+{
+    if(rowCount()==0)return 0;
+    return item(0)->rowCount();
+}
+
 void Point2DModel::setImageModel(ImageListModel *model)
 {
     imageModel=model;
     connect(imageModel,SIGNAL(rowsInserted(QModelIndex,int,int)),this,SLOT(imagesInserted(QModelIndex,int,int)));
     connect(imageModel,SIGNAL(rowsRemoved(QModelIndex,int,int)),this,SLOT(imagesRemoved(QModelIndex,int,int)));
     connect(imageModel,SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)),this,SLOT(imagesChanged(QModelIndex)));
+}
+
+QImage Point2DModel::getImage(int row)
+{
+    QModelIndex id = imageModel->index(row);
+    QImage image=qvariant_cast<QImage>(imageModel->data(id,Qt::UserRole));
+    Q_ASSERT(!image.isNull());
+    return image;
+
 }
 
 

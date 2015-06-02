@@ -9,8 +9,6 @@ class ControllerTableView:public QTableView
 public:
     ControllerTableView(QWidget * parent = 0);
 public slots:
-    void addOneItem();
-    void removeOneItem();
     void moveUp();
     void moveDown();
 

@@ -1,32 +1,56 @@
 #include "solver.h"
 #include <QImage>
-solver::solver(QObject *parent) : QObject(parent)
+#include <QPainter>
+Solver::Solver(QObject *parent) : QObject(parent)
 {
 
 }
 
-Distortion solver::calculateDistortion(const QList<QImage> &imageList)
+Distortion Solver::calculateDistortion(const QList<QImage> &imageList)
 {
-    return Distortion();
+    Q_ASSERT(!imageList.isEmpty());
+    Distortion dist;
+    dist.data.append(1.0);
+    dist.data.append(2.0);
+    dist.data.append(3.0);
+    dist.data.append(4.0);
+    dist.data.append(5.0);
+    return dist;
 }
 
-QImage solver::correctDistortion(const QImage &image, const Distortion &distortion)
+QImage Solver::correctDistortion(const QImage &image, const Distortion &distortion)
 {
-    return QImage();
+    QImage result=image;
+    QPainter painter(&result);
+    QRectF rect(100,100,500,500);
+    painter.drawText(rect,tr("Distortion Corrected"));
+    return result;
 }
 
-KMatrix solver::calculateK(const QList<QImage> &circlePhotoList)
+KMatrix Solver::calculateK(const QList<QImage> &circlePhotoList)
 {
-    return KMatrix();
+    Q_ASSERT(!circlePhotoList.isEmpty());
+    KMatrix K;
+    K.fx=10;K.fy=10;
+    K.s=0;
+    K.x0=100;
+    K.y0=100;
+    return K;
 }
 
-CameraPosSolution solver::openMVGSolver(Target2D target2D, const QList<QImage> &photoList, KMatrix K)
+CameraPosSolution Solver::openMVGSolver(Target2D target2D, const QList<QImage> &photoList, KMatrix K)
 {
-    return CameraPosSolution();
+    CameraPosSolution s;
+    s.data.append(QVector3D(10,10,10));
+    s.data.append(QVector3D(20,20,20));
+    return s;
 }
 
-CameraPosSolution solver::strechaSolver(Target2D target2D, Target3D target3D, const QList<QImage> &photoList, KMatrix K)
+CameraPosSolution Solver::strechaSolver(Target2D target2D, Target3D target3D, const QList<QImage> &photoList, KMatrix K)
 {
-    return CameraPosSolution();
+    CameraPosSolution s;
+    s.data.append(QVector3D(10,10,10));
+    s.data.append(QVector3D(20,20,20));
+    return s;
 }
 

@@ -25,6 +25,8 @@ public:
     void loadImage(const QImage& image);
     void resizeMarkers();
     void resizeMarker(int id);
+protected:
+    void wheelEvent(QWheelEvent *event);
 signals:
     void markerInsertedOnScreen();
 public slots:
