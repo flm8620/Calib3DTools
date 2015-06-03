@@ -3,6 +3,9 @@
 
 #include <QObject>
 #include <QAbstractListModel>
+#include <QMutex>
+#include <QWaitCondition>
+#include "solver.h"
 template<typename T> class QList;
 class DistortionModel : public QAbstractListModel
 {
@@ -11,8 +14,8 @@ public:
     DistortionModel(QObject* parent=0);
     bool isEmpty();
     void makeEmpty();
-
-
+    Distortion getDistortion_threadSafe();
+    void saveDistortion_threadSafe(const Distortion& dist);
     int rowCount(const QModelIndex & index=QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role=Qt::DisplayRole) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
@@ -20,8 +23,19 @@ public:
     bool insertRows(int row, int count, const QModelIndex &parent);
     bool removeRows(int row, int count, const QModelIndex &parent);
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+signals:
+    void requestGet();
+    void requestSave(const Distortion& dist);
+private slots:
+    void prepareDistortion();
+    void saveDistortion(const Distortion& dist);
 private:
+
     QList<double> para;
+    QMutex mutex;
+    QWaitCondition conditionGet;
+    QWaitCondition conditionSave;
+    Distortion preparedDistortion;//locked by mutex
 };
 
 #endif // DISTORTIONMODEL_H

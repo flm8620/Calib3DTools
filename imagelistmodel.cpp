@@ -5,7 +5,8 @@
 ImageListModel::ImageListModel(QObject *parent)
     :QAbstractListModel(parent)
 {
-    connect(this,SIGNAL(requestImageList()),this,SLOT(prepareImageList()));
+    connect(this,SIGNAL(requestGet()),this,SLOT(prepareImageList()));
+    connect(this,SIGNAL(requestSave(QList<QImage>)),this,SLOT(saveImageList(QList<QImage>)));
 }
 
 bool ImageListModel::isEmpty()
@@ -21,26 +22,27 @@ void ImageListModel::makeEmpty()
     endResetModel();
 }
 
-QList<QImage> ImageListModel::getImageList()
-{
-    QList<QImage> imageList;
-    int rows=rowCount();
-    for(int i=0;i<rows;++i){
-        QModelIndex id=index(i);
-        imageList.append( qvariant_cast<QImage>(data(id,Qt::UserRole)));
-    }
-    return imageList;
-}
 
 QList<QImage> ImageListModel::getImageList_threadSafe()
 {
     QMutexLocker locker(&mutex);
-    qDebug()<<"emit requestImageList();";
-    emit requestImageList();
-    qDebug()<<"condition.wait(&mutex);";
-    condition.wait(&mutex);
-    qDebug()<<"waked up by condition";
+    qDebug()<<"Image: emit requestGet();";
+    emit requestGet();
+    qDebug()<<"conditionGet.wait(&mutex);";
+    conditionGet.wait(&mutex);
+    qDebug()<<"waked up by conditionGet";
     return preparedList;
+    //auto-unlock by locker
+}
+
+void ImageListModel::saveImageList_threadSafe(const QList<QImage> &list)
+{
+    QMutexLocker locker(&mutex);
+    qDebug()<<"Image: emit requestSave(list);";
+    emit requestSave(list);
+    qDebug()<<"conditionSave.wait(&mutex);";
+    conditionSave.wait(&mutex);
+    qDebug()<<"waked up by conditionSave";
     //auto-unlock by locker
 }
 
@@ -115,8 +117,30 @@ bool ImageListModel::removeRows(int row, int count, const QModelIndex &parent)
 void ImageListModel::prepareImageList()
 {
     QMutexLocker locker(&mutex);
-    preparedList=getImageList();
-    condition.wakeAll();
+    preparedList.clear();
+    int rows=rowCount();
+    for(int i=0;i<rows;++i){
+        QModelIndex id=index(i);
+        preparedList.append( qvariant_cast<QImage>(data(id,Qt::UserRole)));
+    }
+    conditionGet.wakeAll();
+    //auto-unlock by locker
+}
+
+void ImageListModel::saveImageList(const QList<QImage> &list)
+{
+    QMutexLocker locker(&mutex);
+    makeEmpty();
+    QImage image;
+    int i=0;
+    foreach (image,list) {
+        insertRow(i);
+        QModelIndex id=index(i);
+        setData(id,tr("Image%1").arg(i),Qt::DisplayRole);
+        setData(id,image,Qt::UserRole);
+        i++;
+    }
+    conditionSave.wakeAll();
     //auto-unlock by locker
 }
 

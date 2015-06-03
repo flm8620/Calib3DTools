@@ -17,8 +17,8 @@ public:
     bool isEmpty();
     void makeEmpty();
 
-    QList<QImage> getImageList();
     QList<QImage> getImageList_threadSafe();
+    void saveImageList_threadSafe(const QList<QImage>& list);
     int rowCount(const QModelIndex & index=QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
@@ -28,15 +28,18 @@ public:
 public slots:
 
 signals:
-    void requestImageList();
+    void requestSave(const QList<QImage> &list);
+    void requestGet();
 private slots:
     void prepareImageList();
+    void saveImageList(const QList<QImage> &list);
 
 private:
     QList<QImage> imageList;
     QList<QString> imageName;
     QMutex mutex;
-    QWaitCondition condition;
+    QWaitCondition conditionGet;
+    QWaitCondition conditionSave;
     QList<QImage> preparedList;//locked by mutex
 
 

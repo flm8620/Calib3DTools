@@ -1,9 +1,12 @@
 #include "kmatrixmodel.h"
 
+#include <QDebug>
 KMatrixModel::KMatrixModel(QObject *parent)
     :QAbstractListModel(parent)
 {
     fx=fy=s=x0=y0=0;
+    connect(this,SIGNAL(requestGet()),this,SLOT(prepareKMatrix()));
+    connect(this,SIGNAL(requestSave(KMatrix)),this,SLOT(saveKMatrix(KMatrix)));
 }
 
 bool KMatrixModel::isEmpty()
@@ -17,6 +20,29 @@ void KMatrixModel::makeEmpty()
         QModelIndex id=index(i,0);
         setData(id,0);
     }
+}
+
+KMatrix KMatrixModel::getKMatrix_threadSafe()
+{
+    QMutexLocker locker(&mutex);
+    qDebug()<<"K: emit requestGet();";
+    emit requestGet();
+    qDebug()<<"conditionGet.wait(&mutex);";
+    conditionGet.wait(&mutex);
+    qDebug()<<"waked up by conditionGet";
+    return preparedK;
+    //auto-unlock by locker
+}
+
+void KMatrixModel::saveKMatrix_threadSafe(const KMatrix &K)
+{
+    QMutexLocker locker(&mutex);
+    qDebug()<<"K: emit requestSave(K);";
+    emit requestSave(K);
+    qDebug()<<"conditionSave.wait(&mutex);";
+    conditionSave.wait(&mutex);
+    qDebug()<<"waked up by conditionSave";
+    //auto-unlock by locker
 }
 
 int KMatrixModel::rowCount(const QModelIndex &) const
@@ -124,5 +150,27 @@ QVariant KMatrixModel::headerData(int section, Qt::Orientation orientation, int 
         }
     }
     return QVariant();
+}
+
+void KMatrixModel::prepareKMatrix()
+{
+    QMutexLocker locker(&mutex);
+    preparedK.fx=data(index(0)).toDouble();
+    preparedK.fy=data(index(1)).toDouble();
+    preparedK.x0=data(index(2)).toDouble();
+    preparedK.y0=data(index(3)).toDouble();
+    preparedK.s=data(index(4)).toDouble();
+    conditionGet.wakeAll();
+}
+
+void KMatrixModel::saveKMatrix(const KMatrix &K)
+{
+    QMutexLocker locker(&mutex);
+    setData(index(0),K.fx);
+    setData(index(1),K.fy);
+    setData(index(2),K.x0);
+    setData(index(3),K.y0);
+    setData(index(4),K.s);
+    conditionSave.wakeAll();
 }
 

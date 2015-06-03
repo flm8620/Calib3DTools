@@ -48,12 +48,11 @@ MainWindow::MainWindow(QWidget *parent)
     QPushButton* saveDistortionButton=new QPushButton(tr("Save Distortion"));
     QPushButton* saveKMatrixButton=new QPushButton(tr("Save K Matrix"));
 
-    //connect(generateButton,SIGNAL(clicked(bool)),this,SLOT(startSolve()));
+    connect(generateButton,SIGNAL(clicked(bool)),this,SLOT(startSolve()));
 
     bLayout->addWidget(generateButton);
     bLayout->addWidget(saveDistortionButton);
     bLayout->addWidget(saveKMatrixButton);
-    connect(generateButton,SIGNAL(clicked(bool)),this,SLOT(startSolve());
     QGridLayout* rightLay=new QGridLayout;
     rightLay->addWidget(kWidget,0,0);
     rightLay->addWidget(distWidget,1,0);
@@ -123,10 +122,10 @@ bool MainWindow::solve(CameraPosSolution& solu)
         return false;
     }
 
-    Target2D target2D=getTarget2DFromModel();
-    Target3D target3D=getTarget3DFromModel();
-    QList<QImage> photoList=getPhotoListFromModel(distortion_photoModel);
-    KMatrix K=getKFromModel();
+    Target2D target2D=point2DModel->getTarget2D_threadSafe();
+    Target3D target3D=point3DModel->getTarget3D_threadSafe();
+    QList<QImage> photoList=distortion_photoModel->getImageList_threadSafe();
+    KMatrix K=kModel->getKMatrix_threadSafe();
 
     solu = solver->strechaSolver(target2D,target3D,photoList,K);
     return true;
@@ -143,7 +142,7 @@ bool MainWindow::DistortionCorrectPhoto()
         }
         Q_ASSERT(!distModel->isEmpty());
 
-        Distortion dist=getDistortionFromModel();
+        Distortion dist=distModel->getDistortion_threadSafe();
 
         int rows=photoModel->rowCount();
         con<<"Loading photos...";
@@ -153,13 +152,13 @@ bool MainWindow::DistortionCorrectPhoto()
         }else{
             con<<"Photos loaded";
         }
-        QList<QImage> photoList=getPhotoListFromModel(photoModel);
+        QList<QImage> photoList=photoModel->getImageList_threadSafe();
         QList<QImage> outputList;
         QImage image;
         foreach (image, photoList) {
             outputList.append(solver->correctDistortion(image,dist));
         }
-        savePhotoListToModel(outputList,distortion_photoModel);
+        distortion_photoModel->saveImageList_threadSafe(outputList);
         con<<"Distortion correction of photo finished.";
     }else{
         con<<"Distortion correction of photo loaded.";
@@ -178,7 +177,7 @@ bool MainWindow::DistortionCorrectPhotoCircle()
         }
         Q_ASSERT(!distModel->isEmpty());
 
-        Distortion dist=getDistortionFromModel();
+        Distortion dist=distModel->getDistortion_threadSafe();
 
         int rows=photoCircleModel->rowCount();
         con<<"Loading circle photos...";
@@ -189,18 +188,15 @@ bool MainWindow::DistortionCorrectPhotoCircle()
             con<<"Circle photos loaded";
         }
 
-        QList<QImage> photoList=getPhotoListFromModel(photoCircleModel);
+        QList<QImage> photoList=photoCircleModel->getImageList_threadSafe();
         QList<QImage> outputList;
         QImage image;
         foreach (image, photoList) {
             outputList.append(solver->correctDistortion(image,dist));
         }
-        savePhotoListToModel(outputList,distortion_photoCircleModel);
-
-
+        distortion_photoCircleModel->saveImageList_threadSafe(outputList);
 
         con<<"Distortion correction of photo finished.";
-
     }else{
         con<<"Distortion correction of circle photo loaded.";
     }
@@ -218,10 +214,9 @@ bool MainWindow::calculateDistortion()
             con.warning("You should load harp photos");
             return false;
         }
-        int rows=photoHarpModel->rowCount();
-        QList<QImage> imageList=getPhotoListFromModel(photoHarpModel);
+        QList<QImage> imageList=photoHarpModel->getImageList_threadSafe();
         Distortion dist = solver->calculateDistortion(imageList);
-        saveDistortionToModel(dist);
+        distModel->saveDistortion_threadSafe(dist);
         con<<"Distortion calculated";
     }else{
         con<<"Distortion parameter loaded";
@@ -242,8 +237,7 @@ bool MainWindow::calculateK()
         Q_ASSERT(!distortion_photoCircleModel->isEmpty());
         QList<QImage> imageList=getPhotoListFromModel(distortion_photoCircleModel);
         KMatrix K=solver->calculateK(imageList);
-        saveKToModel(K);
-
+        kModel->saveKMatrix_threadSafe(K);
         con<<"Matrix K generated";
     }else{
         con<<"Matrix K loaded";
