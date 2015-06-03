@@ -53,7 +53,7 @@ MainWindow::MainWindow(QWidget *parent)
     bLayout->addWidget(generateButton);
     bLayout->addWidget(saveDistortionButton);
     bLayout->addWidget(saveKMatrixButton);
-
+    connect(generateButton,SIGNAL(clicked(bool)),this,SLOT(startSolve());
     QGridLayout* rightLay=new QGridLayout;
     rightLay->addWidget(kWidget,0,0);
     rightLay->addWidget(distWidget,1,0);
@@ -74,7 +74,7 @@ MainWindow::MainWindow(QWidget *parent)
     Worker* worker=new Worker(photoModel);
     worker->moveToThread(&solverThread);
     solverThread.start();
-    connect(generateButton,SIGNAL(clicked(bool)),worker,SLOT(solve()));
+    //connect(generateButton,SIGNAL(clicked(bool)),worker,SLOT(solve()));
 }
 
 void MainWindow::startSolve()
