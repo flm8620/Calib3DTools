@@ -2,11 +2,15 @@
 #include <QImage>
 #include <QDebug>
 #include <QThread>
+void function(){
+
+}
+
 ImageListModel::ImageListModel(QObject *parent)
     :QAbstractListModel(parent)
 {
-    connect(this,SIGNAL(requestGet()),this,SLOT(prepareImageList()));
-    connect(this,SIGNAL(requestSave(QList<QImage>)),this,SLOT(saveImageList(QList<QImage>)));
+    connect(this,SIGNAL(requestGet()),this,SLOT(prepareImageList()),Qt::QueuedConnection);
+    connect(this,SIGNAL(requestSave(QList<QImage>)),this,SLOT(saveImageList(QList<QImage>)),Qt::QueuedConnection);
 }
 
 bool ImageListModel::isEmpty()
@@ -20,6 +24,7 @@ void ImageListModel::makeEmpty()
     if(rowCount()>0)
         removeRows(0,rowCount());
     endResetModel();
+
 }
 
 

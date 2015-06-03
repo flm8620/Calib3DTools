@@ -59,16 +59,16 @@ private:
     ImageListWidget* photoWidget;
     ImageListWidget* photoCircleWidget;
     ImageListWidget* photoHarpWidget;
-    ImageListWidget* distortion_photoWidget;
-    ImageListWidget* distortion_photoCircleWidget;
-    ImageListWidget* distortion_photoHarpWidget;
+    ImageListWidget* noDistortion_photoWidget;
+    ImageListWidget* noDistortion_photoCircleWidget;
+    ImageListWidget* noDistortion_photoHarpWidget;
 
     ImageListModel* photoModel;
     ImageListModel* photoCircleModel;
     ImageListModel* photoHarpModel;
-    ImageListModel* distortion_photoModel;
-    ImageListModel* distortion_photoCircleModel;
-    ImageListModel* distortion_photoHarpModel;
+    ImageListModel* noDistortion_photoModel;
+    ImageListModel* noDistortion_photoCircleModel;
+    ImageListModel* noDistortion_photoHarpModel;
 
     Console* console;
     Console& con;

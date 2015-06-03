@@ -19,3 +19,12 @@ void Console::warning(const char *s)
     append(tr("<font color='red'><b>")+st+tr("</b></font>"));
 }
 
+void Console::messageReceiver(QString s, bool warning)
+{
+    if(warning){
+        append(tr("<font color='red'><b>")+s+tr("</b></font>"));
+    }else{
+        append(s);
+    }
+}
+

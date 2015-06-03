@@ -1,3 +1,4 @@
+
 #include "mainwindow.h"
 #include "imagelistmodel.h"
 #include "imagelistwidget.h"
@@ -11,18 +12,24 @@
 #include "worker.h"
 #include <QtWidgets>
 #include <QPushButton>
+#include <QtConcurrent>
+
+
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),console(new Console()),con(*console)
 {
-    solver=new Solver(this);
-
-
-
     setupPhotoWidgets();
     setupKMatrixWidget();
     setupDistortionWidgets();
     setupPointWidgets();
 
+    solver=new Solver(this);
+    connect(solver,SIGNAL(message(QString,bool)),console,SLOT(messageReceiver(QString,bool)));
+    solver->registerModels(photoModel,photoCircleModel,photoHarpModel,
+                           noDistortion_photoModel,noDistortion_photoCircleModel,
+                           noDistortion_photoHarpModel,distModel,
+                           kModel,point2DModel,point3DModel);
 
 
 
@@ -31,11 +38,11 @@ MainWindow::MainWindow(QWidget *parent)
     QHBoxLayout* circleLay=new QHBoxLayout;
     QHBoxLayout* harpLay=new QHBoxLayout;
     photoLay->addWidget(photoWidget);
-    photoLay->addWidget(distortion_photoWidget);
+    photoLay->addWidget(noDistortion_photoWidget);
     circleLay->addWidget(photoCircleWidget);
-    circleLay->addWidget(distortion_photoCircleWidget);
+    circleLay->addWidget(noDistortion_photoCircleWidget);
     harpLay->addWidget(photoHarpWidget);
-    harpLay->addWidget(distortion_photoHarpWidget);
+    harpLay->addWidget(noDistortion_photoHarpWidget);
 
     QVBoxLayout* leftLay=new QVBoxLayout;
     leftLay->addLayout(photoLay);
@@ -70,20 +77,12 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(center);
     statusBar();
 
-    Worker* worker=new Worker(photoModel);
-    worker->moveToThread(&solverThread);
-    solverThread.start();
     //connect(generateButton,SIGNAL(clicked(bool)),worker,SLOT(solve()));
 }
 
 void MainWindow::startSolve()
 {
-    CameraPosSolution solu;
-    if(!solve(solu)){
-        con<<"Solve failed!";
-    }else{
-        con<<"Solve succeed";
-    }
+    QtConcurrent::run(solver,&Solver::startSolve);
 }
 
 bool MainWindow::solve(CameraPosSolution& solu)
@@ -93,7 +92,7 @@ bool MainWindow::solve(CameraPosSolution& solu)
         con<<"Distortion correction of photo failed !";
         return false;
     }
-    Q_ASSERT(!distortion_photoModel->isEmpty());
+    Q_ASSERT(!noDistortion_photoModel->isEmpty());
     con<<"";
 
     if(!calculateK()){
@@ -124,7 +123,7 @@ bool MainWindow::solve(CameraPosSolution& solu)
 
     Target2D target2D=point2DModel->getTarget2D_threadSafe();
     Target3D target3D=point3DModel->getTarget3D_threadSafe();
-    QList<QImage> photoList=distortion_photoModel->getImageList_threadSafe();
+    QList<QImage> photoList=noDistortion_photoModel->getImageList_threadSafe();
     KMatrix K=kModel->getKMatrix_threadSafe();
 
     solu = solver->strechaSolver(target2D,target3D,photoList,K);
@@ -134,7 +133,7 @@ bool MainWindow::solve(CameraPosSolution& solu)
 bool MainWindow::DistortionCorrectPhoto()
 {
     con<<"Loading distortion correction of photo...";
-    if(distortion_photoModel->isEmpty()){
+    if(noDistortion_photoModel->isEmpty()){
         con<<"Distortion correction of photo is empty. Correct distortion for photos...";
         if(!calculateDistortion()){
             con<<"Failed to load distortion !";
@@ -158,7 +157,7 @@ bool MainWindow::DistortionCorrectPhoto()
         foreach (image, photoList) {
             outputList.append(solver->correctDistortion(image,dist));
         }
-        distortion_photoModel->saveImageList_threadSafe(outputList);
+        noDistortion_photoModel->saveImageList_threadSafe(outputList);
         con<<"Distortion correction of photo finished.";
     }else{
         con<<"Distortion correction of photo loaded.";
@@ -169,7 +168,7 @@ bool MainWindow::DistortionCorrectPhoto()
 bool MainWindow::DistortionCorrectPhotoCircle()
 {
     con<<"Loading distortion correction of circle photo...";
-    if(distortion_photoCircleModel->isEmpty()){
+    if(noDistortion_photoCircleModel->isEmpty()){
         con<<"Distortion correction of circle photo is empty. Correct distortion for circle photos...";
         if(!calculateDistortion()){
             con<<"Failed to load distortion !";
@@ -194,7 +193,7 @@ bool MainWindow::DistortionCorrectPhotoCircle()
         foreach (image, photoList) {
             outputList.append(solver->correctDistortion(image,dist));
         }
-        distortion_photoCircleModel->saveImageList_threadSafe(outputList);
+        noDistortion_photoCircleModel->saveImageList_threadSafe(outputList);
 
         con<<"Distortion correction of photo finished.";
     }else{
@@ -234,8 +233,8 @@ bool MainWindow::calculateK()
             con<<"Distortion Correction of circle photos failed !";
             return false;
         }
-        Q_ASSERT(!distortion_photoCircleModel->isEmpty());
-        QList<QImage> imageList=getPhotoListFromModel(distortion_photoCircleModel);
+        Q_ASSERT(!noDistortion_photoCircleModel->isEmpty());
+        QList<QImage> imageList=getPhotoListFromModel(noDistortion_photoCircleModel);
         KMatrix K=solver->calculateK(imageList);
         kModel->saveKMatrix_threadSafe(K);
         con<<"Matrix K generated";
@@ -259,17 +258,17 @@ void MainWindow::setupPhotoWidgets()
     photoCircleWidget->setModel(photoCircleModel);
     photoHarpWidget->setModel(photoHarpModel);
 
-    distortion_photoWidget=new ImageListWidget(tr("Correction: Photo"));
-    distortion_photoCircleWidget=new ImageListWidget(tr("Correction: Circle Photo"));
-    distortion_photoHarpWidget=new ImageListWidget(tr("Correction: Harp Photo"));
+    noDistortion_photoWidget=new ImageListWidget(tr("Correction: Photo"));
+    noDistortion_photoCircleWidget=new ImageListWidget(tr("Correction: Circle Photo"));
+    noDistortion_photoHarpWidget=new ImageListWidget(tr("Correction: Harp Photo"));
 
-    distortion_photoModel=new ImageListModel(this);
-    distortion_photoCircleModel=new ImageListModel(this);
-    distortion_photoHarpModel=new ImageListModel(this);
+    noDistortion_photoModel=new ImageListModel(this);
+    noDistortion_photoCircleModel=new ImageListModel(this);
+    noDistortion_photoHarpModel=new ImageListModel(this);
 
-    distortion_photoWidget->setModel(distortion_photoModel);
-    distortion_photoCircleWidget->setModel(distortion_photoCircleModel);
-    distortion_photoHarpWidget->setModel(distortion_photoHarpModel);
+    noDistortion_photoWidget->setModel(noDistortion_photoModel);
+    noDistortion_photoCircleWidget->setModel(noDistortion_photoCircleModel);
+    noDistortion_photoHarpWidget->setModel(noDistortion_photoHarpModel);
 }
 
 void MainWindow::setupKMatrixWidget()
