@@ -47,11 +47,6 @@ private:
     QList<QImage> getPhotoListFromModel(ImageListModel* model);
     void savePhotoListToModel(QList<QImage> list,ImageListModel* model);
 
-    bool solve(CameraPosSolution &solu);
-    bool DistortionCorrectPhoto();
-    bool DistortionCorrectPhotoCircle();
-    bool calculateDistortion();
-    bool calculateK();
 
 private:
     SolverThread solverThread;
