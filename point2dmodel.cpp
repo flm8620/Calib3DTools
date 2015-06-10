@@ -16,7 +16,7 @@ Point2DModel::Point2DModel(QObject *parent)
 
 bool Point2DModel::isEmpty()
 {
-    return rowCount()==0;
+    return rowCount()==0 || this->item(0)->rowCount() == 0;
 }
 
 void Point2DModel::makeEmpty()
@@ -29,8 +29,7 @@ void Point2DModel::makeEmpty()
 
 int Point2DModel::pointCount()
 {
-    if(rowCount()==0)return 0;
-    return item(0)->rowCount();
+    return this->rowCount()>0 ? this->item(0)->rowCount() : 0 ;
 }
 
 void Point2DModel::setImageModel(ImageListModel *model)
@@ -138,12 +137,12 @@ void Point2DModel::imagesChanged(const QModelIndex &topLeft)
 void Point2DModel::prepareTarget2D()
 {
     QMutexLocker locker(&mutex);
-    preparedTarget2D.data.clear();
+    preparedTarget2D.clear();
     int rows=rowCount();
     int points=item(0)->rowCount();
     for(int i=0;i<rows;++i){
-        preparedTarget2D.data.append(QList<QPointF>());
-        QList<QPointF>& l=preparedTarget2D.data.last();
+        preparedTarget2D.append(QList<QPointF>());
+        QList<QPointF>& l=preparedTarget2D.last();
         for(int j=0;j<points;j++){
             QPointF p;
             p.setX(item(i)->child(j,1)->text().toDouble());
@@ -158,12 +157,12 @@ void Point2DModel::saveTarget2D(const Target2D &target2D)
 {
     QMutexLocker locker(&mutex);
     makeEmpty();
-    int rows=target2D.data.size();
+    int rows=target2D.size();
     if(rows==0)return;
-    int points=target2D.data.first().size();
+    int points=target2D.first().size();
     for(int i=0;i<rows;++i){
         insertRow(i);
-        QList<QPointF>& l=preparedTarget2D.data[i];
+        QList<QPointF>& l=preparedTarget2D[i];
         QStandardItem *parent=invisibleRootItem()->child(i);
         for(int j=0;j<points;++j){
             double x=l.value(j).x();

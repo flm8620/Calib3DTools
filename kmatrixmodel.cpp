@@ -34,11 +34,11 @@ KMatrix KMatrixModel::getKMatrix_threadSafe()
     //auto-unlock by locker
 }
 
-void KMatrixModel::saveKMatrix_threadSafe(const KMatrix &K)
+void KMatrixModel::saveKMatrix_threadSafe(const KMatrix& value)
 {
     QMutexLocker locker(&mutex);
     qDebug()<<"K: emit requestSave(K);";
-    emit requestSave(K);
+    emit requestSave(value);
     qDebug()<<"conditionSave.wait(&mutex);";
     conditionSave.wait(&mutex);
     qDebug()<<"waked up by conditionSave";
@@ -86,31 +86,34 @@ Qt::ItemFlags KMatrixModel::flags(const QModelIndex &index) const
 
 bool KMatrixModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if(!index.isValid())return false;
+    if(!index.isValid())
+        return false;
+
     int row=index.row();
-    if(row<0||row>=5)return false;
-    if(role==Qt::EditRole){
-        switch (row) {
-        case 0:
-            fx=value.toDouble();
-            break;
-        case 1:
-            fy=value.toDouble();
-            break;
-        case 2:
-            x0=value.toDouble();
-            break;
-        case 3:
-            y0=value.toDouble();
-            break;
-        case 4:
-            s=value.toDouble();
-            break;
-        default:
-            return false;
-            break;
-        }
+    if(row<0||row>=5)
+        return false;
+
+    if(role!=Qt::EditRole)
+        return false;
+
+    switch (row) {
+    case 0:
+        fx=value.toDouble();
         return true;
+    case 1:
+        fy=value.toDouble();
+        return true;
+    case 2:
+        x0=value.toDouble();
+        return true;
+    case 3:
+        y0=value.toDouble();
+        return true;
+    case 4:
+        s=value.toDouble();
+        return true;
+    default:
+        return false;
     }
 }
 
@@ -155,22 +158,24 @@ QVariant KMatrixModel::headerData(int section, Qt::Orientation orientation, int 
 void KMatrixModel::prepareKMatrix()
 {
     QMutexLocker locker(&mutex);
-    preparedK.fx=data(index(0)).toDouble();
-    preparedK.fy=data(index(1)).toDouble();
-    preparedK.x0=data(index(2)).toDouble();
-    preparedK.y0=data(index(3)).toDouble();
-    preparedK.s=data(index(4)).toDouble();
+    double k[5] = {
+        data(index(0)).toDouble(),
+        data(index(1)).toDouble(),
+        data(index(2)).toDouble(),
+        data(index(3)).toDouble(),
+        data(index(4)).toDouble()};
+    preparedK = k;
     conditionGet.wakeAll();
 }
 
-void KMatrixModel::saveKMatrix(const KMatrix &K)
+void KMatrixModel::saveKMatrix(const KMatrix& K)
 {
     QMutexLocker locker(&mutex);
-    setData(index(0),K.fx);
-    setData(index(1),K.fy);
-    setData(index(2),K.x0);
-    setData(index(3),K.y0);
-    setData(index(4),K.s);
+    setData( index(0), K.fx() );
+    setData( index(1), K.fy() );
+    setData( index(2), K.x0() );
+    setData( index(3), K.y0() );
+    setData( index(4), K.s() );
     conditionSave.wakeAll();
 }
 

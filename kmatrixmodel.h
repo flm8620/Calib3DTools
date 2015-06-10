@@ -5,8 +5,9 @@
 #include <QAbstractListModel>
 #include <QMutex>
 #include <QWaitCondition>
-#include "solver.h"
-class KMatrixModel : public QAbstractListModel
+#include "kmatrix.h"
+
+class KMatrixModel : public QAbstractListModel, public KMatrixContainer
 {
     Q_OBJECT
 public:
@@ -14,7 +15,7 @@ public:
     bool isEmpty();
     void makeEmpty();
     KMatrix getKMatrix_threadSafe();
-    void saveKMatrix_threadSafe(const KMatrix& K);
+    void saveKMatrix_threadSafe(const KMatrix& value);
 
     int rowCount(const QModelIndex &) const;
     QVariant data(const QModelIndex &index, int role=Qt::DisplayRole) const;

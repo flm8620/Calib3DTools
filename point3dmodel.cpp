@@ -62,7 +62,7 @@ void Point3DModel::prepareTarget3D()
         p.setX(item(j,0)->text().toDouble());
         p.setY(item(j,1)->text().toDouble());
         p.setZ(item(j,2)->text().toDouble());
-        preparedTarget3D.data.append(p);
+        preparedTarget3D.append(p);
     }
     conditionGet.wakeAll();
 }
@@ -71,9 +71,9 @@ void Point3DModel::saveTarget3D(const Target3D &target3D)
 {
     QMutexLocker locker(&mutex);
     makeEmpty();
-    int points=target3D.data.size();
+    int points=target3D.size();
     for(int j=0;j<points;j++){
-        const QVector3D& p=target3D.data[j];
+        const QVector3D& p=target3D[j];
         double x=p.x(),y=p.y(),z=p.z();
         QStandardItem *item1=new QStandardItem(QString::number(x));
         QStandardItem *item2=new QStandardItem(QString::number(y));

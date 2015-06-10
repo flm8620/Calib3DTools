@@ -5,8 +5,9 @@
 #include <QStandardItemModel>
 #include <QMutex>
 #include <QWaitCondition>
-#include "solver.h"
-class Point3DModel : public QStandardItemModel
+#include "target3d.h"
+
+class Point3DModel : public QStandardItemModel, public Target3DContainer
 {
     Q_OBJECT
 public:
