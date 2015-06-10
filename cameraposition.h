@@ -1,0 +1,5 @@
+#ifndef CAMERAPOSITION_H
+#define CAMERAPOSITION_H
+
+#endif // CAMERAPOSITION_H
+
