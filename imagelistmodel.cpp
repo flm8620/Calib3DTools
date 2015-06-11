@@ -10,7 +10,7 @@ ImageListModel::ImageListModel(QObject *parent)
     :QAbstractListModel(parent)
 {
     connect(this,SIGNAL(requestGet()),this,SLOT(prepareImageList()),Qt::QueuedConnection);
-    connect(this,SIGNAL(requestSave(QList<QImage>)),this,SLOT(saveImageList(QList<QImage>)),Qt::QueuedConnection);
+    connect(this,SIGNAL(requestSave(ImageList)),this,SLOT(saveImageList(ImageList)),Qt::QueuedConnection);
 }
 
 bool ImageListModel::isEmpty()
@@ -28,7 +28,7 @@ void ImageListModel::makeEmpty()
 }
 
 
-QList<QImage> ImageListModel::getImageList_threadSafe()
+ImageList ImageListModel::getImageList_threadSafe()
 {
     QMutexLocker locker(&mutex);
     qDebug()<<"Image: emit requestGet();";
@@ -40,7 +40,7 @@ QList<QImage> ImageListModel::getImageList_threadSafe()
     //auto-unlock by locker
 }
 
-void ImageListModel::saveImageList_threadSafe(const QList<QImage> &list)
+void ImageListModel::saveImageList_threadSafe(const ImageList &list)
 {
     QMutexLocker locker(&mutex);
     qDebug()<<"Image: emit requestSave(list);";
@@ -132,7 +132,7 @@ void ImageListModel::prepareImageList()
     //auto-unlock by locker
 }
 
-void ImageListModel::saveImageList(const QList<QImage> &list)
+void ImageListModel::saveImageList(const ImageList &list)
 {
     QMutexLocker locker(&mutex);
     makeEmpty();

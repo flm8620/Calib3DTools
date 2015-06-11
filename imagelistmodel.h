@@ -24,11 +24,11 @@ public:
 public slots:
 
 signals:
-    void requestSave(const QList<QImage> &list);
+    void requestSave(const ImageList& list);
     void requestGet();
 private slots:
     void prepareImageList();
-    void saveImageList(const QList<QImage> &list);
+    void saveImageList(const ImageList& list);
 
 private:
     ImageList imageList;
