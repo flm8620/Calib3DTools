@@ -15,25 +15,28 @@ class KMatrix{
 public:
     double fx,fy,x0,y0,s;
 };
-
+Q_DECLARE_METATYPE(KMatrix)
 class Distortion{
 public:
     QList<double> data;
     bool isEmpty(){return data.size()==0;}
     void makeEmpty(){data.clear();}
 };
+Q_DECLARE_METATYPE(Distortion)
 class Target2D{
 public:
     QList<QList<QPointF> > data;
     bool isEmpty(){return data.size()==0;}
     void makeEmpty(){data.clear();}
 };
+Q_DECLARE_METATYPE(Target2D)
 class Target3D{
 public:
     QList<QVector3D> data;
     bool isEmpty(){return data.size()==0;}
     void makeEmpty(){data.clear();}
 };
+Q_DECLARE_METATYPE(Target3D)
 class CameraPosSolution{
 public:
     QList<QVector3D> data;
