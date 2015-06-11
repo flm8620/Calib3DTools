@@ -44,8 +44,8 @@ inline KMatrix& KMatrix::operator =(const double value[5]) {
     this->_fx = value[0];
     this->_fy = value[1];
     this->_x0 = value[2];
-    this->_y0 = value[4];
-    this->_s = value[5];
+    this->_y0 = value[3];
+    this->_s = value[4];
     return *this;
 }
 
