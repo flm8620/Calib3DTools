@@ -1,16 +1,22 @@
-#include "mainwindow.h"
 #include <QApplication>
 #include <QList>
 #include <QImage>
-#include "solver.h"
+#include "mainwindow.h"
+#include "distrortion.h"
+#include "imagelist.h"
+#include "target2d.h"
+#include "target3d.h"
+#include "kmatrix.h"
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    qRegisterMetaType<Distortion>();
-    qRegisterMetaType<QList<QImage> >();
+    qRegisterMetaType<Distortion>("Distortion");
+    qRegisterMetaType<ImageList >("ImagList");
     qRegisterMetaType<Target2D>();
-    qRegisterMetaType<Target3D>();
+    qRegisterMetaType<Target3D>("Target3D");
     qRegisterMetaType<KMatrix>();
+
     MainWindow w;
     w.show();
 

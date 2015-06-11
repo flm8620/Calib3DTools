@@ -36,21 +36,21 @@ private:
     void setupDistortionWidgets();
     void setupPointWidgets();
 
-    Distortion getDistortionFromModel();
-    void saveDistortionToModel(const Distortion &dist);
-    KMatrix getKFromModel();
-    void saveKToModel(const KMatrix& K);
-    Target2D getTarget2DFromModel();
-    void saveTarget2DToModel(const Target2D& target2D);
-    Target3D getTarget3DFromModel();
-    void saveTarget3DToModel(const Target3D& target3D);
-    QList<QImage> getPhotoListFromModel(ImageListModel* model);
-    void savePhotoListToModel(QList<QImage> list,ImageListModel* model);
+//    Distortion getDistortionFromModel();
+//    void saveDistortionToModel(const Distortion &dist);
+//    KMatrix getKFromModel();
+//    void saveKToModel(const KMatrix& K);
+//    Target2D getTarget2DFromModel();
+//    void saveTarget2DToModel(const Target2D& target2D);
+//    Target3D getTarget3DFromModel();
+//    void saveTarget3DToModel(const Target3D& target3D);
+//    QList<QImage> getPhotoListFromModel(ImageListModel* model);
+//    void savePhotoListToModel(QList<QImage> list,ImageListModel* model);
 
 
 private:
+    Solver * solver;
     SolverThread solverThread;
-    Solver* solver;
     ImageListWidget* photoWidget;
     ImageListWidget* photoCircleWidget;
     ImageListWidget* photoHarpWidget;

@@ -57,4 +57,10 @@ HEADERS  += mainwindow.h \
     ClickImage/clickdialog.h \
     console.h \
     solverthread.h \
-    worker.h
+    worker.h \
+    distrortion.h \
+    kmatrix.h \
+    target2d.h \
+    target3d.h \
+    imagelist.h \
+    cameraposition.h

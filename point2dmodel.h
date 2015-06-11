@@ -1,13 +1,13 @@
 #ifndef POINT2DMODEL_H
 #define POINT2DMODEL_H
 
-#include <QObject>
+#include <QtCore>
 #include <QStandardItemModel>
-#include <QMutex>
-#include <QWaitCondition>
-#include "solver.h"
+#include "target2d.h"
+
+
 class ImageListModel;
-class Point2DModel : public QStandardItemModel
+class Point2DModel : public QStandardItemModel, public Target2DContainer
 {
     Q_OBJECT
 public:

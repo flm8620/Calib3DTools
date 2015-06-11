@@ -1,15 +1,11 @@
 #ifndef IMAGELISTMODEL_H
 #define IMAGELISTMODEL_H
 
-#include <QObject>
-#include <QAbstractListModel>
-#include <QImage>
-#include <QMutex>
-#include <QWaitCondition>
-template<typename T> class QList;
+#include <QtCore>
+#include <QtGui>
+#include "imagelist.h"
 
-class QString;
-class ImageListModel : public QAbstractListModel
+class ImageListModel : public QAbstractListModel, public ImageListContainer
 {
     Q_OBJECT
 public:
@@ -17,8 +13,8 @@ public:
     bool isEmpty();
     void makeEmpty();
 
-    QList<QImage> getImageList_threadSafe();
-    void saveImageList_threadSafe(const QList<QImage>& list);
+    ImageList getImageList_threadSafe();
+    void saveImageList_threadSafe(const ImageList& list);
     int rowCount(const QModelIndex & index=QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
@@ -35,14 +31,12 @@ private slots:
     void saveImageList(const QList<QImage> &list);
 
 private:
-    QList<QImage> imageList;
+    ImageList imageList;
     QList<QString> imageName;
     QMutex mutex;
     QWaitCondition conditionGet;
     QWaitCondition conditionSave;
-    QList<QImage> preparedList;//locked by mutex
-
-
+    ImageList preparedList;//locked by mutex
 };
 
 #endif // IMAGELISTMODEL_H

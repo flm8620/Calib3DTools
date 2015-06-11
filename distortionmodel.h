@@ -1,13 +1,11 @@
 #ifndef DISTORTIONMODEL_H
 #define DISTORTIONMODEL_H
 
-#include <QObject>
+#include <QtCore>
 #include <QAbstractListModel>
-#include <QMutex>
-#include <QWaitCondition>
-#include "solver.h"
-template<typename T> class QList;
-class DistortionModel : public QAbstractListModel
+#include "distrortion.h"
+
+class DistortionModel : public QAbstractListModel, public DistortionContainer
 {
     Q_OBJECT
 public:
@@ -15,7 +13,7 @@ public:
     bool isEmpty();
     void makeEmpty();
     Distortion getDistortion_threadSafe();
-    void saveDistortion_threadSafe(const Distortion& dist);
+    void saveDistortion_threadSafe(const Distortion& value);
     int rowCount(const QModelIndex & index=QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role=Qt::DisplayRole) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;

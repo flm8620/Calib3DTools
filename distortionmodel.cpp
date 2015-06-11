@@ -1,5 +1,4 @@
 #include "distortionmodel.h"
-#include "solver.h"
 #include <QDebug>
 
 DistortionModel::DistortionModel(QObject *parent)
@@ -110,24 +109,23 @@ QVariant DistortionModel::headerData(int section, Qt::Orientation orientation, i
 void DistortionModel::prepareDistortion()
 {
     QMutexLocker locker(&mutex);
-    preparedDistortion.data.clear();
+    preparedDistortion.clear();
     int rows=rowCount();
     for(int i=0;i<rows;++i){
         QModelIndex id=index(i);
-        preparedDistortion.data.append( data(id).toDouble());
+        preparedDistortion.append( data(id).toDouble());
     }
     conditionGet.wakeAll();
 }
 
-void DistortionModel::saveDistortion(const Distortion &dist)
+void DistortionModel::saveDistortion(const Distortion& value)
 {
     QMutexLocker locker(&mutex);
     makeEmpty();
-    int rows=dist.data.size();
+    int rows=value.size();
     for(int i=0;i<rows;++i){
         insertRow(i);
-        setData(index(i),dist.data.value(i));
+        setData(index(i),value[i]);
     }
     conditionSave.wakeAll();
-
 }

@@ -1,6 +1,7 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
+<<<<<<< HEAD
 #include <QObject>
 #include <QList>
 #include <QPointF>
@@ -41,27 +42,33 @@ class CameraPosSolution{
 public:
     QList<QVector3D> data;
 };
+=======
+#include "imagelist.h"
+#include "distrortion.h"
+#include "kmatrix.h"
+#include "target2d.h"
+#include "target3d.h"
+#include "cameraposition.h"
+
+#include <QtCore>
+#include <QtGui>
+>>>>>>> origin/refactor
 
 class Solver : public QObject
 {
     Q_OBJECT
 public:
     explicit Solver(QObject *parent = 0);
-    Distortion calculateDistortion(const QList<QImage>& imageList);
-    QImage correctDistortion(const QImage& image,const Distortion& distortion);
-    KMatrix calculateK(const QList<QImage>& circlePhotoList);
-    CameraPosSolution openMVGSolver(Target2D target2D,const QList<QImage>& photoList,KMatrix K);
-    CameraPosSolution strechaSolver(Target2D target2D,Target3D target3D,const QList<QImage>& photoList,KMatrix K);
-    void registerModels(ImageListModel* photoModel,
-                        ImageListModel* photoCircleModel,
-                        ImageListModel* photoHarpModel,
-                        ImageListModel* noDistortion_photoModel,
-                        ImageListModel* noDistortion_photoCircleModel,
-                        ImageListModel* noDistortion_photoHarpModel,
-                        DistortionModel* distModel,
-                        KMatrixModel* kModel,
-                        Point2DModel* point2DModel,
-                        Point3DModel* point3DModel
+    void registerModels(ImageListContainer* photoContainer,
+                        ImageListContainer* photoCircleContainer,
+                        ImageListContainer* photoHarpContainer,
+                        ImageListContainer* noDistortionPhotoContainer,
+                        ImageListContainer* noDistortionPhotoCircleContainer,
+                        ImageListContainer* noDistortionPhotoHarpContainer,
+                        DistortionContainer* distContainer,
+                        KMatrixContainer* kContainer,
+                        Target2DContainer* point2DContainer,
+                        Target3DContainer* point3DContainer
                         );
 
     bool solve(CameraPosSolution &solu);
@@ -74,16 +81,16 @@ signals:
 public slots:
     void startSolve();
 private:
-    ImageListModel* photoModel;
-    ImageListModel* photoCircleModel;
-    ImageListModel* photoHarpModel;
-    ImageListModel* noDistortion_photoModel;
-    ImageListModel* noDistortion_photoCircleModel;
-    ImageListModel* noDistortion_photoHarpModel;
-    DistortionModel* distModel;
-    KMatrixModel* kModel;
-    Point2DModel* point2DModel;
-    Point3DModel* point3DModel;
+    ImageListContainer* photoContainer;
+    ImageListContainer* photoCircleContainer;
+    ImageListContainer* photoHarpContainer;
+    ImageListContainer* noDistortionPhotoContainer;
+    ImageListContainer* noDistortionPhotoCircleContainer;
+    ImageListContainer* noDistortionPhotoHarpContainer;
+    DistortionContainer* distContainer;
+    KMatrixContainer* kContainer;
+    Target2DContainer* point2DContainer;
+    Target3DContainer* point3DContainer;
 };
 
 #endif // SOLVER_H
