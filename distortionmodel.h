@@ -29,7 +29,8 @@ private slots:
     void saveDistortion(const Distortion& dist);
 private:
 
-    QList<double> para;
+    //QList<double> para;
+    Distortion modelData;
     QMutex mutex;
     QWaitCondition conditionGet;
     QWaitCondition conditionSave;

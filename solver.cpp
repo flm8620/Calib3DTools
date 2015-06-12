@@ -11,7 +11,10 @@ static Distortion calculateDistortion(const ImageList &imageList)
 {
     Q_ASSERT(!imageList.isEmpty());
     Distortion dist;
-    dist << 1.0 << 2.0 << 3.0 << 4.0 << 5.0;
+    dist.setMaxOrder(3);
+    for(int i=0;i<dist.getTotalNum();++i){
+        dist[i]=1.2345678901;
+    }
     return dist;
 }
 
