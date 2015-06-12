@@ -3,7 +3,7 @@
 
 #include <QtCore>
 #include <QAbstractListModel>
-#include "distrortion.h"
+#include "distortion.h"
 
 class DistortionModel : public QAbstractListModel, public DistortionContainer
 {

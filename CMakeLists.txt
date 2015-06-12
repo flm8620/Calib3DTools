@@ -11,7 +11,7 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Concurrent REQUIRED)
 
-file(GLOB SOURCE_FILES "*.cpp")
+file(GLOB SOURCE_FILES "*.cpp" "*.h")
 include_directories(ClickImage)
 add_subdirectory(ClickImage)
 #add_directories(ClickImage)

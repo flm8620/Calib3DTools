@@ -2,7 +2,7 @@
 #include <QList>
 #include <QImage>
 #include "mainwindow.h"
-#include "distrortion.h"
+#include "distortion.h"
 #include "imagelist.h"
 #include "target2d.h"
 #include "target3d.h"
