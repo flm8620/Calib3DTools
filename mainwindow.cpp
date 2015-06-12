@@ -9,7 +9,6 @@
 #include "point3dwidget.h"
 #include "point3dmodel.h"
 #include "console.h"
-#include "worker.h"
 #include <QtWidgets>
 #include <QPushButton>
 #include <QtConcurrent>
