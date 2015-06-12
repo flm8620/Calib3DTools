@@ -3,7 +3,7 @@
 
 
 #include "imagelist.h"
-#include "distrortion.h"
+#include "distortion.h"
 #include "kmatrix.h"
 #include "target2d.h"
 #include "target3d.h"

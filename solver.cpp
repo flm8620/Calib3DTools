@@ -1,5 +1,4 @@
 #include "solver.h"
-#include "imagelistmodel.h"
 
 #include <QtGlobal>
 
@@ -182,8 +181,8 @@ bool Solver::DistortionCorrectPhotoCircle()
             emit message(tr("Circle photos loaded"));
         }
 
-        QList<QImage> photoList=photoCircleContainer->getImageList_threadSafe();
-        QList<QImage> outputList;
+        ImageList photoList=photoCircleContainer->getImageList_threadSafe();
+        ImageList outputList;
         QImage image;
         foreach (image, photoList) {
             outputList.append( correctDistortion(image,dist) );

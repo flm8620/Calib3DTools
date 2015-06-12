@@ -139,7 +139,7 @@ void MainWindow::setupDistortionWidgets()
 void MainWindow::setupPointWidgets()
 {
     point2DModel=new Point2DModel(this);
-    point2DModel->setImageModel(photoModel);
+    point2DModel->setImageModel(noDistortion_photoModel);
     point2DWidget=new Point2DWidget;
     point2DWidget->setModel(point2DModel);
 

@@ -11,12 +11,12 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Concurrent REQUIRED)
 
-file(GLOB SOURCE_FILES "*.cpp")
+file(GLOB SOURCE_FILES "*.cpp" "*.h")
+
 include_directories(ClickImage)
 add_subdirectory(ClickImage)
-#add_directories(ClickImage)
-# Tell CMake to create the helloworld executable
+# Tell CMake to create the executable
 add_executable(mainInterface ${SOURCE_FILES})
-target_link_libraries(mainInterface ClickImage)
+
 # Use the Widgets module from Qt 5.
-target_link_libraries(mainInterface Qt5::Widgets Qt5::Concurrent)
+target_link_libraries(mainInterface ClickImage Qt5::Widgets Qt5::Concurrent)
