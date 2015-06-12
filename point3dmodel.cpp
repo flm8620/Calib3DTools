@@ -56,6 +56,7 @@ void Point3DModel::saveTarget3D_threadSafe(const Target3D &target3D)
 void Point3DModel::prepareTarget3D()
 {
     QMutexLocker locker(&mutex);
+    preparedTarget3D.clear();
     int points=rowCount();
     for(int j=0;j<points;j++){
         QVector3D p;
