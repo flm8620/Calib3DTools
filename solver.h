@@ -11,6 +11,12 @@
 #include <QtCore>
 #include <QtGui>
 
+class Messager {
+public:
+    typedef enum { INFO, WARN, ERROR } MessageType ;
+    virtual void message(const char * content, MessageType type ) =0;
+};
+
 class Solver : public QObject
 {
     Q_OBJECT
@@ -25,7 +31,8 @@ public:
                         DistortionContainer* distContainer,
                         KMatrix* kMatrix,
                         Target2DContainer* point2DContainer,
-                        Target3DContainer* point3DContainer
+                        Target3DContainer* point3DContainer,
+                        Messager* messager =0
                         );
 
     bool solve(CameraPosSolution &solu);
@@ -33,8 +40,6 @@ public:
     bool DistortionCorrectPhotoCircle();
     bool calculateDistortion();
     bool calculateK();
-signals:
-    void message(QString s,bool warning=false);
 public slots:
     void startSolve();
 private:
@@ -48,6 +53,8 @@ private:
     KMatrix* kMatrix;
     Target2DContainer* point2DContainer;
     Target3DContainer* point3DContainer;
+    Messager* messager;
+    void message(const char * message, Messager::MessageType type=Messager::INFO);
 };
 
 #endif // SOLVER_H

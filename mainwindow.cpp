@@ -15,11 +15,11 @@ MainWindow::MainWindow(QWidget *parent)
     setupPointWidgets();
 
     this->solver=new Solver(this);
-    connect(solver,SIGNAL(message(QString,bool)),console,SLOT(messageReceiver(QString,bool)));
+    connect(this,SIGNAL(message(QString,bool)),console,SLOT(messageReceiver(QString,bool)));
     this->solver->registerModels(photoModel,photoCircleModel,photoHarpModel,
                            noDistortion_photoModel,noDistortion_photoCircleModel,
                            noDistortion_photoHarpModel,distModel,
-                           kModel->core(),point2DModel,point3DModel);
+                           kModel->core(),point2DModel,point3DModel, this);
 
 
 
@@ -68,6 +68,11 @@ MainWindow::MainWindow(QWidget *parent)
     statusBar();
 
     //connect(generateButton,SIGNAL(clicked(bool)),worker,SLOT(solve()));
+}
+
+void MainWindow::message( const char *content, MessageType type )
+{
+    emit this->message(tr(content), type>=WARN);
 }
 
 void MainWindow::startSolve()

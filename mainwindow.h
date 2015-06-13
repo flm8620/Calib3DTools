@@ -14,12 +14,18 @@
 
 #include <QMainWindow>
 
-class MainWindow : public QMainWindow
+class MainWindow : public QMainWindow, public Messager
 {
     Q_OBJECT
 
 public:
     MainWindow(QWidget *parent = 0);
+
+    void message( const char *content, MessageType type );
+
+signals:
+    void message(QString s,bool warning=false);
+
 private slots:
     void startSolve();
 private:

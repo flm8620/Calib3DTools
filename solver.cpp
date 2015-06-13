@@ -74,7 +74,7 @@ void Solver::registerModels(ImageListContainer *photoContainer,
                             DistortionContainer *distContainer,
                             KMatrix *kMatrix,
                             Target2DContainer *point2DContainer,
-                            Target3DContainer* point3DContainer)
+                            Target3DContainer* point3DContainer, Messager *messager)
 {
     this->photoContainer=photoContainer;
     this->photoCircleContainer=photoCircleContainer;
@@ -86,15 +86,23 @@ void Solver::registerModels(ImageListContainer *photoContainer,
     this->distContainer =distContainer;
     this->point2DContainer =point2DContainer;
     this->point3DContainer =point3DContainer;
+    this->messager = messager;
 }
+
+void Solver::message(const char * message, Messager::MessageType type)
+{
+    if(this->messager != NULL)
+        this->messager->message(message, type);
+}
+
 
 void Solver::startSolve()
 {
     CameraPosSolution solu;
     if(!solve(solu)){
-        emit message(tr("Solve failed!"),true);
+        this->message("Solve failed!", Messager::WARN);
     }else{
-        emit message(tr("Solve succeed"));
+        this->message("Solve succeed");
     }
     //return solu;
 }
@@ -102,38 +110,38 @@ void Solver::startSolve()
 bool Solver::solve(CameraPosSolution &solu)
 {
     if(!DistortionCorrectPhoto()){
-        emit message(tr("Distortion correction of photo failed !"));
+        this->message("Distortion correction of photo failed !");
         return false;
     }
     Q_ASSERT(!noDistortionPhotoContainer->isEmpty());
-    emit message(tr(""));
+    this->message("");
 
     if(!calculateK()){
-        emit message(tr("Failed to calculate matrix K !"));
+        this->message("Failed to calculate matrix K !");
         return false;
     }
-    emit message(tr(""));
+    this->message("");
     Q_ASSERT(!kMatrix->isEmpty());
 
     if(point2DContainer->isEmpty()){
-        emit message(tr("You should set at least one 2D point"),true);
+        this->message("You should set at least one 2D point", Messager::WARN);
         return false;
     }else{
-        emit message(tr("2D points loaded"));
+        this->message("2D points loaded");
     }
 
     if(point3DContainer->isEmpty()){
-        emit message(tr("You should set at least one 3D point"),true);
+        this->message("You should set at least one 3D point", Messager::WARN);
         return false;
     }else{
-        emit message(tr("3D points loaded"));
+        this->message("3D points loaded");
     }
 
     Target2D target2D=this->point2DContainer->getTarget2D_threadSafe();
     Target3D target3D=this->point3DContainer->getTarget3D_threadSafe();
 
     if(target2D.pointCount()!=target3D.count()){
-        emit message(tr("You should set same amount of 2D and 3D point"),true);
+        this->message("You should set same amount of 2D and 3D point", Messager::WARN);
         return false;
     }
 
@@ -146,23 +154,23 @@ bool Solver::solve(CameraPosSolution &solu)
 
 bool Solver::DistortionCorrectPhoto()
 {
-    emit message(tr("Loading distortion correction of photo..."));
+    this->message("Loading distortion correction of photo...");
     if(noDistortionPhotoContainer->isEmpty()){
-        emit message(tr("Distortion correction of photo is empty. Correct distortion for photos..."));
+        this->message("Distortion correction of photo is empty. Correct distortion for photos...");
         if(!calculateDistortion()){
-            emit message(tr("Failed to load distortion !"));
+            this->message("Failed to load distortion !");
             return false;
         }
         Q_ASSERT(!this->distContainer->isEmpty());
 
         Distortion dist=this->distContainer->getDistortion_threadSafe();
 
-        emit message(tr("Loading photos..."));
+        this->message("Loading photos...");
         if(this->photoContainer->isEmpty()){
-            emit message(tr("No photo found ! You should load photos."),true);
+            this->message("No photo found ! You should load photos.", Messager::WARN);
             return false;
         }else{
-            emit message(tr("Photos loaded"));
+            this->message("Photos loaded");
         }
 
         ImageList photoList=photoContainer->getImageList_threadSafe();
@@ -172,32 +180,32 @@ bool Solver::DistortionCorrectPhoto()
             outputList.append(correctDistortion(image, dist));
         }
         noDistortionPhotoContainer->saveImageList_threadSafe(outputList);
-        emit message(tr("Distortion correction of photo finished."));
+        this->message("Distortion correction of photo finished.");
     }else{
-        emit message(tr("Distortion correction of photo loaded."));
+        this->message("Distortion correction of photo loaded.");
     }
     return true;
 }
 
 bool Solver::DistortionCorrectPhotoCircle()
 {
-    emit message(tr("Loading distortion correction of circle photo..."));
+    this->message("Loading distortion correction of circle photo...");
     if(noDistortionPhotoCircleContainer->isEmpty()){
-        emit message(tr("Distortion correction of circle photo is empty. Correct distortion for circle photos..."));
+        this->message("Distortion correction of circle photo is empty. Correct distortion for circle photos...");
         if(!calculateDistortion()){
-            emit message(tr("Failed to load distortion !"));
+            this->message("Failed to load distortion !");
             return false;
         }
         Q_ASSERT(!distContainer->isEmpty());
 
         Distortion dist=distContainer->getDistortion_threadSafe();
 
-        emit message(tr("Loading circle photos..."));
+        this->message("Loading circle photos...");
         if(this->photoCircleContainer->isEmpty()){
-            emit message(tr("No circle photo found ! You should load circle photos."),true);
+            this->message("No circle photo found ! You should load circle photos.", Messager::WARN);
             return false;
         }else{
-            emit message(tr("Circle photos loaded"));
+            this->message("Circle photos loaded");
         }
 
         ImageList photoList=photoCircleContainer->getImageList_threadSafe();
@@ -208,9 +216,9 @@ bool Solver::DistortionCorrectPhotoCircle()
         }
         noDistortionPhotoCircleContainer->saveImageList_threadSafe(outputList);
 
-        emit message(tr("Distortion correction of photo finished."));
+        this->message("Distortion correction of photo finished.");
     }else{
-        emit message(tr("Distortion correction of circle photo loaded."));
+        this->message("Distortion correction of circle photo loaded.");
     }
     return true;
 
@@ -218,40 +226,40 @@ bool Solver::DistortionCorrectPhotoCircle()
 
 bool Solver::calculateDistortion( )
 {
-    emit message(tr("Loading distortion parameter..."));
+    this->message("Loading distortion parameter...");
     if(distContainer->isEmpty()){
-        emit message(tr("Distortion parameter is empty. Calculating distortion parameter"));
+        this->message("Distortion parameter is empty. Calculating distortion parameter");
 
         if(photoHarpContainer->isEmpty()){
-            emit message(tr("You should load harp photos"),true);
+            this->message("You should load harp photos", Messager::WARN);
             return false;
         }
         ImageList imageList=photoHarpContainer->getImageList_threadSafe();
         Distortion dist = ::calculateDistortion(imageList);
         distContainer->saveDistortion_threadSafe(dist);
-        emit message(tr("Distortion calculated"));
+        this->message("Distortion calculated");
     }else{
-        emit message(tr("Distortion parameter loaded"));
+        this->message("Distortion parameter loaded");
     }
     return true;
 }
 
 bool Solver::calculateK( )
 {
-    emit message(tr("Loading matrix K..."));
+    this->message("Loading matrix K...");
     if(kMatrix->isEmpty()){
-        emit message(tr("Matrix K is empty. Calculating K from corrected harp photos..."));
+        this->message("Matrix K is empty. Calculating K from corrected harp photos...");
 
         if(!DistortionCorrectPhotoCircle()){
-            emit message(tr("Distortion Correction of circle photos failed !"));
+            this->message("Distortion Correction of circle photos failed !");
             return false;
         }
         Q_ASSERT(!noDistortionPhotoCircleContainer->isEmpty());
         ImageList imageList=noDistortionPhotoCircleContainer->getImageList_threadSafe();
         *(this->kMatrix) = ::calculateK(imageList);
-        emit message(tr("Matrix K generated"));
+        this->message("Matrix K generated");
     }else{
-        emit message(tr("Matrix K loaded"));
+        this->message("Matrix K loaded");
     }
     return true;
 }
