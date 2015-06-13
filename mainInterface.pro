@@ -34,7 +34,8 @@ SOURCES += main.cpp\
     ClickImage/clickdialog.cpp \
     console.cpp \
     solverthread.cpp \
-    worker.cpp
+    worker.cpp \
+    kmatrix.cpp
 
 HEADERS  += mainwindow.h \
     solver.h \

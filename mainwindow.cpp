@@ -1,15 +1,5 @@
 
 #include "mainwindow.h"
-#include "imagelistmodel.h"
-#include "imagelistwidget.h"
-#include "distortionmodel.h"
-#include "kmatrixmodel.h"
-#include "point2dwidget.h"
-#include "point2dmodel.h"
-#include "point3dwidget.h"
-#include "point3dmodel.h"
-#include "console.h"
-#include "worker.h"
 #include <QtWidgets>
 #include <QPushButton>
 #include <QtConcurrent>
@@ -29,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->solver->registerModels(photoModel,photoCircleModel,photoHarpModel,
                            noDistortion_photoModel,noDistortion_photoCircleModel,
                            noDistortion_photoHarpModel,distModel,
-                           kModel,point2DModel,point3DModel);
+                           kModel->core(),point2DModel,point3DModel);
 
 
 

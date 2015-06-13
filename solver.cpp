@@ -15,21 +15,40 @@ static Distortion calculateDistortion(const ImageList &imageList)
     return dist;
 }
 
-static QImage correctDistortion(const QImage &image, const Distortion &distortion)
+static QImage correctDistortion(const QImage &image, const Distortion &distortion )
 {
-    QImage result=image;
+    const static int LABEL_WIDTH = 240;
+    const static int LABEL_HEIGHT = 30;
+    const static QColor LABEL_BACKGROUND_COLOR("white");
+    const static QColor LABEL_TEXT_COLOR("blue");
+    const static char * LABEL_FONT_NAME = "Arial";
+    const static int LABEL_FONT_SIZE = 24;
+    const static char *LABEL_TEXT = "Distortion Corrected";
+
+     QImage  result = image.convertToFormat(QImage::Format_RGB888);
+     if(result.width()<LABEL_WIDTH)
+         result = result.scaledToWidth(LABEL_WIDTH);
+    if(result.height()<LABEL_HEIGHT)
+        result = result.scaledToHeight(LABEL_HEIGHT);
+
+    QRectF labelRect((result.width()-LABEL_WIDTH)/2, (result.height()-LABEL_HEIGHT)/2, LABEL_WIDTH, LABEL_HEIGHT );
     QPainter painter(&result);
-    QRectF rect(100,100,500,500);
-    painter.drawText(rect,"Distortion Corrected");
+    painter.setPen( QPen( LABEL_TEXT_COLOR ) );
+    QFont labelFont( LABEL_FONT_NAME );
+    labelFont.setPixelSize( LABEL_FONT_SIZE );
+    painter.setFont( labelFont );
+
+    painter.fillRect( labelRect, LABEL_BACKGROUND_COLOR );
+    painter.drawText(labelRect, Qt::AlignCenter, LABEL_TEXT);
+
     return result;
 }
 
-static KMatrix calculateK(const ImageList& circlePhotoList)
+static KValue calculateK(const ImageList& circlePhotoList)
 {
     Q_ASSERT(!circlePhotoList.isEmpty());
 
-    double  K[5] = {10.0, 10.0, 100.0, 100.0, 0.0};
-    return K;
+    return {10.0, 10.0, 100.0, 100.0, 3.14};
 }
 
 static CameraPosSolution openMVGSolver(Target2D target2D, const ImageList& photoList, KMatrix K)
@@ -39,7 +58,7 @@ static CameraPosSolution openMVGSolver(Target2D target2D, const ImageList& photo
     return s;
 }
 
-static CameraPosSolution strechaSolver(Target2D target2D, Target3D target3D, const ImageList& photoList, KMatrix K)
+static CameraPosSolution strechaSolver(Target2D target2D, Target3D target3D, const ImageList& photoList, KValue K)
 {
     CameraPosSolution s;
     s << QVector3D(10,10,10) << QVector3D(20,20,20);
@@ -53,7 +72,7 @@ void Solver::registerModels(ImageListContainer *photoContainer,
                             ImageListContainer *noDistortion_photoCircleContainer,
                             ImageListContainer *noDistortion_photoHarpContainer,
                             DistortionContainer *distContainer,
-                            KMatrixContainer *kContainer,
+                            KMatrix *kMatrix,
                             Target2DContainer *point2DContainer,
                             Target3DContainer* point3DContainer)
 {
@@ -63,7 +82,7 @@ void Solver::registerModels(ImageListContainer *photoContainer,
     this->noDistortionPhotoContainer=noDistortion_photoContainer;
     this->noDistortionPhotoCircleContainer=noDistortion_photoCircleContainer;
     this->noDistortionPhotoHarpContainer=noDistortion_photoHarpContainer;
-    this->kContainer=kContainer;
+    this->kMatrix = kMatrix;
     this->distContainer =distContainer;
     this->point2DContainer =point2DContainer;
     this->point3DContainer =point3DContainer;
@@ -94,7 +113,7 @@ bool Solver::solve(CameraPosSolution &solu)
         return false;
     }
     emit message(tr(""));
-    Q_ASSERT(!kContainer->isEmpty());
+    Q_ASSERT(!kMatrix->isEmpty());
 
     if(point2DContainer->isEmpty()){
         emit message(tr("You should set at least one 2D point"),true);
@@ -119,7 +138,7 @@ bool Solver::solve(CameraPosSolution &solu)
     }
 
     ImageList photoList=this->noDistortionPhotoContainer->getImageList_threadSafe();
-    KMatrix K=this->kContainer->getKMatrix_threadSafe();
+    KValue K=this->kMatrix->getValue();
 
     solu = strechaSolver(target2D,target3D,photoList,K);
     return true;
@@ -220,7 +239,7 @@ bool Solver::calculateDistortion( )
 bool Solver::calculateK( )
 {
     emit message(tr("Loading matrix K..."));
-    if(kContainer->isEmpty()){
+    if(kMatrix->isEmpty()){
         emit message(tr("Matrix K is empty. Calculating K from corrected harp photos..."));
 
         if(!DistortionCorrectPhotoCircle()){
@@ -229,8 +248,7 @@ bool Solver::calculateK( )
         }
         Q_ASSERT(!noDistortionPhotoCircleContainer->isEmpty());
         ImageList imageList=noDistortionPhotoCircleContainer->getImageList_threadSafe();
-        KMatrix K= ::calculateK(imageList);
-        kContainer->saveKMatrix_threadSafe(K);
+        *(this->kMatrix) = ::calculateK(imageList);
         emit message(tr("Matrix K generated"));
     }else{
         emit message(tr("Matrix K loaded"));

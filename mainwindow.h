@@ -1,27 +1,19 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "imagelistmodel.h"
+#include "imagelistwidget.h"
+#include "distortionmodel.h"
+#include "kmatrixmodel.h"
+#include "point2dwidget.h"
+#include "point2dmodel.h"
+#include "point3dwidget.h"
+#include "point3dmodel.h"
+#include "console.h"
+#include "solver.h"
+
 #include <QMainWindow>
-#include <solver.h>
-#include <solverthread.h>
-template<typename T> class QList;
-class ImageListWidget;
-class ImageListModel;
-class QGroupBox;
-class QPlainTextEdit;
-class QTableWidget;
-class QStandardItemModel;
-class QTableWidget;
-class QTableView;
-class QTreeView;
-class QImage;
-class DistortionModel;
-class KMatrixModel;
-class Point2DWidget;
-class Point2DModel;
-class Point3DWidget;
-class Point3DModel;
-class Console;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -36,21 +28,8 @@ private:
     void setupDistortionWidgets();
     void setupPointWidgets();
 
-//    Distortion getDistortionFromModel();
-//    void saveDistortionToModel(const Distortion &dist);
-//    KMatrix getKFromModel();
-//    void saveKToModel(const KMatrix& K);
-//    Target2D getTarget2DFromModel();
-//    void saveTarget2DToModel(const Target2D& target2D);
-//    Target3D getTarget3DFromModel();
-//    void saveTarget3DToModel(const Target3D& target3D);
-//    QList<QImage> getPhotoListFromModel(ImageListModel* model);
-//    void savePhotoListToModel(QList<QImage> list,ImageListModel* model);
-
-
 private:
     Solver * solver;
-    SolverThread solverThread;
     ImageListWidget* photoWidget;
     ImageListWidget* photoCircleWidget;
     ImageListWidget* photoHarpWidget;
