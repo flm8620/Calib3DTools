@@ -14,11 +14,14 @@ ImageListView::ImageListView(QWidget *parent)
 void ImageListView::openImage()
 {
     QFileDialog dialog(this,tr("Open Image"),QDir::currentPath());
-    QStringList formatList;
-    formatList.append("image/jpeg");
-    formatList.append("image/png");
+    //QStringList formatList;
+    QStringList filters;
+    filters << "Image files (*.png *.bmp *.jpg *.jpeg)"
+            << "Any files (*)";
+
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
-    dialog.setMimeTypeFilters(formatList);
+    //dialog.setMimeTypeFilters(formatList);
+    dialog.setNameFilters(filters);
     dialog.setFileMode(QFileDialog::ExistingFiles);
     while(dialog.exec() == QDialog::Accepted){
         if(loadImage(dialog.selectedFiles())) break;

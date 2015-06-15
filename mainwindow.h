@@ -2,8 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <solver.h>
-#include <solverthread.h>
+#include "solver.h"
 template<typename T> class QList;
 class ImageListWidget;
 class ImageListModel;
@@ -50,7 +49,6 @@ private:
 
 private:
     Solver * solver;
-    SolverThread solverThread;
     ImageListWidget* photoWidget;
     ImageListWidget* photoCircleWidget;
     ImageListWidget* photoHarpWidget;

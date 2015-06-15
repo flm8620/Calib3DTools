@@ -13,6 +13,7 @@
 #include <QtGui>
 
 
+
 class Solver : public QObject
 {
     Q_OBJECT

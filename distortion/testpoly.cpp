@@ -1,0 +1,3 @@
+void mytest(){
+    return ;
+}

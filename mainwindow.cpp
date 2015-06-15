@@ -9,6 +9,7 @@
 #include "point3dwidget.h"
 #include "point3dmodel.h"
 #include "console.h"
+#include "doublespindelegate.h"
 #include <QtWidgets>
 #include <QPushButton>
 #include <QtConcurrent>
@@ -128,6 +129,7 @@ void MainWindow::setupDistortionWidgets()
 {
     distModel=new DistortionModel(this);
     distView=new QTableView;
+    distView->setItemDelegate(new DoubleSpinDelegate);
     distView->setModel(distModel);
     distWidget=new QGroupBox("Distortion");
     QHBoxLayout* l=new QHBoxLayout;

@@ -2,7 +2,7 @@
 #define TARGET3D_H
 
 #include <QtCore>
-#include<QVector3D>
+#include <QVector3D>
 
 typedef  QList<QVector3D> Target3D;
 

@@ -1,21 +1,44 @@
 #include "solver.h"
-
+#include "distortion/polyEstimation.h"
+#include "distortion/libImage/image.h"
 #include <QtGlobal>
-
+#include <vector>
 Solver::Solver(QObject *parent) : QObject(parent)
 {
 
 }
-
-static Distortion calculateDistortion(const ImageList &imageList)
+image_double qimage_to_image_double(const QImage& qimage){
+    int w=qimage.width(),h=qimage.height();
+    image_double image=new_image_double(w,h);
+    for(int y=0;y<h;y++)
+        for(int x=0;x<w;x++)
+            image->data[ x + y * w ] = qGray(qimage.pixel(x,y));
+    return image;
+}
+static bool calculateDistortion(const ImageList &imageList,Distortion& dist)
 {
     Q_ASSERT(!imageList.isEmpty());
-    Distortion dist;
-    dist.setMaxOrder(3);
-    for(int i=0;i<dist.getTotalNum();++i){
-        dist[i]=1.2345678901;
+    bool ok=false;
+    std::vector<image_double> doubleList;
+    for(int i=0;i<imageList.size();++i){
+        doubleList.push_back(qimage_to_image_double(imageList.at(i)));
     }
-    return dist;
+    std::vector<double> polynome;
+    int order=11;
+
+    if(!PolyEstimation::polyEstime(doubleList,polynome,order))ok=false;
+    else ok=true;
+
+    dist.setMaxOrder(order);
+    Q_ASSERT(polynome.size()==dist.size());
+    for(int i=0;i<dist.size();++i){
+        dist.setXParam(polynome[i],i);
+        dist.setYParam(polynome[i+dist.size()],i);
+    }
+    for(int i=0;i<doubleList.size();++i){
+        free_image_double(doubleList[i]);
+    }
+    return ok;
 }
 
 static QImage correctDistortion(const QImage &image, const Distortion &distortion)
@@ -211,7 +234,8 @@ bool Solver::calculateDistortion( )
             return false;
         }
         ImageList imageList=photoHarpContainer->getImageList_threadSafe();
-        Distortion dist = ::calculateDistortion(imageList);
+        Distortion dist;
+        if(!::calculateDistortion(imageList,dist))return false;
         distContainer->saveDistortion_threadSafe(dist);
         emit message(tr("Distortion calculated"));
     }else{

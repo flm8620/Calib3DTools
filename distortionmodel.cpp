@@ -1,9 +1,10 @@
 #include "distortionmodel.h"
 #include <QDebug>
-
 DistortionModel::DistortionModel(QObject *parent)
-    :QAbstractListModel(parent)
+    :QAbstractItemModel(parent)
 {
+
+
     connect(this,SIGNAL(requestGet()),this,SLOT(prepareDistortion()));
     connect(this,SIGNAL(requestSave(Distortion)),this,SLOT(saveDistortion(Distortion)));
 }
@@ -17,7 +18,6 @@ void DistortionModel::makeEmpty()
 {
     beginResetModel();
     modelData.clear();
-    modelData.setMaxOrder(-1);
     endResetModel();
 }
 
@@ -49,12 +49,21 @@ int DistortionModel::rowCount(const QModelIndex &index) const
     return modelData.size();
 }
 
+int DistortionModel::columnCount(const QModelIndex &parent) const
+{
+    return 2;
+}
+
 QVariant DistortionModel::data(const QModelIndex &index, int role) const
 {
     if(!index.isValid())return QVariant();
     int row=index.row();
+    int col=index.column();
     if(role==Qt::DisplayRole||role==Qt::EditRole){
-    return modelData.value(row);
+        if(col==0)
+            return modelData.getXParam(row);
+        if(col==1)
+            return modelData.getYParam(row);
     }
     return QVariant();
 }
@@ -69,9 +78,14 @@ bool DistortionModel::setData(const QModelIndex &index, const QVariant &value, i
 {
     if(!index.isValid())return false;
     int row=index.row();
+    int col=index.column();
     if(row<0||row>=modelData.size())return false;
-    if(role==Qt::DisplayRole){
-        modelData[row]=value.toDouble();
+    if(col<0||col>1)return false;
+    if(role==Qt::DisplayRole||role==Qt::EditRole){
+        if(col==0)
+            modelData.setXParam(value.toDouble(),row);
+        if(col==1)
+            modelData.setYParam(value.toDouble(),row);
         return true;
     }
     return false;
@@ -79,24 +93,24 @@ bool DistortionModel::setData(const QModelIndex &index, const QVariant &value, i
 
 bool DistortionModel::insertRows(int row, int count, const QModelIndex &parent)
 {
-//    if(row<0||row>para.size())return false;
-//    beginInsertRows(parent,row,row+count-1);
-//    for(int i=0;i<count;i++){
-//        para.insert(row,0);
-//    }
-//    endInsertRows();
-//    return true;
+    //    if(row<0||row>para.size())return false;
+    //    beginInsertRows(parent,row,row+count-1);
+    //    for(int i=0;i<count;i++){
+    //        para.insert(row,0);
+    //    }
+    //    endInsertRows();
+    //    return true;
     return false;
 }
 
 bool DistortionModel::removeRows(int row, int count, const QModelIndex &parent)
 {
-//    if(row<0||row+count-1>=para.size())return false;
-//    beginRemoveRows(parent,row,row+count-1);
-//    for(int i=0;i<row;++i){
-//        para.removeAt(row);
-//    }
-//    return true;
+    //    if(row<0||row+count-1>=para.size())return false;
+    //    beginRemoveRows(parent,row,row+count-1);
+    //    for(int i=0;i<row;++i){
+    //        para.removeAt(row);
+    //    }
+    //    return true;
     return false;
 }
 
@@ -108,7 +122,18 @@ QVariant DistortionModel::headerData(int section, Qt::Orientation orientation, i
         modelData.XYfromIdx(section,x,y);
         return tr("x^%1*y^%2").arg(x).arg(y);
     }
+    if(orientation==Qt::Horizontal){
+        if(section==0)
+            return tr("xParam");
+        if(section==1)
+            return tr("yParam");
+    }
     return QVariant();
+}
+
+QModelIndex DistortionModel::index(int row, int column, const QModelIndex &parent) const
+{
+    return createIndex(row,column);
 }
 
 void DistortionModel::prepareDistortion()
