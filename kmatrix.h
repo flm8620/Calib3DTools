@@ -10,7 +10,19 @@ inline bool operator ==(const KValue& l, const KValue& r)
 }
 
 /**
- * @brief The KMatrix ; //TODO: more detailed documents needed.
+ * @brief The KMatrix
+ * The KMatrix is the intrinsic matrix of a pinhole camera
+ * whose components are:
+ *
+ *    fx   s  x0
+ *     0  fy  y0
+ *     0   0   1
+ * fx, fy - Focal length in x and y direction, they have
+ *          the same value in a true pinhole camera.
+ * x0, y0 - Principal point offset, normally it's at the
+ *          center of image.
+ * s      - Axis skew who causes shear distortion.
+ *
  * @note All public functions of this class are thread-safe
  */
 class KMatrix : public QObject
@@ -58,8 +70,6 @@ public:
 
 //convenient getters for the consistency on concurrent access
     KValue getValue() const;
-    Vector2D getF() const;
-    Vector2D getOrigin() const;
 
 //properties' setters
     /**
@@ -96,10 +106,6 @@ public:
 //convenient atomic setters
     void setValue( const KValue& value );
     void setValue( double fx, double fy, double x0, double y0, double s );
-    void setF( const Vector2D& f );
-    void setF( double fx, double fy );
-    void setOrigin( const Vector2D origin );
-    void setOrigin( double x0, double y0 );
 
 //convenient operator overloading
     KMatrix& operator =(const KValue& value);
@@ -110,10 +116,9 @@ signals:
     void dataChanged();
 
 protected:
-    QReadWriteLock* rwLock;
+    mutable QReadWriteLock rwLock;
 private:
     KValue value;
-    QReadWriteLock _rwLock;
 };
 
 Q_DECLARE_METATYPE(KMatrix)

@@ -33,7 +33,7 @@
  * size = 10 = (2+maxOrder) * (1+maxOrder) / 2
  * maxOrder = -1 if the distortion is empty
  */
-class Distortion
+class Distortion:public 
 {
     Q_OBJECT
 public:
