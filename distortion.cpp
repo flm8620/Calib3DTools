@@ -1,24 +1,5 @@
 #include "distortion.h"
 
-DistortionItemDelegate* DistortionItemDelegateDealer::get(int index)
-{
-    if(this->contains(index))
-        return this->value(index);
-
-    QWriteLocker lock(this->rwLock);
-    return this->contains(index) ? this->value(index) :
-               ((*this)[index] = new DistortionItemDelegate(*this->parent, index));
-}
-
-DistortionItemDelegateDealer::~DistortionItemDelegateDealer()
-{
-    foreach(DistortionItemDelegate* delegate, this->values()) {
-        delete delegate;
-    }
-    this->clear();
-}
-
-
 static inline void unsafeCopy( double* dest, const double * src, int count )
 {
     for(int i; i<count; i++, dest++, src++ )
@@ -26,7 +7,7 @@ static inline void unsafeCopy( double* dest, const double * src, int count )
 }
 
 Distortion::Distortion( const double* original, int size, QObject* parent ) :
-    QObject(parent), values(size), delegates(this, &this->rwLock)
+    QObject(parent), values(size), delegates(*this)
 
 {
     if( original!=NULL && size>0 )
@@ -191,7 +172,19 @@ int Distortion::atomicCompare(int index, const Distortion& other, int otherIndex
     return thisValue==otherValue ? 0 : thisValue>otherValue ? 1 : -1;
 }
 
-DistortionItemDelegate& Distortion::operator [](int index)
+Distortion::ItemDelegate* Distortion::DelegateDealer::get(int index)
 {
-    return *( this->delegates.get(index) );
+    if(this->contains(index))
+        return this->value(index);
+
+    QWriteLocker lock(&this->parent.rwLock);
+    return this->contains(index) ? this->value(index) :
+               ((*this)[index] = new ItemDelegate(this->parent, index));
+}
+
+Distortion::DelegateDealer::~DelegateDealer()
+{
+    foreach(ItemDelegate* delegate, this->values())
+        delete delegate;
+    this->clear();
 }

@@ -51,9 +51,11 @@ int KMatrixModel::rowCount(const QModelIndex &) const
 QVariant KMatrixModel::data(const QModelIndex &index, int role) const
 {
     return
-            index.isValid() && inDataRange(index.row()) && (role==Qt::DisplayRole || role==Qt::EditRole) ?
-            QVariant( (this->coreData->*(ITEM_GETTERS[index.row()]))() ) :
-            INVALID_VARIANT;
+            index.isValid() && inDataRange(index.row()) &&
+                    (role==Qt::DisplayRole || role==Qt::EditRole) ?
+            (this->coreData->*(ITEM_GETTERS[index.row()]))() :
+            // effect as: row==0 ? this->coreData->fx() : ==1 ? this->coreData->fy() : ==2 ....
+            INVALID_VARIANT ;
 }
 
 Qt::ItemFlags KMatrixModel::flags(const QModelIndex &index) const
@@ -78,6 +80,7 @@ bool KMatrixModel::setData(const QModelIndex &index, const QVariant &value, int 
         return false;
 
     (this->coreData->*(ITEM_SETTERS[row]))(dValue);
+    //effect as: row==0 ? coreData->setFx(dValue) : ==1 ? coreData->setFy(dValue) : ==2? ......
 
     return true;
 }
