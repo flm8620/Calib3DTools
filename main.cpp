@@ -2,7 +2,7 @@
 #include <QList>
 #include <QImage>
 #include "mainwindow.h"
-#include "distrortion.h"
+#include "distortion.h"
 #include "imagelist.h"
 #include "target2d.h"
 #include "target3d.h"
@@ -11,11 +11,11 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    qRegisterMetaType<Distortion>("Distortion");
+    qRegisterMetaType<KMatrix>();
+    qRegisterMetaType<Distortion>();
     qRegisterMetaType<ImageList >("ImageList");
     qRegisterMetaType<Target2D>();
     qRegisterMetaType<Target3D>("Target3D");
-    qRegisterMetaType<KMatrix>();
 
     MainWindow w;
     w.show();

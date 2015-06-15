@@ -2,7 +2,7 @@
 #define SOLVER_H
 
 #include "imagelist.h"
-#include "distrortion.h"
+#include "distortion.h"
 #include "kmatrix.h"
 #include "target2d.h"
 #include "target3d.h"
@@ -28,7 +28,7 @@ public:
                         ImageListContainer* noDistortionPhotoContainer,
                         ImageListContainer* noDistortionPhotoCircleContainer,
                         ImageListContainer* noDistortionPhotoHarpContainer,
-                        DistortionContainer* distContainer,
+                        Distortion* dist,
                         KMatrix* kMatrix,
                         Target2DContainer* point2DContainer,
                         Target3DContainer* point3DContainer,
@@ -49,7 +49,7 @@ private:
     ImageListContainer* noDistortionPhotoContainer;
     ImageListContainer* noDistortionPhotoCircleContainer;
     ImageListContainer* noDistortionPhotoHarpContainer;
-    DistortionContainer* distContainer;
+    Distortion* distortion;
     KMatrix* kMatrix;
     Target2DContainer* point2DContainer;
     Target3DContainer* point3DContainer;

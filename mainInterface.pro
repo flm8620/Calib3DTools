@@ -35,7 +35,8 @@ SOURCES += main.cpp\
     console.cpp \
     solverthread.cpp \
     worker.cpp \
-    kmatrix.cpp
+    kmatrix.cpp \
+    distortion.cpp
 
 HEADERS  += mainwindow.h \
     solver.h \
@@ -59,9 +60,9 @@ HEADERS  += mainwindow.h \
     console.h \
     solverthread.h \
     worker.h \
-    distrortion.h \
     kmatrix.h \
     target2d.h \
     target3d.h \
     imagelist.h \
-    cameraposition.h
+    cameraposition.h \
+    distortion.h

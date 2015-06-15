@@ -1,61 +1,46 @@
 #include "distortionmodel.h"
 #include <QDebug>
 
-DistortionModel::DistortionModel(QObject *parent)
+DistortionModel::DistortionModel(QObject *parent, Distortion *core)
     :QAbstractListModel(parent)
 {
-    connect(this,SIGNAL(requestGet()),this,SLOT(prepareDistortion()));
-    connect(this,SIGNAL(requestSave(Distortion)),this,SLOT(saveDistortion(Distortion)));
+    if(core!=NULL) {
+        this->coreData = core;
+        this->coreDisposingRequired = false;
+    } else {
+        this->coreData = new Distortion();
+        this->coreDisposingRequired = true;
+    }
+    connect( this->coreData, SIGNAL(dataChanged(int,int)), this, SLOT(onCoreDataChanged(int,int)) );
+    connect( this->coreData, SIGNAL(dataSizeChanged(int)), this, SLOT(onCoreSizeChanged()) );
 }
 
-bool DistortionModel::isEmpty()
+void DistortionModel::onCoreDataChanged(int fromIndex, int toIndex)
 {
-    return rowCount()==0;
+    emit this->dataChanged(this->index(fromIndex), this->index(toIndex));
 }
 
-void DistortionModel::makeEmpty()
+void DistortionModel::onCoreSizeChanged()
 {
-    beginResetModel();
-    para.clear();
-    endResetModel();
-}
-
-Distortion DistortionModel::getDistortion_threadSafe()
-{
-    QMutexLocker locker(&mutex);
-    qDebug()<<"Dist: emit requestGet();";
-    emit requestGet();
-    qDebug()<<"conditionGet.wait(&mutex);";
-    conditionGet.wait(&mutex);
-    qDebug()<<"waked up by conditionGet";
-    return preparedDistortion;
-    //auto-unlock by locker
-}
-
-void DistortionModel::saveDistortion_threadSafe(const Distortion &dist)
-{
-    QMutexLocker locker(&mutex);
-    qDebug()<<"Dist: emit requestSave();";
-    emit requestSave(dist);
-    qDebug()<<"conditionSave.wait(&mutex);";
-    conditionSave.wait(&mutex);
-    qDebug()<<"waked up by conditionSave";
-    //auto-unlock by locker
+    this->beginResetModel();
+    this->endResetModel();
 }
 
 int DistortionModel::rowCount(const QModelIndex &index) const
 {
-    return para.size();
+    return this->coreData->size();
 }
+
+const static QVariant INVALID_QVARIANT;
+const static double INVALID_DOUBLE = -100000000000;
 
 QVariant DistortionModel::data(const QModelIndex &index, int role) const
 {
-    if(!index.isValid())return QVariant();
-    int row=index.row();
-    if(role==Qt::DisplayRole||role==Qt::EditRole){
-    return para.value(row);
-    }
-    return QVariant();
+    if(!index.isValid() || (role!=Qt::DisplayRole && role!=Qt::EditRole))
+        return INVALID_QVARIANT;
+
+    double result = this->coreData->value(index.row(), INVALID_DOUBLE);
+    return result!=INVALID_DOUBLE ? QVariant(result) : INVALID_QVARIANT;
 }
 
 Qt::ItemFlags DistortionModel::flags(const QModelIndex &index) const
@@ -68,9 +53,9 @@ bool DistortionModel::setData(const QModelIndex &index, const QVariant &value, i
 {
     if(!index.isValid())return false;
     int row=index.row();
-    if(row<0||row>=para.size())return false;
+    if(row<0||row>=coreData->size())return false;
     if(role==Qt::DisplayRole){
-        para[row]=value.toDouble();
+        (*coreData)[row]=value.toDouble();
         return true;
     }
     return false;
@@ -78,10 +63,10 @@ bool DistortionModel::setData(const QModelIndex &index, const QVariant &value, i
 
 bool DistortionModel::insertRows(int row, int count, const QModelIndex &parent)
 {
-    if(row<0||row>para.size())return false;
+    if(row<0||row>coreData->size())return false;
     beginInsertRows(parent,row,row+count-1);
     for(int i=0;i<count;i++){
-        para.insert(row,0);
+        coreData->insert(row,0);
     }
     endInsertRows();
     return true;
@@ -89,11 +74,12 @@ bool DistortionModel::insertRows(int row, int count, const QModelIndex &parent)
 
 bool DistortionModel::removeRows(int row, int count, const QModelIndex &parent)
 {
-    if(row<0||row+count-1>=para.size())return false;
+    if(row<0||row+count-1>=coreData->size())return false;
     beginRemoveRows(parent,row,row+count-1);
     for(int i=0;i<row;++i){
-        para.removeAt(row);
+        coreData->remove(row);
     }
+    endRemoveRows();
     return true;
 }
 
@@ -104,28 +90,4 @@ QVariant DistortionModel::headerData(int section, Qt::Orientation orientation, i
         return tr("x^%1").arg(section*2+2);
     }
     return QVariant();
-}
-
-void DistortionModel::prepareDistortion()
-{
-    QMutexLocker locker(&mutex);
-    preparedDistortion.clear();
-    int rows=rowCount();
-    for(int i=0;i<rows;++i){
-        QModelIndex id=index(i);
-        preparedDistortion.append( data(id).toDouble());
-    }
-    conditionGet.wakeAll();
-}
-
-void DistortionModel::saveDistortion(const Distortion& value)
-{
-    QMutexLocker locker(&mutex);
-    makeEmpty();
-    int rows=value.size();
-    for(int i=0;i<rows;++i){
-        insertRow(i);
-        setData(index(i),value[i]);
-    }
-    conditionSave.wakeAll();
 }

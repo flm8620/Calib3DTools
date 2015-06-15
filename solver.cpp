@@ -7,15 +7,14 @@ Solver::Solver(QObject *parent) : QObject(parent)
 
 }
 
-static Distortion calculateDistortion(const ImageList &imageList)
+static void calculateDistortion(const ImageList &imageList, Distortion * result)
 {
     Q_ASSERT(!imageList.isEmpty());
-    Distortion dist;
-    dist << 1.0 << 2.0 << 3.0 << 4.0 << 5.0;
-    return dist;
+    for(int i=0; i<5; i++)
+        (*result)[i] = i + 1.0;
 }
 
-static QImage correctDistortion(const QImage &image, const Distortion &distortion )
+static QImage correctDistortion(const QImage &image, const Distortion * distortion )
 {
     const static int LABEL_WIDTH = 240;
     const static int LABEL_HEIGHT = 30;
@@ -71,7 +70,7 @@ void Solver::registerModels(ImageListContainer *photoContainer,
                             ImageListContainer *noDistortion_photoContainer,
                             ImageListContainer *noDistortion_photoCircleContainer,
                             ImageListContainer *noDistortion_photoHarpContainer,
-                            DistortionContainer *distContainer,
+                            Distortion *dist,
                             KMatrix *kMatrix,
                             Target2DContainer *point2DContainer,
                             Target3DContainer* point3DContainer, Messager *messager)
@@ -83,7 +82,7 @@ void Solver::registerModels(ImageListContainer *photoContainer,
     this->noDistortionPhotoCircleContainer=noDistortion_photoCircleContainer;
     this->noDistortionPhotoHarpContainer=noDistortion_photoHarpContainer;
     this->kMatrix = kMatrix;
-    this->distContainer =distContainer;
+    this->distortion =dist;
     this->point2DContainer =point2DContainer;
     this->point3DContainer =point3DContainer;
     this->messager = messager;
@@ -161,9 +160,7 @@ bool Solver::DistortionCorrectPhoto()
             this->message("Failed to load distortion !");
             return false;
         }
-        Q_ASSERT(!this->distContainer->isEmpty());
-
-        Distortion dist=this->distContainer->getDistortion_threadSafe();
+        Q_ASSERT(this->distortion->isNotEmpty());
 
         this->message("Loading photos...");
         if(this->photoContainer->isEmpty()){
@@ -177,7 +174,7 @@ bool Solver::DistortionCorrectPhoto()
         ImageList outputList;
         QImage image;
         foreach (image, photoList) {
-            outputList.append(correctDistortion(image, dist));
+            outputList.append(correctDistortion(image, this->distortion));
         }
         noDistortionPhotoContainer->saveImageList_threadSafe(outputList);
         this->message("Distortion correction of photo finished.");
@@ -196,9 +193,7 @@ bool Solver::DistortionCorrectPhotoCircle()
             this->message("Failed to load distortion !");
             return false;
         }
-        Q_ASSERT(!distContainer->isEmpty());
-
-        Distortion dist=distContainer->getDistortion_threadSafe();
+        Q_ASSERT(this->distortion->isNotEmpty());
 
         this->message("Loading circle photos...");
         if(this->photoCircleContainer->isEmpty()){
@@ -212,7 +207,7 @@ bool Solver::DistortionCorrectPhotoCircle()
         ImageList outputList;
         QImage image;
         foreach (image, photoList) {
-            outputList.append( correctDistortion(image,dist) );
+            outputList.append( correctDistortion(image,this->distortion) );
         }
         noDistortionPhotoCircleContainer->saveImageList_threadSafe(outputList);
 
@@ -227,7 +222,7 @@ bool Solver::DistortionCorrectPhotoCircle()
 bool Solver::calculateDistortion( )
 {
     this->message("Loading distortion parameter...");
-    if(distContainer->isEmpty()){
+    if(this->distortion->isEmpty()){
         this->message("Distortion parameter is empty. Calculating distortion parameter");
 
         if(photoHarpContainer->isEmpty()){
@@ -235,8 +230,7 @@ bool Solver::calculateDistortion( )
             return false;
         }
         ImageList imageList=photoHarpContainer->getImageList_threadSafe();
-        Distortion dist = ::calculateDistortion(imageList);
-        distContainer->saveDistortion_threadSafe(dist);
+        ::calculateDistortion(imageList, this->distortion);
         this->message("Distortion calculated");
     }else{
         this->message("Distortion parameter loaded");
