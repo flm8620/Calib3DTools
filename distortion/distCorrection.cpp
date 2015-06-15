@@ -322,8 +322,7 @@ vector<T> read_poly(char* fname, int& degX, int& degY) {
 	/* later we will be able to separate them since the degrees for each poly are known. */
 	for (int k = 0; k < sizex; k++) poly_params[k] = paramsX[k];
 	for (int k = 0; k < sizey; k++) poly_params[k+sizex] = paramsY[k];
-	return poly_params;
-    degY=100;
+    return poly_params;
 }
 
 /*----------------------------------------------------------------------------*/

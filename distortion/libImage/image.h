@@ -96,5 +96,6 @@ double interpolate_image_double(image_double& in, int order, double u, double v)
 
 bool valid_image_double(image_double& in, int x, int y);
 
+image_double new_image_double_from_image_char(image_char in);
 #endif /* !IMAGE_HEADER */
 /*----------------------------------------------------------------------------*/

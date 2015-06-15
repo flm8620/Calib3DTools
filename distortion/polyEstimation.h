@@ -5,8 +5,8 @@
 
 #include <vector>
 
-struct image_double_s;
-typedef image_double_s* image_double;
+struct image_char_s;
+typedef image_char_s* image_char;
 namespace PolyEstimation{
-bool polyEstime(const std::vector<image_double>& list, std::vector<double>& polynome, int order);
+bool polyEstime(const std::vector<image_char> &list, std::vector<double>& polynome, int order);
 }

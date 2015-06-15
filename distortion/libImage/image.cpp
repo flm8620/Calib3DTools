@@ -253,3 +253,12 @@ bool valid_image_double(image_double& in, int x, int y)
 }
 
 /*----------------------------------------------------------------------------*/
+
+
+image_double new_image_double_from_image_char(image_char in)
+{
+    image_double image = new_image_double(in->xsize,in->ysize);
+    unsigned int N = in->xsize * in->ysize;
+    for(int i=0; i<N; i++) image->data[i] = double(in->data[i]);
+    return image;
+}

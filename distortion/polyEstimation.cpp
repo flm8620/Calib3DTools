@@ -57,7 +57,7 @@ static const double up_factor = 1.0;
 
 
 template <typename T>
-static void read_images(DistortedLines<T>& distLines, const std::vector<image_double>& imageList, int length_thresh,int down_factor) {
+static void read_images(DistortedLines<T>& distLines, const std::vector<image_char>& imageList, int length_thresh,int down_factor) {
     int w_tmp = 0, h_tmp = 0;
     ntuple_ll point_set,p;
     image_double image;
@@ -81,7 +81,7 @@ static void read_images(DistortedLines<T>& distLines, const std::vector<image_do
 
         /* open image, compute edge points, close it */
         std::cout<<"start convert "<<i<<"..."<<std::endl;
-        image = imageList[i];
+        image = new_image_double_from_image_char(imageList[i]);
         std::cout<<"done."<<std::endl;
         p = straight_edge_points(image,sigma,th_low,th_hi,min_length);
         std::cout<<"straightedgepoints"<<std::endl;
@@ -196,8 +196,8 @@ static vector<T> polyInv(const vector<T>& poly_params, const int degX, const int
 
 
 
-bool PolyEstimation::polyEstime(const std::vector<image_double>& list,std::vector<double>& polynome,int order){
-    int w,h;
+bool PolyEstimation::polyEstime(const std::vector<image_char>& list,std::vector<double>& polynome,int order){
+    unsigned int w,h;
     //check: same size for all image
     for(int i=0;i<list.size();++i){
         if(i==0){

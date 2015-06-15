@@ -1,14 +1,5 @@
 
 #include "mainwindow.h"
-#include "imagelistmodel.h"
-#include "imagelistwidget.h"
-#include "distortionmodel.h"
-#include "kmatrixmodel.h"
-#include "point2dwidget.h"
-#include "point2dmodel.h"
-#include "point3dwidget.h"
-#include "point3dmodel.h"
-#include "console.h"
 #include "doublespindelegate.h"
 #include <QtWidgets>
 #include <QPushButton>
@@ -25,11 +16,11 @@ MainWindow::MainWindow(QWidget *parent)
     setupPointWidgets();
 
     this->solver=new Solver(this);
-    connect(solver,SIGNAL(message(QString,bool)),console,SLOT(messageReceiver(QString,bool)));
+    connect(this,SIGNAL(message(QString,bool)),console,SLOT(messageReceiver(QString,bool)));
     this->solver->registerModels(photoModel,photoCircleModel,photoHarpModel,
                            noDistortion_photoModel,noDistortion_photoCircleModel,
                            noDistortion_photoHarpModel,distModel,
-                           kModel,point2DModel,point3DModel);
+                           kModel->core(),point2DModel,point3DModel, this);
 
 
 
@@ -78,6 +69,11 @@ MainWindow::MainWindow(QWidget *parent)
     statusBar();
 
     //connect(generateButton,SIGNAL(clicked(bool)),worker,SLOT(solve()));
+}
+
+void MainWindow::message( const char *content, MessageType type )
+{
+    emit this->message(tr(content), type>=M_WARN);
 }
 
 void MainWindow::startSolve()
