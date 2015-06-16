@@ -8,6 +8,7 @@ DistortionModel::DistortionModel(QObject *parent) :
     QAbstractItemModel(parent)
 {
     this->coreData = new Distortion(this);
+    this->coreData->setMaxOrder(11);
     connect(this->coreData, SIGNAL(dataChanged()), this, SLOT(onCoreDataChanged()));
 }
 

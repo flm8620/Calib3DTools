@@ -4,6 +4,7 @@
 #include "imagelistmodel.h"
 #include "imagelistwidget.h"
 #include "distortionmodel.h"
+#include "distortionwidget.h"
 #include "kmatrixmodel.h"
 #include "point2dwidget.h"
 #include "point2dmodel.h"
@@ -55,8 +56,7 @@ private:
     Console& con;
 
     DistortionModel* distModel;
-    QTableView* distView;
-    QWidget* distWidget;
+    DistortionWidget* distWidget;
 
     KMatrixModel* kModel;
     QTableView* kView;

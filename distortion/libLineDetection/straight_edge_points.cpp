@@ -193,10 +193,8 @@ ntuple_ll straight_edge_points( image_double image, double sigma,
 
   /* call Devernay sub-pixel edge detector */
   edges = devernay(image,sigma,th_low,th_hi);
-  std::cout<<"devernay"<<std::endl;
   /* call LSD line segment detector */
   ls = lsd_scale_region( image, 1.0, &region );
-  std::cout<<"lsd-scale"<<std::endl;
 
   /* create list of straight edges and list of its points */
   //Problème : tous les ntuple_list créés par lsd_scale(_region) sont de taille nulle et de taille max égale à 1
@@ -221,10 +219,8 @@ ntuple_ll straight_edge_points( image_double image, double sigma,
 
   /* sort edge points in each line segment */
   sort_edge_points(se,ls);
-  std::cout<<"sort-edge"<<std::endl;
   /* remove edges correspoinding to short line segments */
   remove_short_edges(se,ls,min_length);
-  std::cout<<"remove"<<std::endl;
   /* free memory */
   free_image_int(region);
   free_ntuple_list(edges);

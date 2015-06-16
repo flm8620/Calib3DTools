@@ -14,7 +14,7 @@ add_subdirectory(libLineDetection)
 add_subdirectory(libNumerics)
 add_subdirectory(libMisc)
 
-add_library(Distortion_poly polyEstimation.cpp distCorrection.cpp polyEstimation.h)
+add_library(Distortion_poly polyEstimation.cpp distCorrection.cpp polyEstimation.h distCorrection.h)
 target_link_libraries(Distortion_poly image numerics linedetect distortion misc)
 
 

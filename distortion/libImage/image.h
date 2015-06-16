@@ -97,5 +97,24 @@ double interpolate_image_double(image_double& in, int order, double u, double v)
 bool valid_image_double(image_double& in, int x, int y);
 
 image_double new_image_double_from_image_char(image_char in);
+
+typedef struct image_double_RGB_s
+{
+  double *Rdata,*Gdata,*Bdata;
+  unsigned int xsize,ysize;
+} * image_double_RGB;
+struct pixel_double_RGB
+{
+    double R,G,B;
+};
+
+void free_image_double_RGB(image_double_RGB i);
+image_double_RGB new_image_double_RGB(unsigned int xsize, unsigned int ysize);
+image_double_RGB new_image_double_RGB_ini( unsigned int xsize, unsigned int ysize,
+                                   pixel_double_RGB fill_value );
+image_double_RGB new_image_double_RGB_copy(image_double_RGB in);
+pixel_double_RGB interpolate_image_double_RGB(image_double_RGB& in, int order, double u, double v);
+
+bool valid_image_double_RGB(image_double_RGB& in, int x, int y);
 #endif /* !IMAGE_HEADER */
 /*----------------------------------------------------------------------------*/

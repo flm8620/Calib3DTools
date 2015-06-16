@@ -23,9 +23,14 @@
 //#include "libLWImage/LWImage.h"
 
 bool prepare_spline(image_double& im, int order);
+bool prepare_spline_RGB(image_double_RGB& im, int order);
 bool interpolate_spline(image_double& im, int order,
                         double x, double y,
                         double& out,
+                        double paramKeys=-.5f);
+bool interpolate_spline_RGB(image_double_RGB& im, int order,
+                        double x, double y,
+                        pixel_double_RGB& out,
                         double paramKeys=-.5f);
 
 #endif

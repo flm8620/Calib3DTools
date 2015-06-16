@@ -1,7 +1,9 @@
 #include "solver.h"
 #include "distortion/polyEstimation.h"
+#include "distortion/distCorrection.h"
 #include "distortion/libImage/image.h"
 #include <QtGlobal>
+#include <QDebug>
 #include <vector>
 Solver::Solver(QObject *parent) : QObject(parent)
 {
@@ -17,14 +19,67 @@ image_char qimage_to_image_char(const QImage &qimage)
     return image;
 }
 
+static void QColorImageToImageDoubleRGB(const QImage &qimage, image_double_RGB &out)
+{
+    Q_ASSERT(!qimage.isNull());
+    int w = qimage.width(), h = qimage.height();
+    out = new_image_double_RGB(w, h);
+    for (int x = 0; x < w; ++x) {
+        for (int y = 0; y < h; y++) {
+            out->Rdata[x+y*w] = qRed(qimage.pixel(x, y));
+            out->Gdata[x+y*w] = qGreen(qimage.pixel(x, y));
+            out->Bdata[x+y*w] = qBlue(qimage.pixel(x, y));
+        }
+    }
+}
+
+static void QGrayImageToImageDouble(const QImage &qimage, image_double &out)
+{
+    Q_ASSERT(!qimage.isNull());
+    int w = qimage.width(), h = qimage.height();
+    out = new_image_double(w, h);
+    for (int x = 0; x < w; ++x) {
+        for (int y = 0; y < h; y++)
+            out->data[x+y*w] = qGray(qimage.pixel(x, y));
+    }
+}
+
+static QImage ImageDoubleRGBToQColorImage(image_double_RGB in)
+{
+    int w = in->xsize, h = in->ysize;
+    QImage image(w, h, QImage::Format_RGB32);
+    for (int x = 0; x < w; ++x) {
+        for (int y = 0; y < h; y++) {
+            int red = in->Rdata[x+y*w];
+            int green = in->Gdata[x+y*w];
+            int blue = in->Bdata[x+y*w];
+            image.setPixel(x, y, qRgb(red, green, blue));
+        }
+    }
+    return image;
+}
+
+static QImage ImageDoubleToQGrayImage(image_double in)
+{
+    int w = in->xsize, h = in->ysize;
+    QImage image(w, h, QImage::Format_RGB32);
+    for (int x = 0; x < w; ++x) {
+        for (int y = 0; y < h; y++) {
+            int color = in->data[x+y*w];
+            image.setPixel(x, y, qRgb(color, color, color));
+        }
+    }
+    return image;
+}
+
 static void distortionValue2Polynome(const DistortionValue &distValue,
                                      std::vector<double> &polynome)
 {
     polynome.clear();
     Q_ASSERT(distValue.isValid());
-    for (int i = 0; i <distValue._size; ++i)
+    for (int i = 0; i < distValue._size; ++i)
         polynome.push_back(distValue._XYData[i].first);
-    for (int i = 0; i <distValue._size; ++i)
+    for (int i = 0; i < distValue._size; ++i)
         polynome.push_back(distValue._XYData[i].second);
 }
 
@@ -49,7 +104,7 @@ static DistortionValue calculateDistortion(const ImageList &imageList)
     std::vector<double> polynome;
     int order = 11;
 
-    if (PolyEstimation::polyEstime(doubleList, polynome, order))
+    if (DistortionModule::polyEstime(doubleList, polynome, order))
         polynome2DistortionValue(distValue, polynome, order);
     // else distValue is empty
     for (int i = 0; i < doubleList.size(); ++i)
@@ -57,39 +112,31 @@ static DistortionValue calculateDistortion(const ImageList &imageList)
     return distValue;
 }
 
-static QImage correctDistortion(const QImage &image, const Distortion &distortion)
+static QImage correctDistortion(const QImage &image, Distortion *distortion)
 {
     Q_ASSERT(!image.isNull());
-    DistortionValue distValue = distortion.getValue();
+    DistortionValue distValue = distortion->getValue();
     std::vector<double> polynome;
+    QImage result;
     distortionValue2Polynome(distValue, polynome);
-    // TODO: use real function
-
-    const static int LABEL_WIDTH = 240;
-    const static int LABEL_HEIGHT = 30;
-    const static QColor LABEL_BACKGROUND_COLOR("white");
-    const static QColor LABEL_TEXT_COLOR("blue");
-    const static char *LABEL_FONT_NAME = "Arial";
-    const static int LABEL_FONT_SIZE = 24;
-    const static char *LABEL_TEXT = "Distortion Corrected";
-
-    QImage result = image.convertToFormat(QImage::Format_RGB888);
-    if (result.width() < LABEL_WIDTH)
-        result = result.scaledToWidth(LABEL_WIDTH);
-    if (result.height() < LABEL_HEIGHT)
-        result = result.scaledToHeight(LABEL_HEIGHT);
-
-    QRectF labelRect((result.width()-LABEL_WIDTH)/2,
-                     (result.height()-LABEL_HEIGHT)/2, LABEL_WIDTH, LABEL_HEIGHT);
-    QPainter painter(&result);
-    painter.setPen(QPen(LABEL_TEXT_COLOR));
-    QFont labelFont(LABEL_FONT_NAME);
-    labelFont.setPixelSize(LABEL_FONT_SIZE);
-    painter.setFont(labelFont);
-
-    painter.fillRect(labelRect, LABEL_BACKGROUND_COLOR);
-    painter.drawText(labelRect, Qt::AlignCenter, LABEL_TEXT);
-
+    if (image.isGrayscale()) {
+        qDebug()<<"isGrayscale";
+        image_double in, out;
+        QGrayImageToImageDouble(image, in);
+        DistortionModule::distortionCorrect(in, out, polynome, distortion->maxOrder());
+        result = ImageDoubleToQGrayImage(out);
+        free_image_double(in);
+        free_image_double(out);
+    } else {
+        qDebug()<<"isRGB";
+        image_double_RGB in, out;
+        QColorImageToImageDoubleRGB(image, in);
+        DistortionModule::distortionCorrect_RGB(in, out, polynome,
+                                                distortion->maxOrder());
+        result = ImageDoubleRGBToQColorImage(out);
+        free_image_double_RGB(in);
+        free_image_double_RGB(out);
+    }
     return result;
 }
 

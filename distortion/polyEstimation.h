@@ -7,6 +7,6 @@
 
 struct image_char_s;
 typedef image_char_s* image_char;
-namespace PolyEstimation{
+namespace DistortionModule{
 bool polyEstime(const std::vector<image_char> &list, std::vector<double>& polynome, int order);
 }

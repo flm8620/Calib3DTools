@@ -146,12 +146,7 @@ double Distortion::yParam(int idx) const
 
 void Distortion::clear()
 {
-    {
-        QWriteLocker locker(&rwLock);
-        this->value._XYData.clear();
-        this->value._maxOrder = -1;
-    }
-    emit dataChanged();
+    this->setMaxOrder(-1);
 }
 
 DistortionValue::DistortionValue()

@@ -68,7 +68,7 @@ static void read_images(DistortedLines<T>& distLines, const std::vector<image_ch
     int total_nb_lines, total_threshed_nb_lines, threshed_nb_lines;
     ntuple_list convolved_pts;
 
-    std::cout<<"There are"<<imageList.size()<<" input images. The minimal length of lines is set to "<<length_thresh<<std::endl;
+    std::cout<<"There are "<<imageList.size()<<" input images. The minimal length of lines is set to "<<length_thresh<<std::endl;
 
     /* initialize memory */
     point_set = new_ntuple_ll(1);
@@ -82,9 +82,7 @@ static void read_images(DistortedLines<T>& distLines, const std::vector<image_ch
         /* open image, compute edge points, close it */
         std::cout<<"start convert "<<i<<"..."<<std::endl;
         image = new_image_double_from_image_char(imageList[i]);
-        std::cout<<"done."<<std::endl;
         p = straight_edge_points(image,sigma,th_low,th_hi,min_length);
-        std::cout<<"straightedgepoints"<<std::endl;
         w = image->xsize; h = image->ysize;
         if (i == 0) {w_tmp = w; h_tmp = h;}
         else assert(w == w_tmp && h == h_tmp);
@@ -105,7 +103,7 @@ static void read_images(DistortedLines<T>& distLines, const std::vector<image_ch
 
         distLines.pushMemGroup(count);
 
-        std::cout<<"For image"<<i<<", there are totally "<<p->size<<"lines detected and "<<threshed_nb_lines<<" of them are eliminated.\n"<<std::endl;
+        std::cout<<"For image"<<i<<", there are totally "<<p->size<<" lines detected and "<<threshed_nb_lines<<" of them are eliminated.\n"<<std::endl;
         total_nb_lines += p->size;
         total_threshed_nb_lines += threshed_nb_lines;
         free_ntuple_ll(p);
@@ -114,7 +112,6 @@ static void read_images(DistortedLines<T>& distLines, const std::vector<image_ch
     int countL = 0;
     for(unsigned int i=0; i<point_set->size; i++) {
         /* Gaussian convolution and sub-sampling */
-        std::cout<<"gaussian"<<std::endl;
         convolved_pts = gaussian_convol_on_curve(unit_sigma, Nsigma, resampling, eliminate_border, up_factor, down_factor, point_set->list[i]);
 
         /* Save points to DistortionLines structure */
@@ -124,7 +121,7 @@ static void read_images(DistortedLines<T>& distLines, const std::vector<image_ch
             distLines.pushPoint(countL,x,y); }
         countL++;
     }
-    std::cout<<"Totally there are"<<total_nb_lines<<"lines detected and"<<total_threshed_nb_lines<< "of them are eliminated.\n"<<std::endl;
+    std::cout<<"Totally there are "<<total_nb_lines<<" lines detected and "<<total_threshed_nb_lines<< " of them are eliminated.\n"<<std::endl;
     /* free memory */
     free_ntuple_ll(point_set);
     free_ntuple_list(convolved_pts);
@@ -196,7 +193,7 @@ static vector<T> polyInv(const vector<T>& poly_params, const int degX, const int
 
 
 
-bool PolyEstimation::polyEstime(const std::vector<image_char>& list,std::vector<double>& polynome,int order){
+bool DistortionModule::polyEstime(const std::vector<image_char>& list,std::vector<double>& polynome,int order){
     unsigned int w,h;
     //check: same size for all image
     for(int i=0;i<list.size();++i){
@@ -208,8 +205,9 @@ bool PolyEstimation::polyEstime(const std::vector<image_char>& list,std::vector<
                 return false;
         }
     }
+    int min_length=std::min(w,h)*0.6;
     DistortedLines<double> distLines;
-    read_images<double>(distLines, list, 700,60);
+    read_images<double>(distLines, list, min_length,60);
 
     /*int count=0;
      * for(int i=0;i<num;++i){

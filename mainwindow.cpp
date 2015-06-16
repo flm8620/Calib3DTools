@@ -124,13 +124,11 @@ void MainWindow::setupKMatrixWidget()
 void MainWindow::setupDistortionWidgets()
 {
     distModel=new DistortionModel(this);
-    distView=new QTableView;
-    distView->setItemDelegate(new DoubleSpinDelegate);
-    distView->setModel(distModel);
-    distWidget=new QGroupBox("Distortion");
-    QHBoxLayout* l=new QHBoxLayout;
-    l->addWidget(distView);
-    distWidget->setLayout(l);
+//    distView=new QTableView;
+//    distView->setItemDelegate(new DoubleSpinDelegate);
+//    distView->setModel(distModel);
+    distWidget=new DistortionWidget(this);
+    distWidget->setModel(distModel);
 }
 
 void MainWindow::setupPointWidgets()
@@ -145,110 +143,3 @@ void MainWindow::setupPointWidgets()
     point3DWidget->setModel(point3DModel);
 }
 
-//Distortion MainWindow::getDistortionFromModel()
-//{
-//    Distortion dist;
-//    int rows=distModel->rowCount();
-//    for(int i=0;i<rows;++i){
-//        QModelIndex id=distModel->index(i);
-//        dist.data.append( distModel->data(id).toDouble());
-//    }
-//    return dist;
-//}
-
-//void MainWindow::saveDistortionToModel(const Distortion& dist)
-//{
-//    distModel->makeEmpty();
-//    int rows=dist.data.size();
-//    for(int i=0;i<rows;++i){
-//        distModel->insertRow(i);
-//        distModel->setData(distModel->index(i),dist.data.value(i));
-//    }
-//}
-
-//KMatrix MainWindow::getKFromModel()
-//{
-//    KMatrix K;
-//    K.fx=kModel->data(kModel->index(0)).toDouble();
-//    K.fy=kModel->data(kModel->index(1)).toDouble();
-//    K.x0=kModel->data(kModel->index(2)).toDouble();
-//    K.y0=kModel->data(kModel->index(3)).toDouble();
-//    K.s=kModel->data(kModel->index(4)).toDouble();
-//    return K;
-//}
-
-//void MainWindow::saveKToModel(const KMatrix &K)
-//{
-//    kModel->setData(kModel->index(0),K.fx);
-//    kModel->setData(kModel->index(1),K.fy);
-//    kModel->setData(kModel->index(2),K.x0);
-//    kModel->setData(kModel->index(3),K.y0);
-//    kModel->setData(kModel->index(4),K.s);
-//}
-
-//Target2D MainWindow::getTarget2DFromModel()
-//{
-//    Target2D target2D;
-//    int rows=point2DModel->rowCount();
-//    int points=point2DModel->item(0)->rowCount();
-//    for(int i=0;i<rows;++i){
-//        target2D.data.append(QList<QPointF>());
-//        QList<QPointF>& l=target2D.data.last();
-//        for(int j=0;j<points;j++){
-//            QPointF p;
-//            p.setX(point2DModel->item(i)->child(j,1)->text().toDouble());
-//            p.setY(point2DModel->item(i)->child(j,2)->text().toDouble());
-//            l.append(p);
-//        }
-//    }
-//    return target2D;
-//}
-
-//void MainWindow::saveTarget2DToModel(const Target2D &target2D)
-//{
-//    //not needed
-//}
-
-//Target3D MainWindow::getTarget3DFromModel()
-//{
-//    Target3D target3D;
-//    int points=point3DModel->rowCount();
-//    for(int j=0;j<points;j++){
-//        QVector3D p;
-//        p.setX(point3DModel->item(j,0)->text().toDouble());
-//        p.setY(point3DModel->item(j,1)->text().toDouble());
-//        p.setZ(point3DModel->item(j,2)->text().toDouble());
-//        target3D.data.append(p);
-//    }
-//    return target3D;
-//}
-
-//void MainWindow::saveTarget3DToModel(const Target3D &target3D)
-//{
-//    //not needed
-//}
-
-//QList<QImage> MainWindow::getPhotoListFromModel(ImageListModel *model)
-//{
-//    QList<QImage> photoList;
-//    int rows=model->rowCount();
-//    for(int i=0;i<rows;++i){
-//        QModelIndex id=model->index(i);
-//        photoList.append( qvariant_cast<QImage>( model->data(id,Qt::UserRole)));
-//    }
-//    return photoList;
-//}
-
-//void MainWindow::savePhotoListToModel(QList<QImage> list, ImageListModel *model)
-//{
-//    model->makeEmpty();
-//    QImage image;
-//    int i=0;
-//    foreach (image,list) {
-//        model->insertRow(i);
-//        QModelIndex id=model->index(i);
-//        model->setData(id,tr("Image%1").arg(i),Qt::DisplayRole);
-//        model->setData(id,image,Qt::UserRole);
-//        i++;
-//    }
-//}
