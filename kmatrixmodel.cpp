@@ -19,19 +19,11 @@ KMatrixModel::KMatrixModel(QObject *parent, KMatrix* core)
 {
     if(core!=NULL) {
         this->coreData = core;
-        this->coreDisposingRequired = false;
+        core->setParent(this);
     } else {
-        this->coreData = new KMatrix();
-        this->coreDisposingRequired = true;
+        this->coreData = new KMatrix(this);
     }
     connect( this->coreData, SIGNAL(dataChanged()), this, SLOT(onCoreDataChanged()) );
-}
-
-KMatrixModel::~KMatrixModel() {
-    if( this->coreDisposingRequired && this->coreData!=NULL ) {
-        delete this->coreData;
-        this->coreData = NULL;
-    }
 }
 
 void KMatrixModel::onCoreDataChanged()

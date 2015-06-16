@@ -31,9 +31,6 @@ class KMatrix : public QObject
 public:
 
     KMatrix(QObject * parent = 0);
-    KMatrix(const KValue& value, QObject * parent = 0);
-    KMatrix(const KMatrix& value, QObject * parent = 0);
-
     bool isEmpty() const;
 
 //properties' getters
@@ -121,6 +118,6 @@ private:
     KValue value;
 };
 
-Q_DECLARE_METATYPE(KMatrix)
+//Q_DECLARE_METATYPE(KMatrix)
 
 #endif // KMATRIX_H

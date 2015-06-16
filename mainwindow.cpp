@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this,SIGNAL(message(QString,bool)),console,SLOT(messageReceiver(QString,bool)));
     this->solver->registerModels(photoModel,photoCircleModel,photoHarpModel,
                            noDistortion_photoModel,noDistortion_photoCircleModel,
-                           noDistortion_photoHarpModel,distModel,
+                           noDistortion_photoHarpModel,distModel->core(),
                            kModel->core(),point2DModel,point3DModel, this);
 
 

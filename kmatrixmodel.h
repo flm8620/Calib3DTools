@@ -11,7 +11,6 @@ class KMatrixModel : public QAbstractListModel
 
 public:
     KMatrixModel(QObject *parent = 0, KMatrix *core = 0);
-    ~KMatrixModel();
 
     KMatrix *core();
     int rowCount(const QModelIndex &) const;
@@ -22,12 +21,11 @@ public:
     bool removeRows(int row, int count, const QModelIndex &parent);
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
 
-private:
-    KMatrix *coreData;
-    bool coreDisposingRequired;
-
 private slots:
     void onCoreDataChanged();
+
+private:
+    KMatrix *coreData;
 };
 
 #endif // KMATRIXMODEL_H

@@ -31,7 +31,7 @@ public:
                         ImageListContainer* noDistortionPhotoContainer,
                         ImageListContainer* noDistortionPhotoCircleContainer,
                         ImageListContainer* noDistortionPhotoHarpContainer,
-                        DistortionContainer* distContainer,
+                        Distortion *distortion,
                         KMatrix* kMatrix,
                         Target2DContainer* point2DContainer,
                         Target3DContainer* point3DContainer,
@@ -52,7 +52,7 @@ private:
     ImageListContainer* noDistortionPhotoContainer;
     ImageListContainer* noDistortionPhotoCircleContainer;
     ImageListContainer* noDistortionPhotoHarpContainer;
-    DistortionContainer* distContainer;
+    Distortion* distortion;
     KMatrix* kMatrix;
     Target2DContainer* point2DContainer;
     Target3DContainer* point3DContainer;

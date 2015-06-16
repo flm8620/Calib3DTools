@@ -2,7 +2,8 @@
 #define DISTRORTION_H
 #include <QtCore>
 #include <QList>
-
+#include <vector>
+#include <utility>
 /**
  * @brief Distortion of image
  * Distortion is presented by two polynomial who correct respectively
@@ -33,22 +34,33 @@
  * size = 10 = (2+maxOrder) * (1+maxOrder) / 2
  * maxOrder = -1 if the distortion is empty
  */
-class Distortion
+struct DistortionValue
+{
+    DistortionValue();
+    std::vector<std::pair<double, double> > _XYData;
+    int _maxOrder;
+    int _size;
+    void setMaxOrder(int maxOrder);
+    bool isValid()const;
+    int sizeFromMaxOrder(int maxOrder)const
+    {
+        return maxOrder >= 0 ? (2+maxOrder)*(1+maxOrder)/2 : 0;
+    }
+};
+
+class Distortion : public QObject
 {
     Q_OBJECT
 public:
     Distortion(QObject *parent = 0);
 
-    inline int maxOrder() const
-    {
-        return this->_maxOrder;
-    }
+    bool isEmpty();
+
+    int maxOrder() const;
 
     void setMaxOrder(int maxOrder);
-    int size() const
-    {
-        return _size;
-    }
+
+    int size() const;
 
     /**
      * @brief XYfromIdx
@@ -64,27 +76,25 @@ public:
      *
      * e.g. idx=6, a6 -> x^3*y^0, so x=3 y=0
      */
-    static void XYfromIdx(int idx, int &degX, int &degY) const;
-    /**
-     * @brief idxFromXY
-     * Look XYfromIdx
-     */
-    static int idxFromXY(int degX, int degY) const;
+    static void XYfromIdx(int idx, int &degX, int &degY);
+    static int idxFromXY(int degX, int degY);
+
+    DistortionValue getValue() const;
+    bool setValue(const DistortionValue &value);
+
+    bool setXParamVector(const std::vector<double> &xVector);
+    bool setYParamVector(const std::vector<double> &yVector);
 
     void setXParam(double value, int degX, int degY);
-
     void setYParam(double value, int degX, int degY);
 
     void setXParam(double value, int idx);
-
     void setYParam(double value, int idx);
 
     int xParam(int degX, int degY) const;
-
     int yParam(int degX, int degY) const;
 
     double xParam(int idx) const;
-
     double yParam(int idx) const;
 
     void clear();
@@ -96,10 +106,8 @@ protected:
     mutable QReadWriteLock rwLock;
 
 private:
-    QList<QPair<double, double> > _XYData;
-    int _maxOrder;
-    int _size;
+    DistortionValue value;
 };
-Q_DECLARE_METATYPE(Distortion)
+//Q_DECLARE_METATYPE(Distortion)
 
 #endif // DISTRORTION_H

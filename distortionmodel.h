@@ -11,7 +11,6 @@ class DistortionModel : public QAbstractItemModel
 
 public:
     DistortionModel(QObject *parent = 0);
-    ~DistortionModel();
 
     Distortion *core();
     int rowCount(const QModelIndex &) const;
@@ -22,19 +21,14 @@ public:
     bool insertRows(int row, int count, const QModelIndex &parent);
     bool removeRows(int row, int count, const QModelIndex &parent);
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
-    QModelIndex index(int row, int column, const QModelIndex &parent) const;
+    QModelIndex index(int row, int column, const QModelIndex &parent=QModelIndex()) const;
     QModelIndex parent(const QModelIndex &child) const;
 
 private slots:
     void onCoreDataChanged();
 
 private:
-
-    Distortion modelData;
-    QMutex mutex;
-    QWaitCondition conditionGet;
-    QWaitCondition conditionSave;
-    Distortion preparedDistortion;    // locked by mutex
+    Distortion *coreData;
 };
 
 #endif // DISTORTIONMODEL_H

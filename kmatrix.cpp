@@ -2,10 +2,10 @@
 
 const static KValue EMPTY_K = {0,0,0,0,0};
 
-KMatrix::KMatrix(const KValue& value, QObject * parent) : QObject(parent){ this->value = value; }
-
-KMatrix::KMatrix(QObject * parent) : KMatrix(EMPTY_K, parent) {}
-KMatrix::KMatrix(const KMatrix& k, QObject *parent) : KMatrix(k.getValue(), parent) {}
+KMatrix::KMatrix(QObject *parent):QObject(parent)
+{
+    this->value=EMPTY_K;
+}
 
 bool KMatrix::isEmpty() const
 {
