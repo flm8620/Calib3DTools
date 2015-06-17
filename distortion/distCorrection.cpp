@@ -241,8 +241,8 @@ bool DistortionModule::distortionCorrect_RGB(image_double_RGB in, image_double_R
     if ((order+1)*(order+2)/2*2 != polynome.size()) return false;
     vector<double> poly(polynome.size());
     int size = poly.size();
-    for (int i = poly.size()-1; i >= 0; --i)
-        poly[i] = polynome[size-1-i];
+    for (int i = 0; i <size; ++i)
+        poly[i] = polynome[i];
     int spline_order = 5;
     correct_image_RGB<double>(in, out, spline_order, poly, order, order);
     return true;
@@ -253,8 +253,8 @@ bool DistortionModule::distortionCorrect(image_double in, image_double &out, std
     if ((order+1)*(order+2)/2*2 != polynome.size()) return false;
     vector<double> poly(polynome.size());
     int size = poly.size();
-    for (int i = poly.size()-1; i >= 0; --i)
-        poly[i] = polynome[size-1-i];
+    for (int i = 0; i <size; ++i)
+        poly[i] = polynome[i];
     int spline_order = 5;
     correct_image<double>(in, out, spline_order, poly, order, order);
     return true;

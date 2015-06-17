@@ -85,7 +85,6 @@ ntuple_list devernay( image_double image, double sigma,
 
   /* Gaussian filter */
   gaussian_filter(image,sigma);
-  std::cout<<"gaussian_filter"<<std::endl;
   /* compute gradient */
   for(x=1; x<(xsize-1); x++)
     for(y=1; y<(ysize-1); y++)

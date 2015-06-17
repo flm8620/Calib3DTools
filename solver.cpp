@@ -18,6 +18,86 @@ image_char qimage_to_image_char(const QImage &qimage)
             image->data[ x + y * w ] = qGray(qimage.pixel(x, y));
     return image;
 }
+/* a : order in numeric lib
+ * b : order in Qt
+ * a0 * x^0*y^0    b0 * x^3*y^0
+ * a1 * x^1*y^0    b1 * x^2*y^1
+ * a2 * x^0*y^1    b2 * x^1*y^2
+ * a3 * x^2*y^0    b3 * x^0*y^3
+ * a4 * x^1*y^1    b4 * x^2*y^0
+ * a5 * x^0*y^2    b5 * x^1*y^1
+ * a6 * x^3*y^0    b6 * x^0*y^2
+ * a7 * x^2*y^1    b7 * x^1*y^0
+ * a8 * x^1*y^2    b8 * x^0*y^1
+ * a9 * x^0*y^3    b9 * x^0*y^0
+ */
+static bool PolyOrderConvert_Qt2Lib(std::vector<double> &poly, int maxOrder)
+{
+    if (poly.size() != (maxOrder+1)*(maxOrder+2)/2*2) return false;
+    std::vector<double> lib(poly.size());
+    int sizexy=poly.size()/2;
+    int qPos=0,libPos=sizexy;
+    //Poly for X
+    for(int order=0;order<=maxOrder;++order){
+        int numCoef=order+1;
+        libPos-=numCoef;
+        for(int j=0;j<numCoef;++j){
+            lib[libPos]=poly[qPos];
+            libPos++;
+            qPos++;
+        }
+        libPos-=numCoef;
+    }
+    //Poly for Y
+    qPos=sizexy;
+    libPos=sizexy*2;
+    for(int order=0;order<=maxOrder;++order){
+        int numCoef=order+1;
+        libPos-=numCoef;
+        for(int j=0;j<numCoef;++j){
+            lib[libPos]=poly[qPos];
+            libPos++;
+            qPos++;
+        }
+        libPos-=numCoef;
+    }
+    poly=lib;
+    return true;
+}
+
+static bool PolyOrderConvert_Lib2Qt(std::vector<double> &poly, int maxOrder)
+{
+    if (poly.size() != (maxOrder+1)*(maxOrder+2)/2*2) return false;
+    std::vector<double> Qpoly(poly.size());
+    int sizexy=poly.size()/2;
+    int qPos=0,libPos=sizexy;
+    //Poly for X
+    for(int order=0;order<=maxOrder;++order){
+        int numCoef=order+1;
+        libPos-=numCoef;
+        for(int j=0;j<numCoef;++j){
+            Qpoly[qPos]=poly[libPos];
+            libPos++;
+            qPos++;
+        }
+        libPos-=numCoef;
+    }
+    //Poly for Y
+    qPos=sizexy;
+    libPos=sizexy*2;
+    for(int order=0;order<=maxOrder;++order){
+        int numCoef=order+1;
+        libPos-=numCoef;
+        for(int j=0;j<numCoef;++j){
+            Qpoly[qPos]=poly[libPos];
+            libPos++;
+            qPos++;
+        }
+        libPos-=numCoef;
+    }
+    poly=Qpoly;
+    return true;
+}
 
 static void QColorImageToImageDoubleRGB(const QImage &qimage, image_double_RGB &out)
 {
@@ -98,17 +178,19 @@ static DistortionValue calculateDistortion(const ImageList &imageList)
 {
     Q_ASSERT(!imageList.isEmpty());
     DistortionValue distValue;
-    std::vector<image_char> doubleList;
+    std::vector<image_char> charImageList;
     for (int i = 0; i < imageList.size(); ++i)
-        doubleList.push_back(qimage_to_image_char(imageList.at(i)));
+        charImageList.push_back(qimage_to_image_char(imageList.at(i)));
     std::vector<double> polynome;
     int order = 11;
 
-    if (DistortionModule::polyEstime(doubleList, polynome, order))
+    if (DistortionModule::polyEstime(charImageList, polynome, order)){
+        PolyOrderConvert_Lib2Qt(polynome,order);
         polynome2DistortionValue(distValue, polynome, order);
+    }
     // else distValue is empty
-    for (int i = 0; i < doubleList.size(); ++i)
-        free_image_char(doubleList[i]);
+    for (int i = 0; i < charImageList.size(); ++i)
+        free_image_char(charImageList[i]);
     return distValue;
 }
 
@@ -119,6 +201,7 @@ static QImage correctDistortion(const QImage &image, Distortion *distortion)
     std::vector<double> polynome;
     QImage result;
     distortionValue2Polynome(distValue, polynome);
+    PolyOrderConvert_Qt2Lib(polynome,distValue._maxOrder);
     if (image.isGrayscale()) {
         qDebug()<<"isGrayscale";
         image_double in, out;

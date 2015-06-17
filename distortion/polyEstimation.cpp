@@ -240,13 +240,9 @@ bool DistortionModule::polyEstime(const std::vector<image_char>& list,std::vecto
     std::cout<<"incLMA"<<std::endl;
     /* Get an inverse polynomial */
     vector<double> poly_params_inv = polyInv<double>(poly_params, order, order, w, h, xp, yp);
-    std::vector<double> polynomeBackward;
     polynome.clear();
     for(int i=0;i<poly_params_inv.size();++i){
-        polynomeBackward.push_back(poly_params_inv[i]);
-    }
-    for(int i=polynomeBackward.size()-1;i>=0;--i){
-        polynome.push_back(polynomeBackward[i]);
+        polynome.push_back(poly_params_inv[i]);
     }
     std::cout<<"polyInv"<<std::endl;
     return true;
