@@ -2,73 +2,68 @@
 
 const static KValue EMPTY_K = {0,0,0,0,0};
 
-KMatrix::KMatrix(const KValue& value, QObject * parent) : QObject(parent)
-{
-    this->rwLock = &this->_rwLock;
-    this->value = value;
-}
-
+KMatrix::KMatrix(const KValue& value, QObject * parent) : QObject(parent), value(value) {}
 KMatrix::KMatrix(QObject * parent) : KMatrix(EMPTY_K, parent) {}
 KMatrix::KMatrix(const KMatrix& k, QObject *parent) : KMatrix(k.getValue(), parent) {}
 
 bool KMatrix::isEmpty() const
 {
-    QReadLocker locker(this->rwLock);
+    ReadLock locker(this->rwLock);
     return this->value == EMPTY_K;
 }
 
 double KMatrix::fx() const
 {
-    QReadLocker locker(this->rwLock);
+    ReadLock locker(this->rwLock);
     return this->value.fx;
 }
 
 double KMatrix::fy() const
 {
-    QReadLocker locker(this->rwLock);
+    ReadLock locker(this->rwLock);
     return this->value.fy;
 }
 
 
 double KMatrix::x0() const
 {
-    QReadLocker locker(this->rwLock);
+    ReadLock locker(this->rwLock);
     return this->value.x0;
 }
 
 double KMatrix::y0() const
 {
-    QReadLocker locker(this->rwLock);
+    ReadLock locker(this->rwLock);
     return this->value.y0;
 }
 
 double KMatrix::s() const
 {
-    QReadLocker locker(this->rwLock);
+    ReadLock locker(this->rwLock);
     return this->value.s;
 }
 
 KValue KMatrix::getValue() const
 {
-    QReadLocker locker(this->rwLock);
+    ReadLock locker(this->rwLock);
     return this->value;
 }
 
 Vector2D KMatrix::getF() const
 {
-    QReadLocker locker(this->rwLock);
+    ReadLock locker(this->rwLock);
     return Vector2D({this->value.fx, this->value.fy});
 }
 
 Vector2D KMatrix::getOrigin() const
 {
-    QReadLocker locker(this->rwLock);
+    ReadLock locker(this->rwLock);
     return Vector2D({this->value.x0, this->value.y0});
 }
 
-static inline bool lockAndSet(double& var, double value, QReadWriteLock* rwlock)
+static inline bool lockAndSet(double& var, double value, ReadWriteLock& rwlock)
 {
-    QWriteLocker lock(rwlock);
+    WriteLock lock(rwlock);
     if( value != var ) {
         var = value;
         return true;
@@ -76,9 +71,9 @@ static inline bool lockAndSet(double& var, double value, QReadWriteLock* rwlock)
     return false;
 }
 
-static inline bool lockAndSet(KValue& var, double fx, double fy, double x0, double y0, double s, QReadWriteLock* rwlock)
+static inline bool lockAndSet(KValue& var, double fx, double fy, double x0, double y0, double s, ReadWriteLock& rwlock)
 {
-    QWriteLocker lock(rwlock);
+    WriteLock lock(rwlock);
 
     bool result = false;
     if( fx != var.fx ) {
@@ -104,9 +99,9 @@ static inline bool lockAndSet(KValue& var, double fx, double fy, double x0, doub
     return result;
 }
 
-static inline bool lockAndSet(double& varX, double& varY, double x, double y, QReadWriteLock* rwlock)
+static inline bool lockAndSet(double& varX, double& varY, double x, double y, ReadWriteLock& rwlock)
 {
-    QWriteLocker lock(rwlock);
+    WriteLock lock(rwlock);
 
     bool result = false;
     if( x != varX ) {
@@ -195,13 +190,13 @@ KMatrix& KMatrix::operator =(const KValue& value)
 
 bool KMatrix::operator ==(const KValue& value) const
 {
-    QReadLocker lock(this->rwLock);
+    ReadLock lock(this->rwLock);
     return this->value == value;
 }
 
 bool KMatrix::operator ==(const KMatrix& other) const
 {
-    QReadLocker lock(this->rwLock);
-    QReadLocker otherLock(other.rwLock);
+    ReadLock lock(this->rwLock);
+    ReadLock otherLock(other.rwLock);
     return this->value == other.value;
 }

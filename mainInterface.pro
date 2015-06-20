@@ -10,7 +10,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = mainInterface
 TEMPLATE = app
-
+CONFIG += c++11
 
 SOURCES += main.cpp\
         mainwindow.cpp \
@@ -36,7 +36,9 @@ SOURCES += main.cpp\
     solverthread.cpp \
     worker.cpp \
     kmatrix.cpp \
-    distortion.cpp
+    distortion.cpp \
+    readwritelock.cpp \
+    eventthreadpool.cpp
 
 HEADERS  += mainwindow.h \
     solver.h \
@@ -65,4 +67,8 @@ HEADERS  += mainwindow.h \
     target3d.h \
     imagelist.h \
     cameraposition.h \
-    distortion.h
+    distortion.h \
+    eventdelegate.h \
+    readwritelock.h \
+    eventthreadpool.h \
+    abstractthreadpool.h

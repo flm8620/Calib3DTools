@@ -1,7 +1,10 @@
 #ifndef KMATRIX_H
 #define KMATRIX_H
 
+#include "readwritelock.h"
 #include <QtCore>
+
+
 typedef struct { double fx, fy, x0, y0, s; } KValue;
 typedef struct { double x, y; } Vector2D;
 inline bool operator ==(const KValue& l, const KValue& r)
@@ -110,10 +113,9 @@ signals:
     void dataChanged();
 
 protected:
-    QReadWriteLock* rwLock;
+    mutable ReadWriteLock rwLock;
 private:
     KValue value;
-    QReadWriteLock _rwLock;
 };
 
 Q_DECLARE_METATYPE(KMatrix)
