@@ -27,15 +27,16 @@
     @author rafael grompone von gioi (grompone@gmail.com)
  */
 /*----------------------------------------------------------------------------*/
-#include <stdlib.h>
-#include <math.h>
-#include <limits.h>
-#include "misc.h"
-#include "image.h"
-#include "ntuple.h"
 #include "gauss.h"
+
 #include <iostream>
-#include <ctime>
+#include <cmath>
+#include "image.h"
+#include "messager.h"
+
+#include "ntuple.h"
+
+
 
 /*----------------------------------------------------------------------------*/
 /** Compute a Gaussian kernel of length 'kernel->dim',
@@ -53,8 +54,8 @@ void gaussian_kernel(ntuple_list kernel, double sigma, double mean)
 
   /* check parameters */
   if( kernel == NULL || kernel->values == NULL )
-    error("gaussian_kernel: invalid n-tuple 'kernel'.");
-  if( sigma <= 0.0 ) error("gaussian_kernel: 'sigma' must be positive.");
+    libMsg::error("gaussian_kernel: invalid n-tuple 'kernel'.");
+  if( sigma <= 0.0 ) libMsg::error("gaussian_kernel: 'sigma' must be positive.");
 
   /* compute Gaussian kernel */
   if( kernel->max_size < 1 ) enlarge_ntuple_list(kernel);
@@ -79,10 +80,10 @@ void gaussian_filter(image_double image, double sigma)
   image_double tmp;
   double val,prec;
 
-  if( sigma <= 0.0 ) error("gaussian_filter: 'sigma; must be positive.");
+  if( sigma <= 0.0 ) libMsg::error("gaussian_filter: 'sigma; must be positive.");
   if( image == NULL || image->data == NULL ||
       image->xsize <= 0 || image->ysize <= 0 )
-    error("gaussian_filter: invalid image.");
+    libMsg::error("gaussian_filter: invalid image.");
 
   /* create temporary image */
   tmp = new_image_double(image->xsize,image->ysize);
@@ -193,15 +194,15 @@ image_double gaussian_sampler(image_double in, double scale, double sigma_scale)
 
   /* check parameters */
   if( in == NULL || in->data == NULL || in->xsize == 0 || in->ysize == 0 )
-    error("gaussian_sampler: invalid image.");
-  if( scale <= 0.0 ) error("gaussian_sampler: 'scale' must be positive.");
+    libMsg::error("gaussian_sampler: invalid image.");
+  if( scale <= 0.0 ) libMsg::error("gaussian_sampler: 'scale' must be positive.");
   if( sigma_scale <= 0.0 )
-    error("gaussian_sampler: 'sigma_scale' must be positive.");
+    libMsg::error("gaussian_sampler: 'sigma_scale' must be positive.");
 
   /* get memory for images */
   if( in->xsize * scale > (double) UINT_MAX ||
       in->ysize * scale > (double) UINT_MAX )
-    error("gaussian_sampler: the output image size exceeds the handled size.");
+    libMsg::error("gaussian_sampler: the output image size exceeds the handled size.");
   N = (unsigned int) floor( in->xsize * scale );
   M = (unsigned int) floor( in->ysize * scale );
   aux = new_image_double(N,in->ysize);

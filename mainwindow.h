@@ -10,23 +10,24 @@
 #include "point2dmodel.h"
 #include "point3dwidget.h"
 #include "point3dmodel.h"
+#include "messager.h"
 #include "console.h"
 #include "solver.h"
 
 #include <QMainWindow>
 
 
-class MainWindow : public QMainWindow, public Messager
+class MainWindow : public QMainWindow, public libMsg::Messager
 {
     Q_OBJECT
 
 public:
     MainWindow(QWidget *parent = 0);
 
-    void message( const char *content, MessageType type );
+    void message(std::string content, libMsg::MessageType type );
 
 signals:
-    void message(QString s,bool warning=false);
+    void messageSignal(QString s, libMsg::MessageType type);
 
 private slots:
     void startSolve();

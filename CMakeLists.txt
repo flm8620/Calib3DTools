@@ -11,14 +11,36 @@ find_package(Qt5Concurrent)
 #Qt5
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+add_subdirectory(libNumerics)
+add_subdirectory(libImage)
+add_subdirectory(libMessager)
+add_subdirectory(QImageConvert)
+
+add_subdirectory(ClickImage)
+add_subdirectory(Distortion)
+add_subdirectory(KMatrixModule)
+
+include_directories(QImageConvert)
+include_directories(libMessager)
+include_directories(libImage)
+include_directories(Distortion)
+include_directories(KMatrixModule)
+#include_directories(ClickImage)
+
+
 
 file(GLOB SOURCE_FILES "*.cpp" "*.h")
-
-include_directories(ClickImage)
-add_subdirectory(ClickImage)
-include_directories(distortion)
-add_subdirectory(distortion)
-
 add_executable(mainInterface ${SOURCE_FILES})
 
-target_link_libraries(mainInterface Qt5::Widgets Qt5::Concurrent ClickImage Distortion_poly)
+target_link_libraries(mainInterface
+ClickImage
+libMessager
+libImage
+QImageConvert
+
+DistortionPoly
+KMatrixModule
+
+Qt5::Widgets
+Qt5::Concurrent
+)

@@ -26,26 +26,29 @@
    by Frederic Devernay. Rapport de recherche INRIA No.2724, November 1995.
 */
 /*----------------------------------------------------------------------------*/
-
+#include "devernay.h"
 #include <stdio.h>
 #include <math.h>
-#include "misc.h"
+#include <iostream>
+
 #include "image.h"
+#include "messager.h"
+
 #include "ntuple.h"
 #include "gauss.h"
-#include <iostream>
+
 /*----------------------------------------------------------------------------*/
 /** Add a 2-tuple to an 2-tuple list.
  */
 static void add_2tuple( ntuple_list out, double v1, double v2 )
 {
   /* check parameters */
-  if( out == NULL ) error("add_2tuple: invalid n-tuple input.");
-  if( out->dim != 2 ) error("add_2tuple: the n-tuple must be a 2-tuple.");
+  if( out == NULL ) libMsg::error("add_2tuple: invalid n-tuple input.");
+  if( out->dim != 2 ) libMsg::error("add_2tuple: the n-tuple must be a 2-tuple.");
 
   /* if needed, alloc more tuples to 'out' */
   if( out->size == out->max_size ) enlarge_ntuple_list(out);
-  if( out->values == NULL ) error("add_2tuple: invalid n-tuple input.");
+  if( out->values == NULL ) libMsg::error("add_2tuple: invalid n-tuple input.");
 
   /* add new 2-tuple */
   out->values[ out->size * out->dim + 0 ] = v1;
@@ -71,8 +74,8 @@ ntuple_list devernay( image_double image, double sigma,
   /* check input */
   if( image == NULL || image->data == NULL ||
       image->xsize == 0 || image->ysize == 0 )
-    error("devernay: invalid input image.");
-  if( sigma <= 0.0 ) error("devernay: sigma must be positive.");
+    libMsg::error("devernay: invalid input image.");
+  if( sigma <= 0.0 ) libMsg::error("devernay: sigma must be positive.");
   xsize = image->xsize;
   ysize = image->ysize;
 

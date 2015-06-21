@@ -1,21 +1,25 @@
 #include <stdio.h>
-#include <math.h>
-#include "misc.h"
+#include <cmath>
+#include "messager.h"
 #include "ntuple.h"
 #include "ntuple_ll.h"
 
 /*----------------------------------------------------------------------------*/
 /** Add a 2-tuple to an 2-tuple list.
  */
+static double dist(double x1,double y1,double x2,double y2){
+    return sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
+}
+
 static void add_2tuple( ntuple_list out, double v1, double v2 )
 {
   /* check parameters */
-  if( out == NULL ) error("add_2tuple: invalid n-tuple input.");
-  if( out->dim != 2 ) error("add_2tuple: the n-tuple must be a 2-tuple.");
+  if( out == NULL ) libMsg::error("add_2tuple: invalid n-tuple input.");
+  if( out->dim != 2 ) libMsg::error("add_2tuple: the n-tuple must be a 2-tuple.");
 
   /* if needed, alloc more tuples to 'out' */
   if( out->size == out->max_size ) enlarge_ntuple_list(out);
-  if( out->values == NULL ) error("add_2tuple: invalid n-tuple input.");
+  if( out->values == NULL ) libMsg::error("add_2tuple: invalid n-tuple input.");
 
   /* add new 2-tuple */
   out->values[ out->size * out->dim + 0 ] = v1;
@@ -31,12 +35,12 @@ static void add_2tuple( ntuple_list out, double v1, double v2 )
 static void add_1tuple( ntuple_list out, double v1)
 {
   /* check parameters */
-  if( out == NULL ) error("add_1tuple: invalid n-tuple input.");
-  if( out->dim != 1 ) error("add_1tuple: the n-tuple must be a 1-tuple.");
+  if( out == NULL ) libMsg::error("add_1tuple: invalid n-tuple input.");
+  if( out->dim != 1 ) libMsg::error("add_1tuple: the n-tuple must be a 1-tuple.");
 
   /* if needed, alloc more tuples to 'out' */
   if( out->size == out->max_size ) enlarge_ntuple_list(out);
-  if( out->values == NULL ) error("add_2tuple: invalid n-tuple input.");
+  if( out->values == NULL ) libMsg::error("add_2tuple: invalid n-tuple input.");
 
   /* add new 2-tuple */
   out->values[ out->size * out->dim] = v1;
@@ -51,9 +55,9 @@ static void add_1tuple( ntuple_list out, double v1)
 static void copy_ntuple(ntuple_list src, ntuple_list des)
 {
   /* check parameters */
-  if( src == NULL ) error("copy_ntuple: invalid n-tuple input.");
-  if( des == NULL ) error("copy_ntuple: invalid n-tuple input.");
-  if( src->dim != des->dim ) error("copy_ntuple: different dimension of input."); 
+  if( src == NULL ) libMsg::error("copy_ntuple: invalid n-tuple input.");
+  if( des == NULL ) libMsg::error("copy_ntuple: invalid n-tuple input.");
+  if( src->dim != des->dim ) libMsg::error("copy_ntuple: different dimension of input.");
 
   int i, j, nb, dim;
   nb = src->size;
@@ -103,7 +107,7 @@ ntuple_list gaussian_convol_on_curve(double unit_sigma, double Nsigma, bool resa
     y1 = orig_edges->values[j*orig_edges->dim + 1];
     x2 = orig_edges->values[(j+1)*orig_edges->dim + 0];
     y2 = orig_edges->values[(j+1)*orig_edges->dim + 1];
-    d = dist(x1, y1, x2, y2);
+    d=dist(x1,y1,x2,y2);
     
     add_1tuple(each_seg_length, d);
     line_length += d;
@@ -116,7 +120,7 @@ ntuple_list gaussian_convol_on_curve(double unit_sigma, double Nsigma, bool resa
   if (resampling) {
     /*TANG: the edge points are not regularly sampled, so first do an interpolation to get regularly sampled points*/
     if (up_factor < 1.0)
-      error("up_factor must be greater than 1!\n");
+      libMsg::error("up_factor must be greater than 1!\n");
 
     /*the line is upsampled, the average distance becomes smaller*/
     sample_step /= up_factor;

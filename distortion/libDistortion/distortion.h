@@ -1,9 +1,7 @@
 #ifndef DISTORTION_H
 #define DISTORTION_H
 
-#include "LM.h"
-
-
+#include "LMmin.h"
 
 template <typename T> libNumerics::vector<T> bicubicDistModel(const libNumerics::vector<T>& completeParams, const libNumerics::matrix<T>& coefTerm);
 

@@ -21,24 +21,22 @@
 
   ----------------------------------------------------------------------------*/
 #include "distCorrection.h"
-#include "matrix.h"
-#include "correction.h"
-#include "pgm_io.h"
-#include "misc.h"
-#include "spline.h"
 
+#include "messager.h"
+//libNumerics
+#include "matrix.h"
+//libImage
+#include "correction.h"
+#include "spline.h"
+//libDistortion
 #include "distortion.h"
+//libLineDetection
 #include "gaussian_convol_on_curve.h"
 #include "straight_edge_points.h"
-#include "ntuple_ll.h"
-#include "pgm_io.h"
 
-#include <algorithm>
-#include <ctime>
-#include <cstring>
-#include <cstdio>
-#include <cstdlib>
 #include <iostream>
+
+
 
 /*----------------------------------------------------------------------------*/
 /* Static parameters.
@@ -57,9 +55,7 @@ static const double up_factor = 1.0;
 
 using namespace libNumerics;
 
-/*----------------------------------------------------------------------------*/
-/*                                    Funcs                                    */
-/*----------------------------------------------------------------------------*/
+
 /* Measure RMSE of lines on the given image */
 template<typename T>
 T image_RMSE(int length_thresh, double down_factor, image_double image)
@@ -132,11 +128,11 @@ void correct_image(image_double in, image_double &out, int spline_order,
     int sizey = (degY + 1) * (degY + 2) / 2;
     vector<T> paramsX = poly_params_inv.copyRef(0, sizex-1);
     vector<T> paramsY = poly_params_inv.copyRef(sizex, sizex+sizey-1);
-    std::cout<<"\n Undistorted image is being calculated... \n"<<std::endl;
+    libMsg::cout<<"\n Undistorted image is being calculated... \n"<<libMsg::endl;
     int wi = in->xsize, he = in->ysize;
     T xp = (T)wi/2+0.2, yp = (T)he/2+0.2;
     out = new_image_double(wi, he);
-    std::cout << "[" << std::flush;
+    libMsg::cout << "[" << libMsg::flush;
     prepare_spline(in, spline_order);
     for (int y = 0; y < he; y++) {
         for (int x = 0; x < wi; x++) {
@@ -149,11 +145,11 @@ void correct_image(image_double in, image_double &out, int spline_order,
         }
         /* output progress */
         T percent = ((T)y / (T)he)*100;
-        if (!(y % (int)(0.2*he))) std::cout << (int)percent+1 << "%" << std::flush;
-        else if (!(y % (int)(0.04*he))) std::cout << "." << std::flush;
+        if (!(y % (int)(0.2*he))) libMsg::cout << (int)percent+1 << "%" << libMsg::flush;
+        else if (!(y % (int)(0.04*he))) libMsg::cout << "." << libMsg::flush;
     }
-    std::cout << "] " << std::flush;
-    std::cout<<" done \n"<<std::endl;
+    libMsg::cout << "] " << libMsg::flush;
+    libMsg::cout<<" done \n"<<libMsg::endl;
 }
 
 template<typename T>
@@ -165,11 +161,11 @@ void correct_image_RGB(image_double_RGB in, image_double_RGB &out, int spline_or
     int sizey = (degY + 1) * (degY + 2) / 2;
     vector<T> paramsX = poly_params_inv.copyRef(0, sizex-1);
     vector<T> paramsY = poly_params_inv.copyRef(sizex, sizex+sizey-1);
-    std::cout<<"\n Undistorted image is being calculated... \n"<<std::endl;
+    libMsg::cout<<"\n Undistorted image is being calculated... \n"<<libMsg::endl;
     int wi = in->xsize, he = in->ysize;
     T xp = (T)wi/2+0.2, yp = (T)he/2+0.2;
     out = new_image_double_RGB(wi, he);
-    std::cout << "[" << std::flush;
+    libMsg::cout << "[" << libMsg::flush;
     prepare_spline_RGB(in, spline_order);
     for (int y = 0; y < he; y++) {
         for (int x = 0; x < wi; x++) {
@@ -186,11 +182,11 @@ void correct_image_RGB(image_double_RGB in, image_double_RGB &out, int spline_or
         }
         /* output progress */
         T percent = ((T)y / (T)he)*100;
-        if (!(y % (int)(0.2*he))) std::cout << (int)percent+1 << "%" << std::flush;
-        else if (!(y % (int)(0.04*he))) std::cout << "." << std::flush;
+        if (!(y % (int)(0.2*he))) libMsg::cout << (int)percent+1 << "%" << libMsg::flush;
+        else if (!(y % (int)(0.04*he))) libMsg::cout << "." << libMsg::flush;
     }
-    std::cout << "] " << std::flush;
-    std::cout<<" done \n"<<std::endl;
+    libMsg::cout << "] " << libMsg::flush;
+    libMsg::cout<<" done \n"<<libMsg::endl;
 }
 
 /* Pop out one character from char array */
@@ -257,5 +253,224 @@ bool DistortionModule::distortionCorrect(image_double in, image_double &out, std
         poly[i] = polynome[i];
     int spline_order = 5;
     correct_image<double>(in, out, spline_order, poly, order, order);
+    return true;
+}
+template<typename T>
+static void read_images(DistortedLines<T> &distLines, const std::vector<image_char> &imageList,
+                        int length_thresh, int down_factor)
+{
+    int w_tmp = 0, h_tmp = 0;
+    ntuple_ll point_set, p;
+    image_double image;
+    // int length_thresh;
+    // double down_factor,
+    double x, y;
+    int w, h;
+    int total_nb_lines, total_threshed_nb_lines, threshed_nb_lines;
+    ntuple_list convolved_pts;
+
+    libMsg::cout<<"There are "<<imageList.size()
+             <<" input images.\n The minimal length of lines is set to "<<length_thresh<<libMsg::endl;
+
+    /* initialize memory */
+    point_set = new_ntuple_ll(1);
+    total_nb_lines = 0;
+    total_threshed_nb_lines = 0;
+
+    /* process each of the input images */
+    for (int i = 0; i < imageList.size(); ++i) {
+        threshed_nb_lines = 0;
+
+        /* open image, compute edge points, close it */
+        libMsg::cout<<"start convert "<<i<<"..."<<libMsg::endl;
+        image = new_image_double_from_image_char(imageList[i]);
+        p = straight_edge_points(image, sigma, th_low, th_hi, min_length);
+        w = image->xsize;
+        h = image->ysize;
+        if (i == 0) {
+            w_tmp = w;
+            h_tmp = h;
+        } else {
+            assert(w == w_tmp && h == h_tmp);
+        }
+        free_image_double(image);
+
+        /* copy the points set in the new image to the global set of points */
+        int count = 0;
+        for (int j = 0; j < (int)p->size; j++) {
+            if ((int)p->list[j]->size > length_thresh) {
+                add_ntuple_list(point_set, p->list[j]);
+                p->list[j] = 0;
+                count++;
+            } else {
+                threshed_nb_lines += 1;
+            }
+        }
+
+        distLines.pushMemGroup(count);
+
+        libMsg::cout<<"For image"<<i<<", there are totally "<<p->size<<" lines detected and "
+                 <<threshed_nb_lines<<" of them are eliminated.\n"<<libMsg::endl;
+        total_nb_lines += p->size;
+        total_threshed_nb_lines += threshed_nb_lines;
+        free_ntuple_ll(p);
+    }
+    // distLines.pushMemGroup((int)point_set->size);
+    int countL = 0;
+    for (unsigned int i = 0; i < point_set->size; i++) {
+        /* Gaussian convolution and sub-sampling */
+        convolved_pts = gaussian_convol_on_curve(unit_sigma, Nsigma, resampling, eliminate_border,
+                                                 up_factor, down_factor, point_set->list[i]);
+
+        /* Save points to DistortionLines structure */
+        for (unsigned int j = 0; j < convolved_pts->size; j++) {
+            x = convolved_pts->values[j*convolved_pts->dim];
+            y = convolved_pts->values[j*convolved_pts->dim+1];
+            distLines.pushPoint(countL, x, y);
+        }
+        countL++;
+    }
+    libMsg::cout<<"Totally there are "<<total_nb_lines<<" lines detected and "
+             <<total_threshed_nb_lines<< " of them are eliminated.\n"<<libMsg::endl;
+    /* free memory */
+    free_ntuple_ll(point_set);
+    free_ntuple_list(convolved_pts);
+}
+
+template<typename T>
+static libNumerics::vector<T> incLMA(DistortedLines<T> &distLines, const int order,
+                                     const int inc_order, T xp, T yp)
+{
+    int sizexy = (order + 1) * (order + 2) / 2;
+    vector<T> paramsX = vector<T>::zeros(sizexy);
+    paramsX[sizexy-3] = 1;
+    vector<T> paramsY = vector<T>::zeros(sizexy);
+    paramsY[sizexy-2] = 1;
+    T rmse = distLines.RMSE(paramsX, paramsY, order, order, xp, xp);
+    T rmse_max = distLines.RMSE_max(paramsX, paramsY, order, order, xp, yp);
+    libMsg::cout<<"initial RMSE / maximum RMSE: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
+    const int beginOrder = 3;
+    vector<T> midParams(1);
+    for (int i = beginOrder; i <= order; i = i+inc_order) {
+        int sizebc = (i+1) * (i+2) / 2;
+        vector<T> b = vector<T>::zeros(sizebc);
+        vector<T> c = vector<T>::zeros(sizebc);
+        vector<int> flagX = vector<int>::ones(sizebc);
+        vector<int> flagY = vector<int>::ones(sizebc);
+        flagX[sizebc-3] = flagX[sizebc-2] = flagX[sizebc-1] = 0;
+        flagY[sizebc-2] = flagY[sizebc-3] = flagY[sizebc-1] = 0;
+        if (i == beginOrder) {
+            b[sizebc-3] = 1;
+            c[sizebc-2] = 1;
+        } else {
+            int sizebcOld = (i-inc_order+1) * (i-inc_order+2) / 2;
+            for (int k = 0; k < sizebcOld; k++) {
+                b[sizebc-sizebcOld+k] = midParams[k];
+                c[sizebc-sizebcOld+k] = midParams[sizebcOld+k];
+            }
+        }
+        midParams = distLines.correctionLMA(b, c, flagX, flagY, i, i, xp, yp);
+        rmse = distLines.RMSE(midParams.copy(0, sizebc-1), midParams.copyRef(sizebc,
+                                                                             sizebc+sizebc-1), i, i, xp,
+                              yp);
+        rmse_max
+            = distLines.RMSE_max(midParams.copyRef(0, sizebc-1),
+                                 midParams.copyRef(sizebc, sizebc+sizebc-1), i, i, xp, yp);
+        libMsg::cout<<"initial RMSE / maximum RMSE: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
+    }
+    libMsg::cout<<"\n Iterative linear minimization step: \n"<<libMsg::endl;
+    T diff = 100;
+    T prevRmse = 1e+16; /* infinity */
+    vector<int> flagX = vector<int>::ones(sizexy);
+    vector<int> flagY = vector<int>::ones(sizexy);
+    flagX[sizexy-3] = flagX[sizexy-1] = flagX[sizexy-2] = 0;
+    flagY[sizexy-2] = flagY[sizexy-1] = flagY[sizexy-3] = 0;
+    vector<T> estParams(sizexy+sizexy);
+    int iter = 0;
+    while (diff > 0.001) {
+        estParams
+            = distLines.verification(midParams.copy(0, sizexy-1), midParams.copy(sizexy,
+                                                                                 sizexy+sizexy-1), flagX, flagY, order, order, xp,
+                                     yp);
+        midParams = estParams;
+        rmse = distLines.RMSE(estParams.copy(0, sizexy-1), estParams.copyRef(sizexy,
+                                                                             sizexy+sizexy-1), order, order, xp,
+                              yp);
+        rmse_max
+            = distLines.RMSE_max(estParams.copyRef(0, sizexy-1),
+                                 estParams.copyRef(sizexy, sizexy+sizexy-1), order, order, xp, yp);
+        libMsg::cout<<"initial RMSE / maximum RMSE: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
+
+        diff = fabs(prevRmse - rmse);
+        prevRmse = rmse;
+        iter++;
+    }
+    return estParams;
+}
+
+template<typename T>
+static vector<T> polyInv(const vector<T> &poly_params, const int degX, const int degY, int wi,
+                         int he, T xp, T yp)
+{
+    int sizex = (degX + 1) * (degX + 2) / 2;
+    int sizey = (degY + 1) * (degY + 2) / 2;
+    return getParamsInv(poly_params.copyRef(0, sizex-1), poly_params.copyRef(sizex,
+                                                                             sizex+sizey-1), degX, degY, wi, he, xp,
+                        yp);
+}
+
+bool DistortionModule::polyEstime(const std::vector<image_char> &list,
+                                  std::vector<double> &polynome, int order)
+{
+    unsigned int w, h;
+    // check: same size for all image
+    for (int i = 0; i < list.size(); ++i) {
+        if (i == 0) {
+            w = list[0]->xsize;
+            h = list[0]->ysize;
+        } else {
+            if (w != list[i]->xsize || h != list[i]->ysize)
+                return false;
+        }
+    }
+    int min_length = std::min(w, h)*0.3;
+    DistortedLines<double> distLines;
+    read_images<double>(distLines, list, min_length, 60);
+
+    /*int count=0;
+     * for(int i=0;i<num;++i){
+        QPainter painter(&list[i]);
+
+
+
+
+        for(int j=0;j<distLines.nlines4Group[i];++j){
+            double x1,y1,x2,y2;
+            x1=distLines._line.at(count+j).x(0);
+            y1=distLines._line.at(count+j).y(0);
+            for(int k=1;k<distLines._line.at(count+j).sizeLine();++k){
+                x2=distLines._line.at(count+j).x(k);
+                y2=distLines._line.at(count+j).y(k);
+                painter.setPen(Qt::green);
+                painter.drawLine(x1,y1,x2,y2);
+                painter.setPen(Qt::red);
+                painter.drawPoint(x2,y2);
+                x1=x2;y1=y2;
+            }
+
+        }
+        count+=distLines.nlines4Group[i];
+    }*/
+
+    double xp = (double)w/2+0.2, yp = (double)h/2+0.2; /* +0.2 - to avoid integers */
+    const int inc = 2; /* increment; only odd orders will be taken */
+    vector<double> poly_params = incLMA <double>(distLines, order, inc, xp, yp);
+    libMsg::cout<<"incLMA"<<libMsg::endl;
+    /* Get an inverse polynomial */
+    vector<double> poly_params_inv = polyInv<double>(poly_params, order, order, w, h, xp, yp);
+    polynome.clear();
+    for (int i = 0; i < poly_params_inv.size(); ++i)
+        polynome.push_back(poly_params_inv[i]);
+    libMsg::cout<<"polyInv"<<libMsg::endl;
     return true;
 }

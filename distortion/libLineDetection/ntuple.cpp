@@ -28,6 +28,7 @@
  */
 /*----------------------------------------------------------------------------*/
 #include <stdlib.h>
+#include "messager.h"
 #include "misc.h"
 #include "ntuple.h"
 
@@ -37,7 +38,7 @@
 void free_ntuple_list(ntuple_list in)
 {
   if( in == NULL || in->values == NULL )
-    error("free_ntuple_list: invalid n-tuple list input.");
+    libMsg::error("free_ntuple_list: invalid n-tuple list input.");
   free( (void *) in->values );
   free( (void *) in );
 }
@@ -51,11 +52,11 @@ ntuple_list new_ntuple_list(unsigned int dim)
   ntuple_list n_tuple;
 
   /* check parameters */
-  if( dim == 0 ) error("new_ntuple_list: 'dim' must be positive.");
+  if( dim == 0 ) libMsg::error("new_ntuple_list: 'dim' must be positive.");
 
   /* get memory for list structure */
   n_tuple = (ntuple_list) malloc( sizeof(struct ntuple_list_s) );
-  if( n_tuple == NULL ) error("not enough memory.");
+  if( n_tuple == NULL ) libMsg::error("not enough memory.");
 
   /* initialize list */
   n_tuple->size = 0;
@@ -64,7 +65,7 @@ ntuple_list new_ntuple_list(unsigned int dim)
 
   /* get memory for tuples */
   n_tuple->values = (double *) malloc( dim*n_tuple->max_size * sizeof(double) );
-  if( n_tuple->values == NULL ) error("not enough memory.");
+  if( n_tuple->values == NULL ) libMsg::error("not enough memory.");
 
   return n_tuple;
 }
@@ -76,7 +77,7 @@ void enlarge_ntuple_list(ntuple_list n_tuple)
 {
   /* check parameters */
   if( n_tuple == NULL || n_tuple->values == NULL || n_tuple->max_size == 0 )
-    error("enlarge_ntuple_list: invalid n-tuple.");
+    libMsg::error("enlarge_ntuple_list: invalid n-tuple.");
 
   /* duplicate number of tuples */
   n_tuple->max_size *= 2;
@@ -84,7 +85,7 @@ void enlarge_ntuple_list(ntuple_list n_tuple)
   /* realloc memory */
   n_tuple->values = (double *) realloc( (void *) n_tuple->values,
                       n_tuple->dim * n_tuple->max_size * sizeof(double) );
-  if( n_tuple->values == NULL ) error("not enough memory.");
+  if( n_tuple->values == NULL ) libMsg::error("not enough memory.");
 }
 
 /*----------------------------------------------------------------------------*/
@@ -94,12 +95,12 @@ void add_5tuple( ntuple_list out, double v1, double v2,
                  double v3, double v4, double v5 )
 {
   /* check parameters */
-  if( out == NULL ) error("add_5tuple: invalid n-tuple input.");
-  if( out->dim != 5 ) error("add_5tuple: the n-tuple must be a 5-tuple.");
+  if( out == NULL ) libMsg::error("add_5tuple: invalid n-tuple input.");
+  if( out->dim != 5 ) libMsg::error("add_5tuple: the n-tuple must be a 5-tuple.");
 
   /* if needed, alloc more tuples to 'out' */
   if( out->size == out->max_size ) enlarge_ntuple_list(out);
-  if( out->values == NULL ) error("add_5tuple: invalid n-tuple input.");
+  if( out->values == NULL ) libMsg::error("add_5tuple: invalid n-tuple input.");
 
   /* add new 5-tuple */
   out->values[ out->size * out->dim + 0 ] = v1;

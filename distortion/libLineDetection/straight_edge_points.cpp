@@ -23,14 +23,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "misc.h"
 #include "image.h"
+#include "messager.h"
+
+#include "misc.h"
 #include "ntuple.h"
 #include "ntuple_ll.h"
 #include "devernay.h"
 #include "lsd.h"
 
-#include <iostream>
+
 
 #ifndef M_PI
 #define M_PI   3.14159265358979323846
@@ -81,7 +83,7 @@ static void sort_edge_points(ntuple_ll se, ntuple_list ls)
 
       /* get memory */
       p = (struct point *) calloc( (size_t) n, sizeof(struct point) );
-      if( p == NULL ) error("not enough memory!");
+      if( p == NULL ) libMsg::error("not enough memory!");
 
       /* copy points to list */
       for(j=0;j<n;j++)
@@ -114,7 +116,7 @@ static void sort_edge_points(ntuple_ll se, ntuple_list ls)
       else if (theta <= -(M_PI / 4.0))
         qsort( (void *)p, n, sizeof(struct point), &comp_point_y_decrease );
       else
-	error("[straight_edge_points]: theta error!\n");
+    libMsg::error("[straight_edge_points]: theta libMsg::error!\n");
 
 
       /* copy back sorted points */
@@ -165,12 +167,12 @@ static void remove_short_edges(ntuple_ll se, ntuple_list ls, double threshold)
 static void add_2tuple( ntuple_list out, double v1, double v2 )
 {
   /* check parameters */
-  if( out == NULL ) error("add_2tuple: invalid n-tuple input.");
-  if( out->dim != 2 ) error("add_2tuple: the n-tuple must be a 2-tuple.");
+  if( out == NULL ) libMsg::error("add_2tuple: invalid n-tuple input.");
+  if( out->dim != 2 ) libMsg::error("add_2tuple: the n-tuple must be a 2-tuple.");
 
   /* if needed, alloc more tuples to 'out' */
   if( out->size == out->max_size ) enlarge_ntuple_list(out);
-  if( out->values == NULL ) error("add_2tuple: invalid n-tuple input.");
+  if( out->values == NULL ) libMsg::error("add_2tuple: invalid n-tuple input.");
 
   /* add new 2-tuple */
   out->values[ out->size * out->dim + 0 ] = v1;

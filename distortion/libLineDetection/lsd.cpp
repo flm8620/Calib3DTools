@@ -71,12 +71,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <limits.h>
+//#include <limits.h>
 #include <float.h>
-#include "misc.h"
+#include "messager.h"
 #include "ntuple.h"
 #include "image.h"
 #include "lsd.h"
+#include "misc.h"
 
 /** ln(10) */
 #ifndef M_LN10
@@ -146,8 +147,8 @@ static void gaussian_kernel(ntuple_list kernel, double sigma, double mean)
 
   /* check parameters */
   if( kernel == NULL || kernel->values == NULL )
-    error("gaussian_kernel: invalid n-tuple 'kernel'.");
-  if( sigma <= 0.0 ) error("gaussian_kernel: 'sigma' must be positive.");
+    libMsg::error("gaussian_kernel: invalid n-tuple 'kernel'.");
+  if( sigma <= 0.0 ) libMsg::error("gaussian_kernel: 'sigma' must be positive.");
 
   /* compute Gaussian kernel */
   if( kernel->max_size < 1 ) enlarge_ntuple_list(kernel);
@@ -212,15 +213,15 @@ static image_double gaussian_sampler( image_double in, double scale,
 
   /* check parameters */
   if( in == NULL || in->data == NULL || in->xsize == 0 || in->ysize == 0 )
-    error("gaussian_sampler: invalid image.");
-  if( scale <= 0.0 ) error("gaussian_sampler: 'scale' must be positive.");
+    libMsg::error("gaussian_sampler: invalid image.");
+  if( scale <= 0.0 ) libMsg::error("gaussian_sampler: 'scale' must be positive.");
   if( sigma_scale <= 0.0 )
-    error("gaussian_sampler: 'sigma_scale' must be positive.");
+    libMsg::error("gaussian_sampler: 'sigma_scale' must be positive.");
 
   /* get memory for images */
   if( in->xsize * scale > (double) UINT_MAX ||
       in->ysize * scale > (double) UINT_MAX )
-    error("gaussian_sampler: the output image size exceeds the handled size.");
+    libMsg::error("gaussian_sampler: the output image size exceeds the handled size.");
   N = (unsigned int) floor( in->xsize * scale );
   M = (unsigned int) floor( in->ysize * scale );
   aux = new_image_double(N,in->ysize);
@@ -361,13 +362,13 @@ static image_double ll_angle( image_double in, double threshold,
 
   /* check parameters */
   if( in == NULL || in->data == NULL || in->xsize == 0 || in->ysize == 0 )
-    error("ll_angle: invalid image.");
-  if( threshold < 0.0 ) error("ll_angle: 'threshold' must be positive.");
-  if( list_p == NULL ) error("ll_angle: NULL pointer 'list_p'.");
-  if( mem_p == NULL ) error("ll_angle: NULL pointer 'mem_p'.");
-  if( modgrad == NULL ) error("ll_angle: NULL pointer 'modgrad'.");
-  if( n_bins == 0 ) error("ll_angle: 'n_bins' must be positive.");
-  if( max_grad <= 0.0 ) error("ll_angle: 'max_grad' must be positive.");
+    libMsg::error("ll_angle: invalid image.");
+  if( threshold < 0.0 ) libMsg::error("ll_angle: 'threshold' must be positive.");
+  if( list_p == NULL ) libMsg::error("ll_angle: NULL pointer 'list_p'.");
+  if( mem_p == NULL ) libMsg::error("ll_angle: NULL pointer 'mem_p'.");
+  if( modgrad == NULL ) libMsg::error("ll_angle: NULL pointer 'modgrad'.");
+  if( n_bins == 0 ) libMsg::error("ll_angle: 'n_bins' must be positive.");
+  if( max_grad <= 0.0 ) libMsg::error("ll_angle: 'max_grad' must be positive.");
 
   /* image size shortcuts */
   n = in->ysize;
@@ -387,7 +388,7 @@ static image_double ll_angle( image_double in, double threshold,
   range_l_e = (struct coorlist **) calloc( (size_t) n_bins,
                                            sizeof(struct coorlist *) );
   if( list == NULL || range_l_s == NULL || range_l_e == NULL )
-    error("not enough memory.");
+    libMsg::error("not enough memory.");
   for(i=0;i<n_bins;i++) range_l_s[i] = range_l_e[i] = NULL;
 
   /* 'undefined' on the down and right boundaries */
@@ -478,10 +479,10 @@ static int isaligned( int x, int y, image_double angles, double theta,
 
   /* check parameters */
   if( angles == NULL || angles->data == NULL )
-    error("isaligned: invalid image 'angles'.");
+    libMsg::error("isaligned: invalid image 'angles'.");
   if( x < 0 || y < 0 || x >= (int) angles->xsize || y >= (int) angles->ysize )
-    error("isaligned: (x,y) out of the image.");
-  if( prec < 0.0 ) error("isaligned: 'prec' must be positive.");
+    libMsg::error("isaligned: (x,y) out of the image.");
+  if( prec < 0.0 ) libMsg::error("isaligned: 'prec' must be positive.");
 
   /* angle at pixel (x,y) */
   a = angles->data[ x + y * angles->xsize ];
@@ -649,19 +650,19 @@ static double log_gamma_windschitl(double x)
     the gamma function.
 
     To make the computation faster, not all the sum is computed, part
-    of the terms are neglected based on a bound to the error obtained
-    (an error of 10% in the result is accepted).
+    of the terms are neglected based on a bound to the libMsg::error obtained
+    (an libMsg::error of 10% in the result is accepted).
  */
 static double nfa(int n, int k, double p, double logNT)
 {
   static double inv[TABSIZE];   /* table to keep computed inverse values */
-  double tolerance = 0.1;       /* an error of 10% in the result is accepted */
+  double tolerance = 0.1;       /* an libMsg::error of 10% in the result is accepted */
   double log1term,term,bin_term,mult_term,bin_tail,err,p_term;
   int i;
 
   /* check parameters */
   if( n<0 || k<0 || k>n || p<=0.0 || p>=1.0 )
-    error("nfa: wrong n, k or p values.");
+    libMsg::error("nfa: wrong n, k or p values.");
 
   /* trivial cases */
   if( n==0 || k==0 ) return -logNT;
@@ -719,19 +720,19 @@ static double nfa(int n, int k, double p, double logNT)
       if(bin_term<1.0)
         {
           /* When bin_term<1 then mult_term_j<mult_term_i for j>i.
-             Then, the error on the binomial tail when truncated at
+             Then, the libMsg::error on the binomial tail when truncated at
              the i term can be bounded by a geometric series of form
              term_i * sum mult_term_i^j.                            */
           err = term * ( ( 1.0 - pow( mult_term, (double) (n-i+1) ) ) /
                          (1.0-mult_term) - 1.0 );
 
-          /* One wants an error at most of tolerance*final_result, or:
+          /* One wants an libMsg::error at most of tolerance*final_result, or:
              tolerance * abs(-log10(bin_tail)-logNT).
-             Now, the error that can be accepted on bin_tail is
+             Now, the libMsg::error that can be accepted on bin_tail is
              given by tolerance*final_result divided by the derivative
              of -log10(x) when x=bin_tail. that is:
              tolerance * abs(-log10(bin_tail)-logNT) / (1/bin_tail)
-             Finally, we truncate the tail if the error is less than:
+             Finally, we truncate the tail if the libMsg::error is less than:
              tolerance * abs(-log10(bin_tail)-logNT) * bin_tail        */
           if( err < tolerance * fabs(-log10(bin_tail)-logNT) * bin_tail ) break;
         }
@@ -764,7 +765,7 @@ struct rect
 static void rect_copy(struct rect * in, struct rect * out)
 {
   /* check parameters */
-  if( in == NULL || out == NULL ) error("rect_copy: invalid 'in' or 'out'.");
+  if( in == NULL || out == NULL ) libMsg::error("rect_copy: invalid 'in' or 'out'.");
 
   /* copy values */
   out->x1 = in->x1;
@@ -859,7 +860,7 @@ static double inter_low(double x, double x1, double y1, double x2, double y2)
 {
   /* check parameters */
   if( x1 > x2 || x < x1 || x > x2 )
-    error("inter_low: unsuitable input, 'x1>x2' or 'x<x1' or 'x>x2'.");
+    libMsg::error("inter_low: unsuitable input, 'x1>x2' or 'x<x1' or 'x>x2'.");
 
   /* interpolation */
   if( double_equal(x1,x2) && y1<y2 ) return y1;
@@ -881,7 +882,7 @@ static double inter_hi(double x, double x1, double y1, double x2, double y2)
 {
   /* check parameters */
   if( x1 > x2 || x < x1 || x > x2 )
-    error("inter_hi: unsuitable input, 'x1>x2' or 'x<x1' or 'x>x2'.");
+    libMsg::error("inter_hi: unsuitable input, 'x1>x2' or 'x<x1' or 'x>x2'.");
 
   /* interpolation */
   if( double_equal(x1,x2) && y1<y2 ) return y2;
@@ -894,7 +895,7 @@ static double inter_hi(double x, double x1, double y1, double x2, double y2)
  */
 static void ri_del(rect_iter * iter)
 {
-  if( iter == NULL ) error("ri_del: NULL iterator.");
+  if( iter == NULL ) libMsg::error("ri_del: NULL iterator.");
   free( (void *) iter );
 }
 
@@ -906,7 +907,7 @@ static void ri_del(rect_iter * iter)
 static int ri_end(rect_iter * i)
 {
   /* check input */
-  if( i == NULL ) error("ri_end: NULL iterator.");
+  if( i == NULL ) libMsg::error("ri_end: NULL iterator.");
 
   /* if the current x value is larger than the larger
      x value in the rectangle (vx[2]), we know the full
@@ -922,7 +923,7 @@ static int ri_end(rect_iter * i)
 static void ri_inc(rect_iter * i)
 {
   /* check input */
-  if( i == NULL ) error("ri_inc: NULL iterator.");
+  if( i == NULL ) libMsg::error("ri_inc: NULL iterator.");
 
   /* if not at end of exploration,
      increase y value for next pixel in the 'column' */
@@ -996,11 +997,11 @@ static rect_iter * ri_ini(struct rect * r)
   rect_iter * i;
 
   /* check parameters */
-  if( r == NULL ) error("ri_ini: invalid rectangle.");
+  if( r == NULL ) libMsg::error("ri_ini: invalid rectangle.");
 
   /* get memory */
   i = (rect_iter *) malloc(sizeof(rect_iter));
-  if( i == NULL ) error("ri_ini: Not enough memory.");
+  if( i == NULL ) libMsg::error("ri_ini: Not enough memory.");
 
   /* build list of rectangle corners ordered
      in a circular way around the rectangle */
@@ -1067,8 +1068,8 @@ static double rect_nfa(struct rect * rec, image_double angles, double logNT)
   int alg = 0;
 
   /* check parameters */
-  if( rec == NULL ) error("rect_nfa: invalid rectangle.");
-  if( angles == NULL ) error("rect_nfa: invalid 'angles'.");
+  if( rec == NULL ) libMsg::error("rect_nfa: invalid rectangle.");
+  if( angles == NULL ) libMsg::error("rect_nfa: invalid 'angles'.");
 
   /* compute the total number of pixels and of aligned points in 'rec' */
   for(i=ri_ini(rec); !ri_end(i); ri_inc(i)) /* rectangle iterator */
@@ -1156,11 +1157,11 @@ static double get_theta( struct point * reg, int reg_size, double x, double y,
   int i;
 
   /* check parameters */
-  if( reg == NULL ) error("get_theta: invalid region.");
-  if( reg_size <= 1 ) error("get_theta: region size <= 1.");
+  if( reg == NULL ) libMsg::error("get_theta: invalid region.");
+  if( reg_size <= 1 ) libMsg::error("get_theta: region size <= 1.");
   if( modgrad == NULL || modgrad->data == NULL )
-    error("get_theta: invalid 'modgrad'.");
-  if( prec < 0.0 ) error("get_theta: 'prec' must be positive.");
+    libMsg::error("get_theta: invalid 'modgrad'.");
+  if( prec < 0.0 ) libMsg::error("get_theta: 'prec' must be positive.");
 
   /* compute inertia matrix */
   for(i=0; i<reg_size; i++)
@@ -1171,7 +1172,7 @@ static double get_theta( struct point * reg, int reg_size, double x, double y,
       Ixy -= ( (double) reg[i].x - x ) * ( (double) reg[i].y - y ) * weight;
     }
   if( double_equal(Ixx,0.0) && double_equal(Iyy,0.0) && double_equal(Ixy,0.0) )
-    error("get_theta: null inertia matrix.");
+    libMsg::error("get_theta: null inertia matrix.");
 
   /* compute smallest eigenvalue */
   lambda = 0.5 * ( Ixx + Iyy - sqrt( (Ixx-Iyy)*(Ixx-Iyy) + 4.0*Ixy*Ixy ) );
@@ -1197,11 +1198,11 @@ static void region2rect( struct point * reg, int reg_size,
   int i;
 
   /* check parameters */
-  if( reg == NULL ) error("region2rect: invalid region.");
-  if( reg_size <= 1 ) error("region2rect: region size <= 1.");
+  if( reg == NULL ) libMsg::error("region2rect: invalid region.");
+  if( reg_size <= 1 ) libMsg::error("region2rect: region size <= 1.");
   if( modgrad == NULL || modgrad->data == NULL )
-    error("region2rect: invalid image 'modgrad'.");
-  if( rec == NULL ) error("region2rect: invalid 'rec'.");
+    libMsg::error("region2rect: invalid image 'modgrad'.");
+  if( rec == NULL ) libMsg::error("region2rect: invalid 'rec'.");
 
   /* center of the region:
 
@@ -1221,7 +1222,7 @@ static void region2rect( struct point * reg, int reg_size,
       y += (double) reg[i].y * weight;
       sum += weight;
     }
-  if( sum <= 0.0 ) error("region2rect: weights sum equal to zero.");
+  if( sum <= 0.0 ) libMsg::error("region2rect: weights sum equal to zero.");
   x /= sum;
   y /= sum;
 
@@ -1291,14 +1292,14 @@ static void region_grow( int x, int y, image_double angles, struct point * reg,
 
   /* check parameters */
   if( x < 0 || y < 0 || x >= (int) angles->xsize || y >= (int) angles->ysize )
-    error("region_grow: (x,y) out of the image.");
+    libMsg::error("region_grow: (x,y) out of the image.");
   if( angles == NULL || angles->data == NULL )
-    error("region_grow: invalid image 'angles'.");
-  if( reg == NULL ) error("region_grow: invalid 'reg'.");
-  if( reg_size == NULL ) error("region_grow: invalid pointer 'reg_size'.");
-  if( reg_angle == NULL ) error("region_grow: invalid pointer 'reg_angle'.");
+    libMsg::error("region_grow: invalid image 'angles'.");
+  if( reg == NULL ) libMsg::error("region_grow: invalid 'reg'.");
+  if( reg_size == NULL ) libMsg::error("region_grow: invalid pointer 'reg_size'.");
+  if( reg_angle == NULL ) libMsg::error("region_grow: invalid pointer 'reg_angle'.");
   if( used == NULL || used->data == NULL )
-    error("region_grow: invalid image 'used'.");
+    libMsg::error("region_grow: invalid image 'used'.");
 
   /* first point of the region */
   *reg_size = 1;
@@ -1457,15 +1458,15 @@ static int reduce_region_radius( struct point * reg, int * reg_size,
   int i;
 
   /* check parameters */
-  if( reg == NULL ) error("reduce_region_radius: invalid pointer 'reg'.");
+  if( reg == NULL ) libMsg::error("reduce_region_radius: invalid pointer 'reg'.");
   if( reg_size == NULL )
-    error("reduce_region_radius: invalid pointer 'reg_size'.");
-  if( prec < 0.0 ) error("reduce_region_radius: 'prec' must be positive.");
-  if( rec == NULL ) error("reduce_region_radius: invalid pointer 'rec'.");
+    libMsg::error("reduce_region_radius: invalid pointer 'reg_size'.");
+  if( prec < 0.0 ) libMsg::error("reduce_region_radius: 'prec' must be positive.");
+  if( rec == NULL ) libMsg::error("reduce_region_radius: invalid pointer 'rec'.");
   if( used == NULL || used->data == NULL )
-    error("reduce_region_radius: invalid image 'used'.");
+    libMsg::error("reduce_region_radius: invalid image 'used'.");
   if( angles == NULL || angles->data == NULL )
-    error("reduce_region_radius: invalid image 'angles'.");
+    libMsg::error("reduce_region_radius: invalid image 'angles'.");
 
   /* compute region points density */
   density = (double) *reg_size /
@@ -1533,14 +1534,14 @@ static int refine( struct point * reg, int * reg_size, image_double modgrad,
   int i,n;
 
   /* check parameters */
-  if( reg == NULL ) error("refine: invalid pointer 'reg'.");
-  if( reg_size == NULL ) error("refine: invalid pointer 'reg_size'.");
-  if( prec < 0.0 ) error("refine: 'prec' must be positive.");
-  if( rec == NULL ) error("refine: invalid pointer 'rec'.");
+  if( reg == NULL ) libMsg::error("refine: invalid pointer 'reg'.");
+  if( reg_size == NULL ) libMsg::error("refine: invalid pointer 'reg_size'.");
+  if( prec < 0.0 ) libMsg::error("refine: 'prec' must be positive.");
+  if( rec == NULL ) libMsg::error("refine: invalid pointer 'rec'.");
   if( used == NULL || used->data == NULL )
-    error("refine: invalid image 'used'.");
+    libMsg::error("refine: invalid image 'used'.");
   if( angles == NULL || angles->data == NULL )
-    error("refine: invalid image 'angles'.");
+    libMsg::error("refine: invalid image 'angles'.");
 
   /* compute region points density */
   density = (double) *reg_size /
@@ -1624,16 +1625,16 @@ ntuple_list LineSegmentDetection( image_double image, double scale,
 
   /* check parameters */
   if( image==NULL || image->data==NULL || image->xsize==0 || image->ysize==0 )
-    error("invalid image input.");
-  if( scale <= 0.0 ) error("'scale' value must be positive.");
-  if( sigma_scale <= 0.0 ) error("'sigma_scale' value must be positive.");
-  if( quant < 0.0 ) error("'quant' value must be positive.");
+    libMsg::error("invalid image input.");
+  if( scale <= 0.0 ) libMsg::error("'scale' value must be positive.");
+  if( sigma_scale <= 0.0 ) libMsg::error("'sigma_scale' value must be positive.");
+  if( quant < 0.0 ) libMsg::error("'quant' value must be positive.");
   if( ang_th <= 0.0 || ang_th >= 180.0 )
-    error("'ang_th' value must be in the range (0,180).");
+    libMsg::error("'ang_th' value must be in the range (0,180).");
   if( density_th < 0.0 || density_th > 1.0 )
-    error("'density_th' value must be in the range [0,1].");
-  if( n_bins <= 0 ) error("'n_bins' value must be positive.");
-  if( max_grad <= 0.0 ) error("'max_grad' value must be positive.");
+    libMsg::error("'density_th' value must be in the range [0,1].");
+  if( n_bins <= 0 ) libMsg::error("'n_bins' value must be positive.");
+  if( max_grad <= 0.0 ) libMsg::error("'max_grad' value must be positive.");
 
 
   /* angle tolerance */
@@ -1665,7 +1666,7 @@ ntuple_list LineSegmentDetection( image_double image, double scale,
     *region = new_image_int_ini(angles->xsize,angles->ysize,0);
   used = new_image_char_ini(xsize,ysize,NOTUSED);
   reg = (struct point *) calloc( (size_t) (xsize*ysize), sizeof(struct point) );
-  if( reg == NULL ) error("not enough memory!");
+  if( reg == NULL ) libMsg::error("not enough memory!");
 
 
   /* search for line segments */
@@ -1749,7 +1750,7 @@ ntuple_list lsd_scale_region( image_double image, double scale,
   /* LSD parameters */
   double sigma_scale = 0.6; /* Sigma for Gaussian filter is computed as
                                 sigma = sigma_scale/scale.                    */
-  double quant = 2.0;       /* Bound to the quantization error on the
+  double quant = 2.0;       /* Bound to the quantization libMsg::error on the
                                 gradient norm.                                */
   double ang_th = 22.5;     /* Gradient angle tolerance in degrees.           */
   double eps = 0.0;         /* Detection threshold, -log10(NFA).              */

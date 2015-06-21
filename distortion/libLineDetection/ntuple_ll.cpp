@@ -28,6 +28,7 @@
  */
 /*----------------------------------------------------------------------------*/
 #include <stdlib.h>
+#include "messager.h"
 #include "misc.h"
 #include "ntuple_ll.h"
 
@@ -40,7 +41,7 @@ void free_ntuple_ll(ntuple_ll in)
 
   /* check parameters */
   if( in == NULL || in->list == NULL )
-    error("free_ntuple_ll: invalid n-tuple list list input.");
+    libMsg::error("free_ntuple_ll: invalid n-tuple list list input.");
 
   /* free elements in the list */
   for(i=0; i<in->size; i++)
@@ -61,11 +62,11 @@ ntuple_ll new_ntuple_ll(unsigned int size)
   ntuple_ll ll;
 
   /* check parameters */
-  if( size == 0 ) error("new_ntuple_ll: initial size must be positive.");
+  if( size == 0 ) libMsg::error("new_ntuple_ll: initial size must be positive.");
 
   /* get memory for list structure */
   ll = (ntuple_ll) malloc( sizeof(struct ntuple_ll_s) );
-  if( ll == NULL ) error("not enough memory.");
+  if( ll == NULL ) libMsg::error("not enough memory.");
 
   /* initialize list */
   ll->size = 0;
@@ -73,7 +74,7 @@ ntuple_ll new_ntuple_ll(unsigned int size)
 
   /* get memory for n-tuple list list */
   ll->list = (ntuple_list *) malloc( ll->max_size * sizeof(ntuple_list) );
-  if( ll->list == NULL ) error("not enough memory.");
+  if( ll->list == NULL ) libMsg::error("not enough memory.");
 
   return ll;
 }
@@ -85,7 +86,7 @@ void enlarge_ntuple_ll(ntuple_ll ll)
 {
   /* check parameters */
   if( ll == NULL || ll->list == NULL || ll->max_size == 0 )
-    error("enlarge_ntuple_ll: invalid n-tuple list list.");
+    libMsg::error("enlarge_ntuple_ll: invalid n-tuple list list.");
 
   /* duplicate number of tuples list size */
   ll->max_size *= 2;
@@ -93,7 +94,7 @@ void enlarge_ntuple_ll(ntuple_ll ll)
   /* realloc memory */
   ll->list = (ntuple_list *) realloc( (void *) ll->list,
                                       ll->max_size * sizeof(ntuple_list) );
-  if( ll->list == NULL ) error("not enough memory.");
+  if( ll->list == NULL ) libMsg::error("not enough memory.");
 }
 
 /*----------------------------------------------------------------------------*/
@@ -102,7 +103,7 @@ void add_ntuple_list(ntuple_ll ll, ntuple_list l)
 {
   /* check parameters */
   if( ll == NULL || ll->list == NULL )
-    error("add_ntuple_list: invalid n-tuple list list input.");
+    libMsg::error("add_ntuple_list: invalid n-tuple list list input.");
 
   /* if needed, alloc enlarge tuples list list */
   if( ll->size == ll->max_size ) enlarge_ntuple_ll(ll);

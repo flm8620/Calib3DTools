@@ -10,13 +10,14 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),console(new Console()),con(*console)
 {
+    libMsg::globalMessager=this;
     setupPhotoWidgets();
     setupKMatrixWidget();
     setupDistortionWidgets();
     setupPointWidgets();
 
     this->solver=new Solver(this);
-    connect(this,SIGNAL(message(QString,bool)),console,SLOT(messageReceiver(QString,bool)));
+    connect(this,SIGNAL(messageSignal(QString,libMsg::MessageType)),console,SLOT(messageReceiver(QString,libMsg::MessageType)));
     this->solver->registerModels(photoModel,photoCircleModel,photoHarpModel,
                            noDistortion_photoModel,noDistortion_photoCircleModel,
                            noDistortion_photoHarpModel,distModel->core(),
@@ -71,9 +72,9 @@ MainWindow::MainWindow(QWidget *parent)
     //connect(generateButton,SIGNAL(clicked(bool)),worker,SLOT(solve()));
 }
 
-void MainWindow::message( const char *content, MessageType type )
+void MainWindow::message(std::string content, libMsg::MessageType type)
 {
-    emit this->message(tr(content), type>=M_WARN);
+    emit this->messageSignal(QString::fromStdString(content), type);
 }
 
 void MainWindow::startSolve()

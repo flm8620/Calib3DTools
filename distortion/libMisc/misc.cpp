@@ -40,22 +40,22 @@
     The syntax is exactly as the one of printf, but it adds "error: "
     before the message and then it end the program with an error number.
  */
-void error(const char * msg, ...)
-{
-  va_list argp;
+//void error(const char * msg, ...)
+//{
+//  va_list argp;
 
-  fprintf(stderr,"error: ");
+//  fprintf(stderr,"error: ");
 
-  /* print the formated error message */
-  va_start(argp,msg);
-  vfprintf(stderr,msg,argp);
-  va_end(argp);
+//  /* print the formated error message */
+//  va_start(argp,msg);
+//  vfprintf(stderr,msg,argp);
+//  va_end(argp);
 
-  fprintf(stderr,"\n");
+//  fprintf(stderr,"\n");
 
-  /* end execution with an error */
-  exit(EXIT_FAILURE);
-}
+//  /* end execution with an error */
+//  exit(EXIT_FAILURE);
+//}
 
 /*----------------------------------------------------------------------------*/
 /** Compare doubles by relative error.

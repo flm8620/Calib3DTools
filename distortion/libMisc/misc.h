@@ -44,7 +44,7 @@
     The syntax is exactly as the one of printf, but it adds "error: "
     before the message and then it end the program with an error number.
  */
-void error(const char * msg, ...);
+//void error(const char * msg, ...);
 
 /*----------------------------------------------------------------------------*/
 /** Doubles relative error factor

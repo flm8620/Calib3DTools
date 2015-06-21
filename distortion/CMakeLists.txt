@@ -1,21 +1,19 @@
-cmake_minimum_required(VERSION 2.6)
-project(Distortion_Correction)
+cmake_minimum_required(VERSION 3.2.3)
+project(DistortionCorrection)
 
+include_directories(${CMAKE_SOURCE_DIR}/libMessager)
+include_directories(${CMAKE_SOURCE_DIR}/libImage)
+include_directories(${CMAKE_SOURCE_DIR}/libNumerics)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libDistortion)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libLineDetection)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libImage)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libNumerics)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libMisc)
+include_directories(libDistortion)
+include_directories(libLineDetection)
+include_directories(libMisc)
 
 add_subdirectory(libDistortion)
-add_subdirectory(libImage)
 add_subdirectory(libLineDetection)
-add_subdirectory(libNumerics)
 add_subdirectory(libMisc)
 
-add_library(Distortion_poly polyEstimation.cpp distCorrection.cpp polyEstimation.h distCorrection.h)
-target_link_libraries(Distortion_poly image numerics linedetect distortion misc)
+add_library(DistortionPoly distCorrection.cpp distCorrection.h)
 
-
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
+target_link_libraries(DistortionPoly linedetect distortion misc)
+target_link_libraries(DistortionPoly libImage libNumerics libMessager)

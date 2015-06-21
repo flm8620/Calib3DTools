@@ -4,6 +4,7 @@
 #include <QList>
 #include <vector>
 #include <utility>
+
 /**
  * @brief Distortion of image
  * Distortion is presented by two polynomial who correct respectively
