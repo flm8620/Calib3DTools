@@ -1,7 +1,6 @@
 #ifndef DISTRORTION_H
 #define DISTRORTION_H
 #include <QtCore>
-#include <QList>
 #include <vector>
 #include <utility>
 
@@ -34,6 +33,7 @@
  * a9 * x^0*y^3    b9 * x^0*y^3
  * size = 10 = (2+maxOrder) * (1+maxOrder) / 2
  * maxOrder = -1 if the distortion is empty
+ *
  */
 struct DistortionValue
 {
@@ -48,7 +48,11 @@ struct DistortionValue
         return maxOrder >= 0 ? (2+maxOrder)*(1+maxOrder)/2 : 0;
     }
 };
-
+/**
+ * @brief The Distortion class
+ *
+ * @note All public functions of this class are thread-safe
+ */
 class Distortion : public QObject
 {
     Q_OBJECT
@@ -109,6 +113,5 @@ protected:
 private:
     DistortionValue value;
 };
-//Q_DECLARE_METATYPE(Distortion)
 
 #endif // DISTRORTION_H

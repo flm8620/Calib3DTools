@@ -2,15 +2,16 @@
 #define IMAGELISTWIDGET_H
 
 #include <QWidget>
-class ImageListView;
-class QAbstractListModel;
+#include "imagelistmodel.h"
+#include "imagelistview.h"
 class QString;
 class ImageListWidget : public QWidget
 {
     Q_OBJECT
 public:
     explicit ImageListWidget(const QString& label,QWidget *parent = 0);
-    void setModel(QAbstractListModel* model);
+    void setModel(ImageListModel* model);
+    ImageListView* getView();
 signals:
 
 public slots:

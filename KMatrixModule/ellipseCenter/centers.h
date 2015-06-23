@@ -330,7 +330,7 @@ template <typename T>
 class LMTacheC : public libNumerics::MinLM<T> {
 
 public:
-	LMTacheC(image_double Im, T cx, T cy, T delta, bool tache_color, int img_width, int img_height) {
+    LMTacheC(ImageGray<double>& Im, T cx, T cy, T delta, bool tache_color, int img_width, int img_height) {
 		clr = tache_color; 
 		wi = img_width;
 		he = img_height;
@@ -345,7 +345,7 @@ private:
 	bool clr;
 	int wi, he;
 	int xbegin, xend, ybegin, yend;
-	image_double im;
+    ImageGray<double> im;
 	
 public:
     virtual void modelData(const libNumerics::vector<T>& P, libNumerics::vector<T>& ymodel) const

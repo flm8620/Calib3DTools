@@ -6,6 +6,7 @@ Distortion::Distortion(QObject *parent) : QObject(parent)
 
 bool Distortion::isEmpty()
 {
+    QReadLocker locker(&this->rwLock);
     return this->value._size == 0;
 }
 
@@ -147,6 +148,7 @@ double Distortion::yParam(int idx) const
 void Distortion::clear()
 {
     this->setMaxOrder(-1);
+    emit dataChanged();
 }
 
 DistortionValue::DistortionValue()

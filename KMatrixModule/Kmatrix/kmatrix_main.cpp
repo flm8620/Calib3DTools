@@ -14,8 +14,6 @@ using namespace libNumerics;
 
 #define PI 3.14159265358979323846
 
-
-
 template<typename T>
 matrix<T> vec2mat(vector<T> v, int w, int h)
 {
@@ -47,13 +45,10 @@ vector<T> mat2vec(const matrix<T> &m, int l)
     return v;
 }
 
-
 template<typename T>
-matrix<T> extractK_real(std::vector<matrix<T> > &S, std::vector<matrix<T> > &Ellipse_centers,
-                        /*T scale, T cm1, T x_cm, T y_cm,*/ T tolFun, matrix<T> &CH0S)
+bool extractK_real(std::vector<matrix<T> > &S, std::vector<matrix<T> > &Ellipse_centers, T tolFun,
+                   std::vector<matrix<double> > &CHS, matrix<T> &Kout)
 {
-    // int WI = x_cm*scale*cm1, HE = y_cm*scale*cm1;
-    // int wi = 512*scale, he = 512*scale;
     int nimage = Ellipse_centers.size();
     int ncircle = S.size();
     assert(nimage > 0 && (S.size() == Ellipse_centers[0].ncol()));
@@ -65,13 +60,13 @@ matrix<T> extractK_real(std::vector<matrix<T> > &S, std::vector<matrix<T> > &Ell
         XY(0, i) = x;
         XY(1, i) = y;
     }
-
     std::vector<matrix<T> > H_ellip(nimage);
     std::vector<matrix<T> > H_point(nimage);
 
     // calculate homographies through minimization of d|CHS-CH0S|
     for (int i = 0; i < nimage; i++) {
-        matrix<T> H_ini = solveHomography(XY, Ellipse_centers[i]);
+        matrix<T> H_ini;
+        if (!solveHomography(XY, Ellipse_centers[i], H_ini)) return false;
         H_point[i] = H_ini;
         LMhomography2<T> HeLMA(S, Ellipse_centers[i]);
         HeLMA.relativeTol = 1e-9;
@@ -81,11 +76,15 @@ matrix<T> extractK_real(std::vector<matrix<T> > &S, std::vector<matrix<T> > &Ell
         matrix<T> H_fin = (vec2mat(h_, 3, 3)).inv();
         H_ellip[i] = H_fin;
         libMsg::cout<<"Image_"<<i<<"\t"<<"Iterations: "<<HeLMA.iterations<<" RMSE_ellipse: "
-                 <<rmse_ellip<<libMsg::endl;
+                    <<rmse_ellip<<libMsg::endl;
+        CHS.push_back( matrix<T>::zeros(2, ncircle));
+        matrix<T> HCS = matrix<T>::zeros(2, ncircle);
+        rotateVirtualImg(S, H_ellip[i], CHS[i], HCS);
     }
-    matrix<T> K_ellip = extractKfromH(H_ellip);
-    matrix<T> K_point = extractKfromH(H_point);
-
+    matrix<T> K_ellip;
+    matrix<T> K_point;
+    if (!extractKfromH(H_ellip, K_ellip)) return false;
+    if (!extractKfromH(H_point, K_point)) return false;
     T ea, eb, eu, ev, eg;
     errorKparams(K_point, K_ellip, ea, eb, eu, ev, eg);
     libMsg::cout<<"Compare K_point and K_ellip:"<<libMsg::endl;
@@ -95,14 +94,13 @@ matrix<T> extractK_real(std::vector<matrix<T> > &S, std::vector<matrix<T> > &Ell
     libMsg::cout<<"gamme:\t"<<eg<<libMsg::endl;
     libMsg::cout<<"u0:\t"<<eu<<libMsg::endl;
     libMsg::cout<<"v0:\t"<<ev<<libMsg::endl;
-    return K_ellip;
+    Kout = K_ellip;
+    return true;
 }
 
-
-
-libNumerics::matrix<double> extractK_real_double(std::vector<libNumerics::matrix<double> > &S,
-                                                 std::vector<libNumerics::matrix<double> > &Ellipse_centers, double tolFun,
-                                                 matrix<double> &CH0S)
+bool extractK_real_double(std::vector<matrix<double> > &S,
+                          std::vector<matrix<double> > &Ellipse_centers, double tolFun,
+                          std::vector<matrix<double> > &CHSlist, libNumerics::matrix<double> &Kout)
 {
-    return extractK_real<double>(S, Ellipse_centers, tolFun, CH0S);
+    return extractK_real<double>(S, Ellipse_centers, tolFun, CHSlist, Kout);
 }

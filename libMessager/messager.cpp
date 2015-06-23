@@ -8,6 +8,7 @@ void error(const char *msg)
 {
     if (globalMessager)
         globalMessager->message(msg, M_ERROR);
+    throw MyException(msg);
 }
 
 ostream::ostream(Messager * &msg) : receiverMsg(msg),
@@ -82,4 +83,8 @@ ostream &endl(ostream &os)
 {
     return os.endl();
 }
+}
+
+MyException::MyException(const std::string &msg) : std::runtime_error(msg)
+{
 }

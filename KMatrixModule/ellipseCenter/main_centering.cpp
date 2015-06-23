@@ -1,11 +1,11 @@
 #include "main_centering.h"
 
-//#include <cstring>
-//#include <cstdio>
-//#include <cstdlib>
+// #include <cstring>
+// #include <cstdio>
+// #include <cstdlib>
 
-//#include <fstream>
-//#include <sstream>
+// #include <fstream>
+// #include <sstream>
 #include <iostream>
 #include <cmath>
 
@@ -14,31 +14,27 @@
 #include "centers.h"
 #include "abberation.h"
 
-
-
-
 using namespace libNumerics;
-image_double average_image(image_double img)
+void average_image(const ImageGray<double> &img, ImageGray<double> &img_avg)
 {
-    int w = img->xsize;
-    int h = img->ysize;
-    image_double img_avg = new_image_double_copy(img);
+    int w = img.xsize();
+    int h = img.ysize();
+    img_avg.resize(img.xsize(), img.ysize());
     for (int v = 1; v < h-1; v++) {
         for (int u = 1; u < w-1; u++) {
-            double pix = img->data[u-1+(v-1)*w] + img->data[u+(v-1)*w] + img->data[u+1+(v-1)*w]
-                         +img->data[u-1+v*w] + img->data[u+v*w] + img->data[u+1+v*w]
-                         +img->data[u-1+(v+1)*w] + img->data[u+(v+1)*w] + img->data[u+1+(v+1)*w];
-            img_avg->data[u+v*w] = pix/9;
+            double pix = img.pixel(u-1, v-1) + img.pixel(u, v-1) + img.pixel(u+1, v-1)
+                         +img.pixel(u-1, v) + img.pixel(u, v) + img.pixel(u+1, v)
+                         +img.pixel(u-1, v+1) + img.pixel(u, v+1) + img.pixel(u+1, v+1);
+            img_avg.pixel(u, v) = pix/9;
         }
     }
-    return img_avg;
 }
 
 template<typename T>
-int initial_tache(image_double I, vector<T> &h, T &rayon, bool color, T x, T y)
+int initial_tache(const ImageGray<double> &I, vector<T> &h, T &rayon, bool color, T x, T y)
 {
-    int COL_IMA = I->xsize;
-    int LIG_IMA = I->ysize;
+    int COL_IMA = I.xsize();
+    int LIG_IMA = I.ysize();
     int j = x;
     int i = y;
     int d = 2*rayon;
@@ -58,7 +54,7 @@ int initial_tache(image_double I, vector<T> &h, T &rayon, bool color, T x, T y)
     int val_bas = 255;
     for (int k = -d; k <= d; k++) {
         for (int l = -d; l <= d; l++) {
-            T lum = I->data[j+l+(i+k)*COL_IMA];
+            T lum = I.pixel(j+l, i+k);
             if (lum > val_haut)
                 val_haut = lum;
             else if (lum < val_bas)
@@ -87,11 +83,11 @@ int initial_tache(image_double I, vector<T> &h, T &rayon, bool color, T x, T y)
     // 0000000000
     for (int k = -d+1; k <= d; k++) {
         for (int l = -d+1; l <= d-1; l++) {
-            T lum = I->data[j+l+(i+k)*COL_IMA];
+            T lum = I.pixel(j+l, i+k);
             if (lum < seuil) {
                 int imin = l;
                 int imax = l+1;
-                while ((I->data[j+imax+(i+k)*COL_IMA] <= seuil) && (imax <= d-1))
+                while ((I.pixel(j+imax, i+k) <= seuil) && (imax <= d-1))
                     imax++;
                 int vallab = 0;
                 for (int m = imin; m <= imax; m++) {
@@ -112,7 +108,7 @@ int initial_tache(image_double I, vector<T> &h, T &rayon, bool color, T x, T y)
     for (int k = -d; k <= d; k++) {
         for (int l = -d; l <= d; l++) {
             if (tab(k+d, l+d) != 0) {
-                T lum = I->data[j+l+(i+k)*COL_IMA];
+                T lum = I.pixel(j+l, i+k);
                 bary(tab(k+d, l+d), 0) += (255-lum)*(j+l);
                 bary(tab(k+d, l+d), 1) += (255-lum)*(i+k);
                 bary(tab(k+d, l+d), 2) += (255-lum);
@@ -165,7 +161,7 @@ int initial_tache(image_double I, vector<T> &h, T &rayon, bool color, T x, T y)
 }
 
 template<typename T>
-vector<T> trgtDataCalc(image_double img_avg, T cx, T cy, T delta)
+vector<T> trgtDataCalc(ImageGray<double> &img_avg, T cx, T cy, T delta)
 {
     int xbegin = cx+0.5-delta;
     int xend = cx+0.5+delta;
@@ -173,13 +169,13 @@ vector<T> trgtDataCalc(image_double img_avg, T cx, T cy, T delta)
     int yend = cy+0.5+delta;
     int nerr = (yend-ybegin+1)*(xend-xbegin+1);
     vector<T> trgData = vector<T>::zeros(nerr);
-    int wi = img_avg->xsize;
-    int he = img_avg->ysize;
+    int wi = img_avg.xsize();
+    int he = img_avg.ysize();
     int idx = 0;
     for (int v = ybegin; v <= yend; v++) {
         for (int u = xbegin; u <= xend; u++) {
             if (u >= 1 && u <= wi-2 && v >= 1 && v <= he-2)
-                trgData[idx] = img_avg->data[u+v*img_avg->xsize];
+                trgData[idx] = img_avg.pixel(u,v);
             else
                 trgData[idx] = 255; // for 'tache noire'
             idx++;
@@ -189,18 +185,18 @@ vector<T> trgtDataCalc(image_double img_avg, T cx, T cy, T delta)
 }
 
 template<typename T>
-T centerLMA(image_double sub_img, bool clr, T &centerX, T &centerY)
+T centerLMA(const ImageGray<double> &sub_img, bool clr, T &centerX, T &centerY)
 {
-    image_double img_avg = average_image(sub_img);
-    int w = sub_img->xsize;
-    int h = sub_img->ysize;
+    ImageGray<double> img_avg;
+    average_image(sub_img, img_avg);
+    int w = sub_img.xsize();
+    int h = sub_img.ysize();
     T cx = w/2, cy = h/2, radi = 0.4*w;
     vector<T> P(11);
     initial_tache(sub_img, P, radi, clr, cx, cy);
     vector<T> trgData = trgtDataCalc<T>(img_avg, P[3], P[4], radi*2);
     LMTacheC<T> ellipseLMA(img_avg, P[3], P[4], radi*2, clr, w, h);
     T rmse = ellipseLMA.minimize(P, trgData, 0.001);
-    free_image_double(img_avg);
     T lambda1 = P[0];
     T lambda2 = P[1];
     T theta = P[2];
@@ -210,7 +206,8 @@ T centerLMA(image_double sub_img, bool clr, T &centerX, T &centerY)
 }
 
 template<typename T>
-image_double takeSubImg(image_double IMG, T cx, T cy, T radi, int &x0, int &y0)
+void takeSubImg(const ImageGray<double> &IMG, T cx, T cy, T radi, int &x0, int &y0,
+                ImageGray<double> &img)
 {
     int size = 2.5 * radi;
     int x1 = cx - 0.5*size, x2 = cx + 0.5*size;
@@ -219,62 +216,59 @@ image_double takeSubImg(image_double IMG, T cx, T cy, T radi, int &x0, int &y0)
     y0 = y1;
     if (y2-y1 != x2-x1)
         y2 = y1+x2-x1;
-    image_double img = new_image_double(x2-x1, y2-y1);
-    for (int i = 0; i < img->xsize; i++) {
-        for (int j = 0; j < img->ysize; j++)
-            if (x1+i >= 0 && y1+j >= 0 && x1+i < IMG->xsize && y1+j < IMG->ysize)
-                img->data[i+j*img->xsize] = IMG->data[x1+i+(y1+j)*IMG->xsize];
+    img.resize(x2-x1, y2-y1);
+    for (int i = 0; i < img.xsize(); i++) {
+        for (int j = 0; j < img.ysize(); j++)
+            if (IMG.pixelInside(x1+i, y1+j))
+                img.pixel(i, j) = IMG.pixel(x1+i, y1+j);
             else
-                img->data[i+j*img->xsize] = 255;
+                img.pixel(i, j) = 255;
     }
-    return img;
 }
 
 template<typename T>
-void binarization(image_double &imgbi, image_double &img, T thre)
+void binarization(ImageGray<T> &imgbi, const ImageGray<double> &img, T thre)
 {
-    int wi = img->xsize;
-    int he = img->ysize;
+    int wi = img.xsize();
+    int he = img.ysize();
     T color;
     for (int i = 0; i < wi; i++) {
         for (int j = 0; j < he; j++) {
-            color = img->data[i+j*wi];
-            if (color <= thre) imgbi->data[i+j*wi] = 0;
+            color = img.pixel(i, j);
+            if (color <= thre) imgbi.pixel(i, j) = 0;
         }
     }
 }
 
 template<typename T>
-void img_extremas(image_double &img, T &min, T &max)
+void img_extremas(const ImageGray<double> &img, T &min, T &max)
 {
     min = 255;
     max = 0;
-    for (int i = 4; i < img->xsize-4; i++) {
-        for (int j = 4; j < img->ysize-4; j++) {
-            T clr = img->data[j*img->xsize + i];
+    for (int i = 4; i < img.xsize()-4; i++) {
+        for (int j = 4; j < img.ysize()-4; j++) {
+            T clr = img.pixel(i, j);
             if (clr > max) max = clr;
             if (clr < min) min = clr;
         }
     }
 }
 
-
 template<typename T>
-void circle_redefine(image_double &img, vector<T> &x, vector<T> &y, const vector<T> &r, int scale,
-                     bool clr)
+void circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, const vector<T> &r,
+                     int scale, bool clr)
 {
     libMsg::cout<<"\nLMA center redefinition ... \n"<<libMsg::endl;
     int ntaches = x.size();
     double nextPercent = 0;
     for (int i = 0; i < ntaches; i++) {
         int x0, y0;
-        image_double sub_img = takeSubImg(img, x[i], y[i], r[i], x0, y0);
+        ImageGray<double> sub_img;
+        takeSubImg(img, x[i], y[i], r[i], x0, y0, sub_img);
 
         T cx = 0, cy = 0;
         centerLMA<T>(sub_img, clr, cx, cy);
-
-        free_image_double(sub_img);
-        //std::cout<<"correction: dx="<<scale*(x0 + cx)-x[i]<<" dy="<<scale*(y0 + cy)-y[i]<<std::endl;
+        // std::cout<<"correction: dx="<<scale*(x0 + cx)-x[i]<<" dy="<<scale*(y0 + cy)-y[i]<<std::endl;
         x[i] = scale*(x0 + cx);
         y[i] = scale*(y0 + cy);
 
@@ -288,22 +282,22 @@ void circle_redefine(image_double &img, vector<T> &x, vector<T> &y, const vector
 }
 
 template<typename T>
-void keypnts_circle(image_double &img, vector<T> &x, vector<T> &y, vector<T> &r, T scale)
+void keypnts_circle(const ImageGray<double> &img, vector<T> &x, vector<T> &y, vector<T> &r, T scale)
 {
-    int wi = img->xsize, he = img->ysize;
+    int wi = img.xsize(), he = img.ysize();
 
     T maxColor = 0;
     T minColor = 255;
     img_extremas(img, minColor, maxColor);
-    T thre = 0.5*(maxColor-minColor);
+    BYTE thre = (BYTE)(0.5*(maxColor-minColor));
 
-    image_double imgbi = new_image_double_ini(wi, he, 255);
+    ImageGray<BYTE> imgbi(wi, he, 255);
     binarization(imgbi, img, thre);
     // write_pgm_image_double(imgbiB, "rawdata/b.pgm");
 
     libMsg::cout<<"finding connected components... "<<libMsg::endl;
     std::vector<CCStats> ccstats;
-    CC(ccstats, imgbi, '-');
+    CC(ccstats, imgbi);
     libMsg::cout<<"number of connected components: [ "<<ccstats.size()<<" ]"<<libMsg::endl;
     libMsg::cout<<"centers initialization is done "<<libMsg::endl;
 
@@ -318,10 +312,9 @@ void keypnts_circle(image_double &img, vector<T> &x, vector<T> &y, vector<T> &r,
     }
     bool clr = 0;
     circle_redefine(img, x, y, r, scale, clr);
-    free_image_double(imgbi);
 }
 
-void detectEllipseCenters(image_double &img, libNumerics::vector<double> &x,
+void detectEllipseCenters(const ImageGray<double> &img, libNumerics::vector<double> &x,
                           libNumerics::vector<double> &y, libNumerics::vector<double> &r,
                           double scale)
 {

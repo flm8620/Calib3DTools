@@ -8,18 +8,19 @@ class ImageViewer : public QGraphicsView
 {
     Q_OBJECT
 public:
-    explicit ImageViewer(const QImage& image,QWidget *parent = 0);
-
+    ImageViewer(const QImage &image, QWidget *parent = 0);
+    ImageViewer(QWidget *parent = 0);
 signals:
 
 public slots:
+    void setImage(QImage image);
 protected:
     void wheelEvent(QWheelEvent *event);
 private:
     void zoomIn();
     void zoomOut();
     QImage myImage;
-    QGraphicsScene* scene;
+    QGraphicsScene *scene;
 };
 
 #endif // IMAGEVIEWER_H

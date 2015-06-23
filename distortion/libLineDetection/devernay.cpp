@@ -40,173 +40,146 @@
 /*----------------------------------------------------------------------------*/
 /** Add a 2-tuple to an 2-tuple list.
  */
-static void add_2tuple( ntuple_list out, double v1, double v2 )
+static void add_2tuple(ntuple_list out, double v1, double v2)
 {
-  /* check parameters */
-  if( out == NULL ) libMsg::error("add_2tuple: invalid n-tuple input.");
-  if( out->dim != 2 ) libMsg::error("add_2tuple: the n-tuple must be a 2-tuple.");
+    /* check parameters */
+    if (out == NULL) libMsg::error("add_2tuple: invalid n-tuple input.");
+    if (out->dim != 2) libMsg::error("add_2tuple: the n-tuple must be a 2-tuple.");
 
-  /* if needed, alloc more tuples to 'out' */
-  if( out->size == out->max_size ) enlarge_ntuple_list(out);
-  if( out->values == NULL ) libMsg::error("add_2tuple: invalid n-tuple input.");
+    /* if needed, alloc more tuples to 'out' */
+    if (out->size == out->max_size) enlarge_ntuple_list(out);
+    if (out->values == NULL) libMsg::error("add_2tuple: invalid n-tuple input.");
 
-  /* add new 2-tuple */
-  out->values[ out->size * out->dim + 0 ] = v1;
-  out->values[ out->size * out->dim + 1 ] = v2;
+    /* add new 2-tuple */
+    out->values[ out->size * out->dim + 0 ] = v1;
+    out->values[ out->size * out->dim + 1 ] = v2;
 
-  /* update number of tuples counter */
-  out->size++;
+    /* update number of tuples counter */
+    out->size++;
 }
 
 /*----------------------------------------------------------------------------*/
 /** Devernay sub-pixel edge detector.
  */
-ntuple_list devernay( image_double image, double sigma,
-                      double th_low, double th_hi )
+ntuple_list devernay(ImageGray<double> &image, double sigma, double th_low, double th_hi)
 {
-  ntuple_list out = new_ntuple_list(2);
-  image_double gradx,grady,modgrad,offset;
-  image_char canny;
-  double mod,mod_up_grad,mod_down_grad,dx,dy,Dx,Dy,weight,off;
-  unsigned int x,y,xx,yy,xsize,ysize,i;
-  int i_up,j_up,i_down,j_down;
+    ntuple_list out = new_ntuple_list(2);
 
-  /* check input */
-  if( image == NULL || image->data == NULL ||
-      image->xsize == 0 || image->ysize == 0 )
-    libMsg::error("devernay: invalid input image.");
-  if( sigma <= 0.0 ) libMsg::error("devernay: sigma must be positive.");
-  xsize = image->xsize;
-  ysize = image->ysize;
+    double mod, mod_up_grad, mod_down_grad, dx, dy, Dx, Dy, weight, off;
+    unsigned int x, y, xx, yy, xsize, ysize, i;
+    int i_up, j_up, i_down, j_down;
 
-  /* get memory */
-  gradx = new_image_double_ini(xsize,ysize,0.0);
-  grady = new_image_double_ini(xsize,ysize,0.0);
-  modgrad = new_image_double_ini(xsize,ysize,0.0);
-  offset = new_image_double_ini(xsize,ysize,-1000.0);
-  canny = new_image_char_ini(xsize,ysize,0);
+    /* check input */
+    if (!image.isValid())
+        libMsg::error("devernay: invalid input image.");
+    if (sigma <= 0.0) libMsg::error("devernay: sigma must be positive.");
+    xsize = image.xsize();
+    ysize = image.ysize();
 
-  /* Gaussian filter */
-  gaussian_filter(image,sigma);
-  /* compute gradient */
-  for(x=1; x<(xsize-1); x++)
-    for(y=1; y<(ysize-1); y++)
-      {
-        gradx->data[x+y*xsize]   = 0.5 * (  image->data[(x+1)+y*xsize]
-                                          - image->data[(x-1)+y*xsize] );
-        grady->data[x+y*xsize]   = 0.5 * (  image->data[x+(y+1)*xsize]
-                                          - image->data[x+(y-1)*xsize] );
-        /* modgrad->data[x+y*xsize] = hypot( gradx->data[x+y*xsize],
-                                          grady->data[x+y*xsize] ); */
-	modgrad->data[x+y*xsize] = sqrt(gradx->data[x+y*xsize]*gradx->data[x+y*xsize] + grady->data[x+y*xsize]*grady->data[x+y*xsize]);
-      }
-  std::cout<<"forfor"<<std::endl;
+    /* get memory */
+    ImageGray<double> gradx(xsize, ysize, 0.0),
+    grady(xsize, ysize, 0.0),
+    modgrad(xsize, ysize, 0.0),
+    offset(xsize, ysize, -1000.0);
+    ImageGray<BYTE> canny(xsize, ysize, 0);
 
-  /* select local maxima */
-  for(x=2; x<(xsize-2); x++)
-    for(y=2; y<(ysize-2); y++)
-      {
-        dx = gradx->data[x+y*xsize];
-        dy = grady->data[x+y*xsize];
-        i_up   = dx > 0.0 ?  1 : -1;
-        i_down = dx > 0.0 ? -1 :  1;
-        j_up   = dy > 0.0 ?  1 : -1;
-        j_down = dy > 0.0 ? -1 :  1;
+    /* Gaussian filter */
+    gaussian_filter(image, sigma);
+    /* compute gradient */
+    for (x = 1; x < (xsize-1); x++)
+        for (y = 1; y < (ysize-1); y++) {
+            gradx.pixel(x, y) = 0.5*(image.pixel(x+1, y)-image.pixel(x-1, y));
+            grady.pixel(x, y) = 0.5*(image.pixel(x, y+1)-image.pixel(x, y-1));
+            modgrad.pixel(x, y) = sqrt(gradx.pixel(x, y)*gradx.pixel(x, y)
+                                       +grady.pixel(x, y)*grady.pixel(x, y));
+        }
 
-        /* compute grandient values in gradient direction */
-        mod = modgrad->data[x+y*xsize];
-        if( fabs(dx) > fabs(dy) )
-          {/* roughly vertical edge */
-            weight = fabs(dy) / fabs(dx);
-            mod_up_grad =
-                   weight    * modgrad->data[ x +  i_up  +     y      * xsize]
-              + (1.0-weight) * modgrad->data[ x +  i_up  +  (y+j_up)  * xsize];
-            mod_down_grad =
-                   weight    * modgrad->data[ x + i_down +     y      * xsize]
-              + (1.0-weight) * modgrad->data[ x + i_down + (y+j_down) * xsize];
-          }
-        else
-          {/* roughly horizontal edge */
-            weight = fabs(dx) / fabs(dy);
-            mod_up_grad =
-                   weight    * modgrad->data[ x +        +  (y+j_up)  * xsize]
-              + (1.0-weight) * modgrad->data[ x +  i_up  +  (y+j_up)  * xsize];
-            mod_down_grad =
-                   weight    * modgrad->data[ x +        + (y+j_down) * xsize]
-              + (1.0-weight) * modgrad->data[ x + i_down + (y+j_down) * xsize];
-          }
+    /* select local maxima */
+    for (x = 2; x < (xsize-2); x++)
+        for (y = 2; y < (ysize-2); y++) {
+            dx = gradx.pixel(x, y);
+            dy = grady.pixel(x, y);
+            i_up = dx > 0.0 ? 1 : -1;
+            i_down = dx > 0.0 ? -1 : 1;
+            j_up = dy > 0.0 ? 1 : -1;
+            j_down = dy > 0.0 ? -1 : 1;
 
-        /* keep local maxima of gradient along gradient direction */
-        if( mod > mod_down_grad && mod >= mod_up_grad )
-          {
-            /* offset value in [-0.5,0.5] also means local maxima */
-            offset->data[x+y*xsize] = (mod_up_grad - mod_down_grad)
-                                    / (mod + mod - mod_up_grad - mod_down_grad)
-                                    / 2.0;
-            /* Hi Canny threshold on gradient */
-            if( mod > th_hi ) /* a Canny point found */
-              {
-                canny->data[x+y*xsize] = 255;
-                add_2tuple( out, (double) x, (double) y );
-              }
-          }
-      }
-  std::cout<<"forfor2"<<std::endl;
-
-  /* Canny hysteresis, second threshold: Low threshold:
-     local maxima are accepted as Canny points if,
-     they are connected to an already accepted Canny point,
-     and the gradient is larger than th_low (hysteresis). */
-  for(i=0; i<out->size; i++)
-    {
-      x = (unsigned int) out->values[ i * out->dim + 0 ];
-      y = (unsigned int) out->values[ i * out->dim + 1 ];
-
-      /* check all 8-connected neightbors */
-      for(xx=x-1; xx<=x+1; xx++)
-        for(yy=y-1; yy<=y+1; yy++)
-          if( canny->data[xx+yy*xsize] == 0         /* not marked as Canny P. */
-              && offset->data[xx+yy*xsize] > -1.0   /* local maxima */
-              && modgrad->data[xx+yy*xsize] >= th_low )
-            {
-              canny->data[xx+yy*xsize] = 255;
-              add_2tuple( out, (double) xx, (double) yy );
+            /* compute grandient values in gradient direction */
+            mod = modgrad.pixel(x, y);
+            if (fabs(dx) > fabs(dy)) {/* roughly vertical edge */
+                weight = fabs(dy) / fabs(dx);
+                mod_up_grad
+                    = weight
+                      * modgrad.pixel(x+i_up, y)+(1.0-weight)*modgrad.pixel(x+i_up, y+j_up);
+                mod_down_grad
+                    = weight* modgrad.pixel(x + i_down, y)
+                      + (1.0-weight) * modgrad.pixel(x + i_down, y+j_down);
+            } else {/* roughly horizontal edge */
+                weight = fabs(dx) / fabs(dy);
+                mod_up_grad
+                    = weight    * modgrad.pixel(x, y+j_up)
+                      + (1.0-weight) * modgrad.pixel(x +  i_up, y+j_up);
+                mod_down_grad
+                    = weight    * modgrad.pixel(x, y+j_down)
+                      + (1.0-weight) * modgrad.pixel(x + i_down, y+j_down);
             }
-    }
 
-  /* Devernay Sub-pixel refinement */
-  for(i=0; i<out->size; i++)
-    {
-      x = (unsigned int) out->values[ i * out->dim + 0 ];
-      y = (unsigned int) out->values[ i * out->dim + 1 ];
-      off = offset->data[x+y*xsize];
-
-      /* normalize gradient */
-      dx = gradx->data[x+y*xsize];
-      dy = grady->data[x+y*xsize];
-      if( fabs(dx) < fabs(dy) )
-        {
-          Dx = dx/fabs(dy);
-          Dy = (dy >= 0.0) ? 1.0 : -1.0;
-        }
-      else
-        {
-          Dx = (dx >= 0.0) ? 1.0 : -1.0;
-          Dy = dy/fabs(dx);
+            /* keep local maxima of gradient along gradient direction */
+            if (mod > mod_down_grad && mod >= mod_up_grad) {
+                /* offset value in [-0.5,0.5] also means local maxima */
+                offset.pixel(x, y) = (mod_up_grad - mod_down_grad)
+                                     / (mod + mod - mod_up_grad - mod_down_grad)
+                                     / 2.0;
+                /* Hi Canny threshold on gradient */
+                if (mod > th_hi) { /* a Canny point found */
+                    canny.pixel(x, y) = 255;
+                    add_2tuple(out, (double)x, (double)y);
+                }
+            }
         }
 
-      /* apply sub-pixel correcting term */
-      out->values[ i * out->dim + 0 ] += off * Dx;
-      out->values[ i * out->dim + 1 ] += off * Dy;
+    /* Canny hysteresis, second threshold: Low threshold:
+       local maxima are accepted as Canny points if,
+       they are connected to an already accepted Canny point,
+       and the gradient is larger than th_low (hysteresis). */
+    for (i = 0; i < out->size; i++) {
+        x = (unsigned int)out->values[ i * out->dim + 0 ];
+        y = (unsigned int)out->values[ i * out->dim + 1 ];
+
+        /* check all 8-connected neightbors */
+        for (xx = x-1; xx <= x+1; xx++)
+            for (yy = y-1; yy <= y+1; yy++)
+                if (canny.pixel(xx, yy) == 0   /* not marked as Canny P. */
+                    && offset.pixel(xx, yy) > -1.0 /* local maxima */
+                    && modgrad.pixel(xx, yy) >= th_low) {
+                    canny.pixel(xx, yy) = 255;
+                    add_2tuple(out, (double)xx, (double)yy);
+                }
     }
 
-  /* free memory */
-  free_image_double(gradx);
-  free_image_double(grady);
-  free_image_double(modgrad);
-  free_image_double(offset);
-  free_image_char(canny);
+    /* Devernay Sub-pixel refinement */
+    for (i = 0; i < out->size; i++) {
+        x = (unsigned int)out->values[ i * out->dim + 0 ];
+        y = (unsigned int)out->values[ i * out->dim + 1 ];
+        off = offset.pixel(x,y);
 
-  return out;
+        /* normalize gradient */
+        dx = gradx.pixel(x,y);
+        dy = grady.pixel(x,y);
+        if (fabs(dx) < fabs(dy)) {
+            Dx = dx/fabs(dy);
+            Dy = (dy >= 0.0) ? 1.0 : -1.0;
+        } else {
+            Dx = (dx >= 0.0) ? 1.0 : -1.0;
+            Dy = dy/fabs(dx);
+        }
+
+        /* apply sub-pixel correcting term */
+        out->values[ i * out->dim + 0 ] += off * Dx;
+        out->values[ i * out->dim + 1 ] += off * Dy;
+    }
+
+    return out;
 }
+
 /*----------------------------------------------------------------------------*/

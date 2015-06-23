@@ -157,7 +157,7 @@ static bool sortCircles(matrix<double> &circles, int &nRow, int &nCol /*, QImage
     }
     if (n12 != n34 || n23 != n41) {
         libMsg::cout<<"Can't detect same number of circles for the opposite side,check the image"
-                 <<libMsg::endl;
+                    <<libMsg::endl;
         return false;
     }
     if (n12*n23 != nCircle) {
@@ -195,7 +195,9 @@ static bool sortCircles(matrix<double> &circles, int &nRow, int &nCol /*, QImage
     UV_corner(0, 3) = corner4[0];
     UV_corner(1, 3) = corner4[1];
 
-    matrix<double> H = solveHomography(XY_corner, UV_corner);
+    matrix<double> H ;
+    if(!solveHomography(XY_corner, UV_corner,H))
+        return false;
     matrix<double> UV_1 = H * XY_1;
     matrix<double> UV(2, nCircle);
     for (int i = 0; i < nCircle; ++i) {
@@ -277,15 +279,18 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> imageList, double &alpha, d
     int nRow, nCol;
     for (int i = 0; i < nImage; ++i) {
         vector<double> x, y, r;
-
-        image_double imageDouble=qimage_to_image_double(imageList[i]);
-        detectEllipseCenters(imageDouble, x, y, r, 1.0);
-        free_image_double(imageDouble);
+        {
+            ImageGray<double> imageDouble;
+            QImage2ImageDouble(imageList[i], imageDouble);
+            detectEllipseCenters(imageDouble, x, y, r, 1.0);
+        }
         if (i == 0) {
             nCircle = x.size();
         } else if (x.size() != nCircle) {
             libMsg::cout<<"The number of circles detected in Image_"<<i<<" is "<<x.size()
-                     <<" , which is different from last image! Please check. Algorithm terminates"<<libMsg::endl;
+                        <<
+                " , which is different from last image! Please check. Algorithm terminates"
+                        <<libMsg::endl;
             return false;
         }
         Ellipse_centers.push_back(matrix<double>::zeros(2, nCircle));
@@ -303,14 +308,13 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> imageList, double &alpha, d
             if (!(nRow == nRow_i && nCol == nCol_i)) {
                 if (!(nCol == nRow_i && nRow == nCol_i)) {
                     libMsg::cout<<"Image_"<<i<<" doesn't have the same nRow and nCol as Image_0 !"
-                             <<libMsg::endl;
+                                <<libMsg::endl;
                     return false;
                 } else {
                     rotateGridLeft(centers, nRow_i, nCol_i);
                 }
             }
         }
-
     }
     libMsg::cout<<"nRow="<<nRow<<" nCol="<<nCol<<libMsg::endl;
     std::vector<matrix<double> > S(nCircle);
@@ -323,8 +327,10 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> imageList, double &alpha, d
             cnt++;
         }
     }
-    matrix<double> CH0S;
-    matrix<double> K = extractK_real_double(S, Ellipse_centers, 0.0000000001, CH0S);
+    std::vector<matrix<double> > CHSlist;
+    matrix<double> K;
+    if (!extractK_real_double(S, Ellipse_centers, 0.0000000001, CHSlist, K))
+        return false;
 
     alpha = K(0, 0);
     beta = K(1, 1);
@@ -333,7 +339,5 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> imageList, double &alpha, d
     v0 = K(1, 2);
     return true;
 }
-
-
 
 #endif // KMATRIXSOLVE_CPP

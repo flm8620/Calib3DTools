@@ -1,5 +1,7 @@
 #include "console.h"
-
+#include <QFileDialog>
+#include <QSaveFile>
+#include <QMessageBox>
 Console::Console(QWidget *parent) :
     QTextEdit(parent)
 {
@@ -9,27 +11,51 @@ Console::Console(QWidget *parent) :
 Console &Console::operator<<(const char *s)
 {
     append(tr(s));
-
     return *this;
 }
 
 void Console::messageReceiver(QString s, libMsg::MessageType msgType)
 {
-    // QTextCursor prev_cursor = this->textCursor();
     this->moveCursor(QTextCursor::End);
     switch (msgType) {
     case libMsg::M_TEXT:
+        this->setFontWeight(QFont::Normal);
+        this->setTextColor(Qt::black);
         this->insertPlainText(s);
         break;
     case libMsg::M_INFO:
-        this->append(s);
+        this->setFontWeight(QFont::Bold);
+
+        this->insertPlainText(s+"\n");
+        this->setFontWeight(QFont::Normal);
         break;
     case libMsg::M_WARN:
-        this->append(tr("<font color='green'><b>")+s+tr("</b></font>"));
+        this->setFontWeight(QFont::Bold);
+        this->setTextColor(Qt::darkYellow);
+        this->insertPlainText(s+"\n");
+        this->setTextColor(Qt::black);
+        this->setFontWeight(QFont::Normal);
         break;
     case libMsg::M_ERROR:
-        this->append(tr("<font color='red'><b>")+s+tr("</b></font>"));
+        this->setFontWeight(QFont::Bold);
+        this->setTextColor(Qt::red);
+        this->insertPlainText(s+"\n");
+        this->setTextColor(Qt::black);
+        this->setFontWeight(QFont::Normal);
         break;
     }
-    // this->setTextCursor(prev_cursor);
+}
+
+void Console::saveHtml()
+{
+    QString content = this->toHtml();
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"));
+    if (fileName.isEmpty()) return;
+    QSaveFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::information(this, "Error", tr("Cannot open %1").arg(fileName));
+        return;
+    }
+    file.write(content.toUtf8());
+    file.commit();
 }

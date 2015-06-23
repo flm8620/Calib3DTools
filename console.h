@@ -12,6 +12,7 @@ public:
     Console& operator <<(const char* s);
 public slots:
     void messageReceiver(QString s, libMsg::MessageType msgType=libMsg::M_TEXT);
+    void saveHtml();
 };
 
 #endif // CONSOLE_H

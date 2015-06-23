@@ -1,120 +1,275 @@
-/*----------------------------------------------------------------------------
-
-  Image data type and basic functions.
-
-  Copyright 2010-2011 rafael grompone von gioi (grompone@gmail.com)
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as
-  published by the Free Software Foundation, either version 3 of the
-  License, or (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  GNU Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public License
-  along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-  ----------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------*/
-/*----------------------------- Image Data Types -----------------------------*/
-/*----------------------------------------------------------------------------*/
-/** @file image.h
-    Image data types.
-    @author rafael grompone von gioi (grompone@gmail.com)
- */
-/*----------------------------------------------------------------------------*/
 #ifndef IMAGE_HEADER
 #define IMAGE_HEADER
-
-/*----------------------------------------------------------------------------*/
-/** char image data type
-
-    The pixel value at (x,y) is accessed by:
-
-      image->data[ x + y * image->xsize ]
-
-    with x and y integer.
+#include "messager.h"
+#include <vector>
+#include <cmath>
+/** Image data type
+ *
  */
-typedef struct image_char_s
+typedef unsigned char BYTE;
+inline int roundColor(double color)
 {
-  unsigned char * data;
-  unsigned int xsize,ysize;
-} * image_char;
+    return std::max(std::min(std::floor(color+0.5), 255.0), 0.0);
+}
 
-void free_image_char(image_char i);
-image_char new_image_char(unsigned int xsize, unsigned int ysize);
-image_char new_image_char_ini( unsigned int xsize, unsigned int ysize,
-                               unsigned char fill_value );
-image_char new_image_char_copy(image_char in);
-
-/*----------------------------------------------------------------------------*/
-/** int image data type
-
-    The pixel value at (x,y) is accessed by:
-
-      image->data[ x + y * image->xsize ]
-
-    with x and y integer.
- */
-typedef struct image_int_s
+template<typename T>
+class ImageGray
 {
-  int * data;
-  unsigned int xsize,ysize;
-} * image_int;
+public:
+    ImageGray(unsigned int xsize, unsigned int ysize)
+    {
+        if (xsize == 0 || ysize == 0)
+            libMsg::error("Invalid Image Size, xsize==0 or ysize==0");
+        try{
+            _data.resize(xsize*ysize);
+        }catch (std::bad_alloc &bad) {
+            libMsg::error("Not enough memory for new ImageGray");
+        }
+        this->_xsize = xsize;
+        this->_ysize = ysize;
+    }
 
-void free_image_int(image_int i);
-image_int new_image_int(unsigned int xsize, unsigned int ysize);
-image_int new_image_int_ini( unsigned int xsize, unsigned int ysize,
-                             int fill_value );
-image_int new_image_int_copy(image_int in);
+    ImageGray(unsigned int xsize, unsigned int ysize, T fillValue)
+    {
+        if (xsize == 0 || ysize == 0)
+            libMsg::error("Invalid Image Size, xsize==0 or ysize==0");
+        try{
+            _data.resize(xsize*ysize, fillValue);
+        }catch (std::bad_alloc &bad) {
+            libMsg::error("Not enough memory for new ImageGray");
+        }
+        this->_xsize = xsize;
+        this->_ysize = ysize;
+    }
 
-/*----------------------------------------------------------------------------*/
-/** double image data type
+    ImageGray() : _xsize(0),
+        _ysize(0)
+    {
+    }
 
-    The pixel value at (x,y) is accessed by:
+    void resize(unsigned int xsize, unsigned int ysize)
+    {
+        if (xsize == 0 || ysize == 0)
+            libMsg::error("Invalid Image Size, xsize==0 or ysize==0");
+        try{
+            _data.resize(xsize*ysize);
+        }catch (std::bad_alloc &bad) {
+            libMsg::error("Not enough memory for resizing ImageGray");
+        }
+        this->_xsize = xsize;
+        this->_ysize = ysize;
+    }
 
-      image->data[ x + y * image->xsize ]
+    void resize(unsigned int xsize, unsigned int ysize, T fillValue)
+    {
+        if (xsize == 0 || ysize == 0)
+            libMsg::error("Invalid Image Size, xsize==0 or ysize==0");
+        try{
+            _data.resize(xsize*ysize, fillValue);
+        }catch (std::bad_alloc &bad) {
+            libMsg::error("Not enough memory for resizing ImageGray");
+        }
+        this->_xsize = xsize;
+        this->_ysize = ysize;
+    }
 
-    with x and y integer.
- */
-typedef struct image_double_s
+    bool pixelInside(int x, int y)const
+    {
+        return 0 <= x && x < this->_xsize && 0 <= y && y < this->_ysize;
+    }
+
+    inline T &pixel(int x, int y)
+    {
+        return _data[x+y*this->_xsize];
+    }
+
+    inline const T &pixel(int x, int y) const
+    {
+        return _data[x+y*this->_xsize];
+    }
+
+    inline T &data(int index)
+    {
+        return _data[index];
+    }
+
+    inline const T &data(int index) const
+    {
+        return _data[index];
+    }
+
+    inline int xsize() const
+    {
+        return _xsize;
+    }
+
+    inline int ysize() const
+    {
+        return _ysize;
+    }
+
+    bool isValid()const
+    {
+        return _xsize != 0 && _ysize != 0;
+    }
+
+private:
+    std::vector<T> _data;
+    unsigned int _xsize, _ysize;
+};
+template<typename T>
+class ImageRGB
 {
-  double * data;
-  unsigned int xsize,ysize;
-} * image_double;
+public:
+    ImageRGB(unsigned int xsize, unsigned int ysize)
+    {
+        if (xsize == 0 || ysize == 0)
+            libMsg::error("Invalid Image Size, xsize==0 or ysize==0");
+        try{
+            _Rdata.resize(xsize*ysize);
+            _Gdata.resize(xsize*ysize);
+            _Bdata.resize(xsize*ysize);
+        }catch (std::bad_alloc &bad) {
+            libMsg::error("Not enough memory for new ImageGray");
+        }
+        this->_xsize = xsize;
+        this->_ysize = ysize;
+    }
 
-void free_image_double(image_double i);
-image_double new_image_double(unsigned int xsize, unsigned int ysize);
-image_double new_image_double_ini( unsigned int xsize, unsigned int ysize,
-                                   double fill_value );
-image_double new_image_double_copy(image_double in);
-double interpolate_image_double(image_double& in, int order, double u, double v);
+    ImageRGB(unsigned int xsize, unsigned int ysize, T RfillValue, T GfillValue, T BfillValue)
+    {
+        if (xsize == 0 || ysize == 0)
+            libMsg::error("Invalid Image Size, xsize==0 or ysize==0");
+        try{
+            _Rdata.resize(xsize*ysize, RfillValue);
+            _Gdata.resize(xsize*ysize, GfillValue);
+            _Bdata.resize(xsize*ysize, BfillValue);
+        }catch (std::bad_alloc &bad) {
+            libMsg::error("Not enough memory for new ImageGray");
+        }
+        this->_xsize = xsize;
+        this->_ysize = ysize;
+    }
 
-bool valid_image_double(image_double& in, int x, int y);
+    ImageRGB() : _xsize(0),
+        _ysize(0)
+    {
+    }
 
-image_double new_image_double_from_image_char(image_char in);
+    void resize(unsigned int xsize, unsigned int ysize)
+    {
+        if (xsize == 0 || ysize == 0)
+            libMsg::error("Invalid Image Size, xsize==0 or ysize==0");
+        try{
+            _Rdata.resize(xsize*ysize);
+            _Gdata.resize(xsize*ysize);
+            _Bdata.resize(xsize*ysize);
+        }catch (std::bad_alloc &bad) {
+            libMsg::error("Not enough memory for resizing ImageGray");
+        }
+        this->_xsize = xsize;
+        this->_ysize = ysize;
+    }
 
-typedef struct image_double_RGB_s
-{
-  double *Rdata,*Gdata,*Bdata;
-  unsigned int xsize,ysize;
-} * image_double_RGB;
-struct pixel_double_RGB
-{
-    double R,G,B;
+    void resize(unsigned int xsize, unsigned int ysize, T RfillValue, T GfillValue, T BfillValue)
+    {
+        if (xsize == 0 || ysize == 0)
+            libMsg::error("Invalid Image Size, xsize==0 or ysize==0");
+        try{
+            _Rdata.resize(xsize*ysize, RfillValue);
+            _Gdata.resize(xsize*ysize, GfillValue);
+            _Bdata.resize(xsize*ysize, BfillValue);
+        }catch (std::bad_alloc &bad) {
+            libMsg::error("Not enough memory for resizing ImageGray");
+        }
+        this->_xsize = xsize;
+        this->_ysize = ysize;
+    }
+
+    bool pixelInside(int x, int y)const
+    {
+        return 0 <= x && x < this->_xsize && 0 <= y && y < this->_ysize;
+    }
+
+    inline T &pixel_R(int x, int y)
+    {
+        return _Rdata[x+y*this->_xsize];
+    }
+
+    inline T &pixel_G(int x, int y)
+    {
+        return _Gdata[x+y*this->_xsize];
+    }
+
+    inline T &pixel_B(int x, int y)
+    {
+        return _Bdata[x+y*this->_xsize];
+    }
+
+    inline const T &pixel_R(int x, int y) const
+    {
+        return _Rdata[x+y*this->_xsize];
+    }
+
+    inline const T &pixel_G(int x, int y) const
+    {
+        return _Gdata[x+y*this->_xsize];
+    }
+
+    inline const T &pixel_B(int x, int y) const
+    {
+        return _Bdata[x+y*this->_xsize];
+    }
+
+    inline T &Rdata(int index)
+    {
+        return _Rdata[index];
+    }
+
+    inline T &Gdata(int index)
+    {
+        return _Gdata[index];
+    }
+
+    inline T &Bdata(int index)
+    {
+        return _Bdata[index];
+    }
+
+    inline const T &Rdata(int index) const
+    {
+        return _Rdata[index];
+    }
+
+    inline const T &Gdata(int index) const
+    {
+        return _Gdata[index];
+    }
+
+    inline const T &Bdata(int index) const
+    {
+        return _Bdata[index];
+    }
+
+    inline int xsize() const
+    {
+        return _xsize;
+    }
+
+    inline int ysize() const
+    {
+        return _ysize;
+    }
+
+    bool isValid()const
+    {
+        return _xsize != 0 && _ysize != 0;
+    }
+
+private:
+    std::vector<T> _Rdata, _Gdata, _Bdata;
+    unsigned int _xsize, _ysize;
 };
 
-void free_image_double_RGB(image_double_RGB i);
-image_double_RGB new_image_double_RGB(unsigned int xsize, unsigned int ysize);
-image_double_RGB new_image_double_RGB_ini( unsigned int xsize, unsigned int ysize,
-                                   pixel_double_RGB fill_value );
-image_double_RGB new_image_double_RGB_copy(image_double_RGB in);
-pixel_double_RGB interpolate_image_double_RGB(image_double_RGB& in, int order, double u, double v);
-
-bool valid_image_double_RGB(image_double_RGB& in, int x, int y);
-#endif /* !IMAGE_HEADER */
-/*----------------------------------------------------------------------------*/
+void imageDoubleFromImageBYTE(const ImageGray<BYTE> &in, ImageGray<double> &out);
+#endif

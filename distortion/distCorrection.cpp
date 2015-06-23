@@ -23,20 +23,18 @@
 #include "distCorrection.h"
 
 #include "messager.h"
-//libNumerics
+// libNumerics
 #include "matrix.h"
-//libImage
+// libImage
 #include "correction.h"
 #include "spline.h"
-//libDistortion
+// libDistortion
 #include "distortion.h"
-//libLineDetection
+// libLineDetection
 #include "gaussian_convol_on_curve.h"
 #include "straight_edge_points.h"
 
 #include <iostream>
-
-
 
 /*----------------------------------------------------------------------------*/
 /* Static parameters.
@@ -55,10 +53,9 @@ static const double up_factor = 1.0;
 
 using namespace libNumerics;
 
-
 /* Measure RMSE of lines on the given image */
 template<typename T>
-T image_RMSE(int length_thresh, double down_factor, image_double image)
+T image_RMSE(int length_thresh, double down_factor, ImageGray<double> &image)
 {
     printf("\n Measuring RMSE of lines on the image... \n");
     DistortedLines<T> distLines;
@@ -73,8 +70,8 @@ T image_RMSE(int length_thresh, double down_factor, image_double image)
     threshed_nb_lines = 0;
 
     p = straight_edge_points(image, sigma, th_low, th_hi, min_length);
-    w = image->xsize;
-    h = image->ysize;
+    w = image.xsize();
+    h = image.ysize();
     /* copy the points set in the new image to the global set of points */
     for (int j = 0; j < (int)p->size; j++) {
         if ((int)p->list[j]->size > length_thresh) {
@@ -119,32 +116,33 @@ T image_RMSE(int length_thresh, double down_factor, image_double image)
 }
 
 /* Given an image and a correction polynomial. Apply it to every pixel and save result to output folder */
-template<typename T>
-void correct_image(image_double in, image_double &out, int spline_order,
-                   const vector<T> &poly_params_inv, const int degX, const int degY)
+void correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_order,
+                   const vector<double> &poly_params_inv, const int degX, const int degY)
 {
     /* read the data */
     int sizex = (degX + 1) * (degX + 2) / 2;
     int sizey = (degY + 1) * (degY + 2) / 2;
-    vector<T> paramsX = poly_params_inv.copyRef(0, sizex-1);
-    vector<T> paramsY = poly_params_inv.copyRef(sizex, sizex+sizey-1);
+    vector<double> paramsX = poly_params_inv.copyRef(0, sizex-1);
+    vector<double> paramsY = poly_params_inv.copyRef(sizex, sizex+sizey-1);
     libMsg::cout<<"\n Undistorted image is being calculated... \n"<<libMsg::endl;
-    int wi = in->xsize, he = in->ysize;
-    T xp = (T)wi/2+0.2, yp = (T)he/2+0.2;
-    out = new_image_double(wi, he);
+    int wi = in.xsize(), he = in.ysize();
+    double xp = (double)wi/2+0.2, yp = (double)he/2+0.2;
+    out.resize(wi, he);
     libMsg::cout << "[" << libMsg::flush;
     prepare_spline(in, spline_order);
+    double clrR;
     for (int y = 0; y < he; y++) {
         for (int x = 0; x < wi; x++) {
             /* do the correction for every pixel */
-            T p1 = 0, p2 = 0;
+            double p1 = 0, p2 = 0;
             undistortPixel(p1, p2, paramsX, paramsY, x, y, xp, yp, degX, degY);
-            double clrR = interpolate_image_double(in, spline_order, p1, p2);
+            if (!interpolate_spline(in, spline_order, p1, p2, clrR))
+                clrR = 0;
             clrR = std::min(std::max(clrR, 0.), 255.);
-            out->data[x+y*wi] = clrR;
+            out.pixel(x, y) = clrR;
         }
         /* output progress */
-        T percent = ((T)y / (T)he)*100;
+        int percent = ((double)y / (double)he)*100;
         if (!(y % (int)(0.2*he))) libMsg::cout << (int)percent+1 << "%" << libMsg::flush;
         else if (!(y % (int)(0.04*he))) libMsg::cout << "." << libMsg::flush;
     }
@@ -152,36 +150,36 @@ void correct_image(image_double in, image_double &out, int spline_order,
     libMsg::cout<<" done \n"<<libMsg::endl;
 }
 
-template<typename T>
-void correct_image_RGB(image_double_RGB in, image_double_RGB &out, int spline_order,
-                       const vector<T> &poly_params_inv, const int degX, const int degY)
+void correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int spline_order,
+                       const vector<double> &poly_params_inv, const int degX, const int degY)
 {
     /* read the data */
     int sizex = (degX + 1) * (degX + 2) / 2;
     int sizey = (degY + 1) * (degY + 2) / 2;
-    vector<T> paramsX = poly_params_inv.copyRef(0, sizex-1);
-    vector<T> paramsY = poly_params_inv.copyRef(sizex, sizex+sizey-1);
+    vector<double> paramsX = poly_params_inv.copyRef(0, sizex-1);
+    vector<double> paramsY = poly_params_inv.copyRef(sizex, sizex+sizey-1);
     libMsg::cout<<"\n Undistorted image is being calculated... \n"<<libMsg::endl;
-    int wi = in->xsize, he = in->ysize;
-    T xp = (T)wi/2+0.2, yp = (T)he/2+0.2;
-    out = new_image_double_RGB(wi, he);
+    int wi = in.xsize(), he = in.ysize();
+    double xp = (double)wi/2+0.2, yp = (double)he/2+0.2;
+    out.resize(wi, he);
     libMsg::cout << "[" << libMsg::flush;
     prepare_spline_RGB(in, spline_order);
     for (int y = 0; y < he; y++) {
         for (int x = 0; x < wi; x++) {
             /* do the correction for every pixel */
-            T p1 = 0, p2 = 0;
+            double p1 = 0, p2 = 0;
             undistortPixel(p1, p2, paramsX, paramsY, x, y, xp, yp, degX, degY);
-            pixel_double_RGB clr = interpolate_image_double_RGB(in, spline_order, p1, p2);
-            clr.R = std::min(std::max(clr.R, 0.), 255.);
-            clr.G = std::min(std::max(clr.G, 0.), 255.);
-            clr.B = std::min(std::max(clr.B, 0.), 255.);
-            out->Rdata[x+y*wi] = clr.R;
-            out->Gdata[x+y*wi] = clr.G;
-            out->Bdata[x+y*wi] = clr.B;
+            double R, G, B;
+            interpolate_spline_RGB(in, spline_order, p1, p2, R, G, B);
+            R = std::min(std::max(R, 0.), 255.);
+            G = std::min(std::max(G, 0.), 255.);
+            B = std::min(std::max(B, 0.), 255.);
+            out.pixel_R(x, y) = R;
+            out.pixel_G(x, y) = G;
+            out.pixel_B(x, y) = B;
         }
         /* output progress */
-        T percent = ((T)y / (T)he)*100;
+        int percent = ((double)y / (double)he)*100;
         if (!(y % (int)(0.2*he))) libMsg::cout << (int)percent+1 << "%" << libMsg::flush;
         else if (!(y % (int)(0.04*he))) libMsg::cout << "." << libMsg::flush;
     }
@@ -231,37 +229,41 @@ int coefIdx(int degree, int x, int y)
 
 /*----------------------------------------------------------------------------*/
 
-bool DistortionModule::distortionCorrect_RGB(image_double_RGB in, image_double_RGB &out,
+bool DistortionModule::distortionCorrect_RGB(ImageRGB<double> &in, ImageRGB<double> &out,
                                              std::vector<double> &polynome, int order)
 {
     if ((order+1)*(order+2)/2*2 != polynome.size()) return false;
     vector<double> poly(polynome.size());
     int size = poly.size();
-    for (int i = 0; i <size; ++i)
+    for (int i = 0; i < size; ++i)
         poly[i] = polynome[i];
     int spline_order = 5;
-    correct_image_RGB<double>(in, out, spline_order, poly, order, order);
+    correct_image_RGB(in, out, spline_order, poly, order, order);
     return true;
 }
 
-bool DistortionModule::distortionCorrect(image_double in, image_double &out, std::vector<double> &polynome, int order)
+bool DistortionModule::distortionCorrect(ImageGray<double> &in, ImageGray<double> &out,
+                                         std::vector<double> &polynome, int order)
 {
     if ((order+1)*(order+2)/2*2 != polynome.size()) return false;
     vector<double> poly(polynome.size());
     int size = poly.size();
-    for (int i = 0; i <size; ++i)
+    for (int i = 0; i < size; ++i)
         poly[i] = polynome[i];
     int spline_order = 5;
-    correct_image<double>(in, out, spline_order, poly, order, order);
+    // need double
+    correct_image(in, out, spline_order, poly, order, order);
     return true;
 }
+
 template<typename T>
-static void read_images(DistortedLines<T> &distLines, const std::vector<image_char> &imageList,
-                        int length_thresh, int down_factor)
+static void read_images(DistortedLines<T> &distLines,
+                        const std::vector<ImageGray<BYTE> > &imageList, int length_thresh,
+                        int down_factor)
 {
     int w_tmp = 0, h_tmp = 0;
     ntuple_ll point_set, p;
-    image_double image;
+    ImageGray<double> image;
     // int length_thresh;
     // double down_factor,
     double x, y;
@@ -270,7 +272,8 @@ static void read_images(DistortedLines<T> &distLines, const std::vector<image_ch
     ntuple_list convolved_pts;
 
     libMsg::cout<<"There are "<<imageList.size()
-             <<" input images.\n The minimal length of lines is set to "<<length_thresh<<libMsg::endl;
+                <<" input images.\n The minimal length of lines is set to "<<length_thresh
+                <<libMsg::endl;
 
     /* initialize memory */
     point_set = new_ntuple_ll(1);
@@ -283,17 +286,16 @@ static void read_images(DistortedLines<T> &distLines, const std::vector<image_ch
 
         /* open image, compute edge points, close it */
         libMsg::cout<<"start convert "<<i<<"..."<<libMsg::endl;
-        image = new_image_double_from_image_char(imageList[i]);
+        imageDoubleFromImageBYTE(imageList[i], image);
         p = straight_edge_points(image, sigma, th_low, th_hi, min_length);
-        w = image->xsize;
-        h = image->ysize;
+        w = image.xsize();
+        h = image.ysize();
         if (i == 0) {
             w_tmp = w;
             h_tmp = h;
         } else {
             assert(w == w_tmp && h == h_tmp);
         }
-        free_image_double(image);
 
         /* copy the points set in the new image to the global set of points */
         int count = 0;
@@ -310,7 +312,7 @@ static void read_images(DistortedLines<T> &distLines, const std::vector<image_ch
         distLines.pushMemGroup(count);
 
         libMsg::cout<<"For image"<<i<<", there are totally "<<p->size<<" lines detected and "
-                 <<threshed_nb_lines<<" of them are eliminated.\n"<<libMsg::endl;
+                    <<threshed_nb_lines<<" of them are eliminated.\n"<<libMsg::endl;
         total_nb_lines += p->size;
         total_threshed_nb_lines += threshed_nb_lines;
         free_ntuple_ll(p);
@@ -331,7 +333,7 @@ static void read_images(DistortedLines<T> &distLines, const std::vector<image_ch
         countL++;
     }
     libMsg::cout<<"Totally there are "<<total_nb_lines<<" lines detected and "
-             <<total_threshed_nb_lines<< " of them are eliminated.\n"<<libMsg::endl;
+                <<total_threshed_nb_lines<< " of them are eliminated.\n"<<libMsg::endl;
     /* free memory */
     free_ntuple_ll(point_set);
     free_ntuple_list(convolved_pts);
@@ -419,48 +421,47 @@ static vector<T> polyInv(const vector<T> &poly_params, const int degX, const int
                         yp);
 }
 
-bool DistortionModule::polyEstime(const std::vector<image_char> &list,
-                                  std::vector<double> &polynome, int order)
+bool DistortionModule::polyEstime(const std::vector<ImageGray<BYTE> > &list,
+                                  std::vector<double> &polynome, int order,
+                                  std::vector<std::vector<std::vector<std::pair<double,
+                                                                                double> > > > &detectedLines)
 {
     unsigned int w, h;
     // check: same size for all image
     for (int i = 0; i < list.size(); ++i) {
         if (i == 0) {
-            w = list[0]->xsize;
-            h = list[0]->ysize;
+            w = list[0].xsize();
+            h = list[0].ysize();
         } else {
-            if (w != list[i]->xsize || h != list[i]->ysize)
+            if (w != list[i].xsize() || h != list[i].ysize()) {
+                libMsg::cout<<"All images harp must have the same size ! But the Image_"<<i+1
+                            <<" has the wrong size"<<libMsg::endl;
                 return false;
+            }
         }
     }
     int min_length = std::min(w, h)*0.3;
     DistortedLines<double> distLines;
     read_images<double>(distLines, list, min_length, 60);
 
-    /*int count=0;
-     * for(int i=0;i<num;++i){
-        QPainter painter(&list[i]);
-
-
-
-
-        for(int j=0;j<distLines.nlines4Group[i];++j){
-            double x1,y1,x2,y2;
-            x1=distLines._line.at(count+j).x(0);
-            y1=distLines._line.at(count+j).y(0);
-            for(int k=1;k<distLines._line.at(count+j).sizeLine();++k){
-                x2=distLines._line.at(count+j).x(k);
-                y2=distLines._line.at(count+j).y(k);
-                painter.setPen(Qt::green);
-                painter.drawLine(x1,y1,x2,y2);
-                painter.setPen(Qt::red);
-                painter.drawPoint(x2,y2);
-                x1=x2;y1=y2;
+    // store lines detected in detectedLines
+    int count = 0;
+    int nImage = list.size();
+    detectedLines.clear();
+    detectedLines.resize(nImage);
+    for (int i = 0; i < nImage; ++i) {
+        std::vector<std::vector<std::pair<double, double> > > &linesInImage = detectedLines[i];
+        linesInImage.resize(distLines.nlines4Group[i]);
+        for (int j = 0; j < distLines.nlines4Group[i]; ++j) {
+            std::vector<std::pair<double, double> > &oneLine = linesInImage[j];
+            for (int k = 0; k < distLines._line.at(count+j).sizeLine(); ++k) {
+                double x = distLines._line.at(count+j).x(k);
+                double y = distLines._line.at(count+j).y(k);
+                oneLine.push_back(std::make_pair(x, y));
             }
-
         }
-        count+=distLines.nlines4Group[i];
-    }*/
+        count += distLines.nlines4Group[i];
+    }
 
     double xp = (double)w/2+0.2, yp = (double)h/2+0.2; /* +0.2 - to avoid integers */
     const int inc = 2; /* increment; only odd orders will be taken */

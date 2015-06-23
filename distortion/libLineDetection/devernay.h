@@ -36,7 +36,7 @@
 /*----------------------------------------------------------------------------*/
 /** Devernay sub-pixel edge detector.
  */
-ntuple_list devernay( image_double image, double sigma,
+ntuple_list devernay( ImageGray<double>& image, double sigma,
                       double th_low, double th_hi );
 
 #endif /* !DEVERNAY_HEADER */

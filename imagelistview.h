@@ -4,21 +4,26 @@
 #include <QObject>
 #include <QWidget>
 #include <QListView>
-class ImageViewer;
+#include "imagelistmodel.h"
 class ImageListView : public QListView
 {
     Q_OBJECT
 public:
     ImageListView(QWidget* parent=0);
+    void setModel(ImageListModel *model);
+    void currentChanged(const QModelIndex &current, const QModelIndex &previous);
 public slots:
     void openImage();
     void deleteImage();
     void moveUp();
     void moveDown();
     void openInViewer();
+    void clear();
+signals:
+    void imageToDisplay(QImage image);
 private:
-    void addImage(const QString& string, QImage image);
     bool loadImage(const QStringList &list);
+    ImageListModel *imageModel;
 };
 
 #endif // IMAGELISTVIEW_H

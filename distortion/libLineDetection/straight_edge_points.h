@@ -27,7 +27,7 @@
 #include "ntuple_ll.h"
 
 /*----------------------------------------------------------------------------*/
-ntuple_ll straight_edge_points( image_double image, double sigma,
+ntuple_ll straight_edge_points(ImageGray<double>& image, double sigma,
                                 double th_low, double th_hi,
                                 double min_length );
 

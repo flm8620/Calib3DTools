@@ -9,6 +9,7 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt5Gui REQUIRED)
 #Qt5
 include_directories(${CMAKE_SOURCE_DIR}/libImage)
+include_directories(${CMAKE_SOURCE_DIR}/libMessager)
 add_library(QImageConvert qimageconvert.h qimageconvert.cpp)
 
-target_link_libraries(QImageConvert Qt5::Gui libImage)
+target_link_libraries(QImageConvert Qt5::Gui libImage libMessager)

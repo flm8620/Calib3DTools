@@ -3,6 +3,7 @@
 #include <QtGlobal>
 #include <QDebug>
 #include <vector>
+#include <QtConcurrent>
 
 #include "image.h"
 #include "qimageconvert.h"
@@ -10,13 +11,10 @@
 #include "distCorrection.h"
 #include "kmatrixsolve.h"
 
-
 using namespace libMsg;
 Solver::Solver(QObject *parent) : QObject(parent)
 {
 }
-
-
 
 /**
  * @brief PolyOrderConvert_Qt2Lib
@@ -39,33 +37,33 @@ static bool PolyOrderConvert_Qt2Lib(std::vector<double> &poly, int maxOrder)
 {
     if (poly.size() != (maxOrder+1)*(maxOrder+2)/2*2) return false;
     std::vector<double> lib(poly.size());
-    int sizexy=poly.size()/2;
-    int qPos=0,libPos=sizexy;
-    //Poly for X
-    for(int order=0;order<=maxOrder;++order){
-        int numCoef=order+1;
-        libPos-=numCoef;
-        for(int j=0;j<numCoef;++j){
-            lib[libPos]=poly[qPos];
+    int sizexy = poly.size()/2;
+    int qPos = 0, libPos = sizexy;
+    // Poly for X
+    for (int order = 0; order <= maxOrder; ++order) {
+        int numCoef = order+1;
+        libPos -= numCoef;
+        for (int j = 0; j < numCoef; ++j) {
+            lib[libPos] = poly[qPos];
             libPos++;
             qPos++;
         }
-        libPos-=numCoef;
+        libPos -= numCoef;
     }
-    //Poly for Y
-    qPos=sizexy;
-    libPos=sizexy*2;
-    for(int order=0;order<=maxOrder;++order){
-        int numCoef=order+1;
-        libPos-=numCoef;
-        for(int j=0;j<numCoef;++j){
-            lib[libPos]=poly[qPos];
+    // Poly for Y
+    qPos = sizexy;
+    libPos = sizexy*2;
+    for (int order = 0; order <= maxOrder; ++order) {
+        int numCoef = order+1;
+        libPos -= numCoef;
+        for (int j = 0; j < numCoef; ++j) {
+            lib[libPos] = poly[qPos];
             libPos++;
             qPos++;
         }
-        libPos-=numCoef;
+        libPos -= numCoef;
     }
-    poly=lib;
+    poly = lib;
     return true;
 }
 
@@ -73,39 +71,35 @@ static bool PolyOrderConvert_Lib2Qt(std::vector<double> &poly, int maxOrder)
 {
     if (poly.size() != (maxOrder+1)*(maxOrder+2)/2*2) return false;
     std::vector<double> Qpoly(poly.size());
-    int sizexy=poly.size()/2;
-    int qPos=0,libPos=sizexy;
-    //Poly for X
-    for(int order=0;order<=maxOrder;++order){
-        int numCoef=order+1;
-        libPos-=numCoef;
-        for(int j=0;j<numCoef;++j){
-            Qpoly[qPos]=poly[libPos];
+    int sizexy = poly.size()/2;
+    int qPos = 0, libPos = sizexy;
+    // Poly for X
+    for (int order = 0; order <= maxOrder; ++order) {
+        int numCoef = order+1;
+        libPos -= numCoef;
+        for (int j = 0; j < numCoef; ++j) {
+            Qpoly[qPos] = poly[libPos];
             libPos++;
             qPos++;
         }
-        libPos-=numCoef;
+        libPos -= numCoef;
     }
-    //Poly for Y
-    qPos=sizexy;
-    libPos=sizexy*2;
-    for(int order=0;order<=maxOrder;++order){
-        int numCoef=order+1;
-        libPos-=numCoef;
-        for(int j=0;j<numCoef;++j){
-            Qpoly[qPos]=poly[libPos];
+    // Poly for Y
+    qPos = sizexy;
+    libPos = sizexy*2;
+    for (int order = 0; order <= maxOrder; ++order) {
+        int numCoef = order+1;
+        libPos -= numCoef;
+        for (int j = 0; j < numCoef; ++j) {
+            Qpoly[qPos] = poly[libPos];
             libPos++;
             qPos++;
         }
-        libPos-=numCoef;
+        libPos -= numCoef;
     }
-    poly=Qpoly;
+    poly = Qpoly;
     return true;
 }
-
-
-
-
 
 static void distortionValue2Polynome(const DistortionValue &distValue,
                                      std::vector<double> &polynome)
@@ -129,66 +123,102 @@ static void polynome2DistortionValue(DistortionValue &distValue,
     }
 }
 
-static DistortionValue calculateDistortion(const ImageList &imageList)
+static bool distortionFromImages(ImageList *imageList, ImageList *feedbackList,
+                                 DistortionValue &out)
 {
-    Q_ASSERT(!imageList.isEmpty());
-    DistortionValue distValue;
-    std::vector<image_char> charImageList;
-    for (int i = 0; i < imageList.size(); ++i)
-        charImageList.push_back(qimage_to_image_char(imageList.at(i)));
+    QList<QPair<QString, QImage> > snapshot;
+    imageList->getContent(snapshot);
+    if (snapshot.size() == 0) return false;
+    std::vector<ImageGray<BYTE> > byteImageList(snapshot.size());
+    for (int i = 0; i < snapshot.size(); ++i)
+        QImage2ImageByte(snapshot[i].second, byteImageList[i]);
+
     std::vector<double> polynome;
     int order = 11;
-
-    if (DistortionModule::polyEstime(charImageList, polynome, order)){
-        PolyOrderConvert_Lib2Qt(polynome,order);
-        polynome2DistortionValue(distValue, polynome, order);
+    std::vector<std::vector<std::vector<std::pair<double, double> > > > detectedLines;
+    if (!DistortionModule::polyEstime(byteImageList, polynome, order, detectedLines))
+        return false;
+    PolyOrderConvert_Lib2Qt(polynome, order);
+    polynome2DistortionValue(out, polynome, order);
+    QList<QPair<QString, QImage> > feedback;
+    for (int i = 0; i < snapshot.size(); ++i) {
+        QString name=snapshot[i].first+" Feedback";
+        QImage image=snapshot[i].second.convertToFormat(QImage::Format_RGB32);
+        QPainter painter(&image);
+        painter.setRenderHint(QPainter::Antialiasing);
+        std::vector<std::vector<std::pair<double, double> > > &lines = detectedLines[i];
+        for (int j = 0; j < lines.size(); ++j) {
+            std::vector<std::pair<double, double> >&oneline=lines[j];
+            double x1, y1, x2, y2;
+            x1 = oneline[0].first;
+            y1 = oneline[0].second;
+            for (int k = 1; k < oneline.size(); ++k) {
+                x2 = oneline[k].first;
+                y2 = oneline[k].second;
+                painter.setPen(Qt::green);
+                painter.drawLine(x1, y1, x2, y2);
+//                painter.setPen(Qt::red);
+//                painter.drawPoint(x2, y2);
+                painter.fillRect(x2-2, y2-2,5,5,Qt::red);
+                x1 = x2;
+                y1 = y2;
+            }
+        }
+        feedback.append(qMakePair(name,image));
     }
-    // else distValue is empty
-    for (int i = 0; i < charImageList.size(); ++i)
-        free_image_char(charImageList[i]);
-    return distValue;
+    feedbackList->clear();
+    feedbackList->setContent(feedback);
+    return true;
 }
 
-static QImage correctDistortion(const QImage &image, Distortion *distortion)
+static bool correctDistortion(const QImage &imageIn, QImage &out, Distortion *distortion)
 {
-    Q_ASSERT(!image.isNull());
+    if (imageIn.isNull()) {
+        libMsg::cout<<"DistortionCorrection: image is empty!"<<libMsg::endl;
+        return false;
+    }
     DistortionValue distValue = distortion->getValue();
+    if (!distValue.isValid() && distValue._size == 0) {
+        libMsg::cout<<"DistortionCorrection: distortion polynomail is empty!"<<libMsg::endl;
+        return false;
+    }
     std::vector<double> polynome;
     QImage result;
     distortionValue2Polynome(distValue, polynome);
-    PolyOrderConvert_Qt2Lib(polynome,distValue._maxOrder);
-    if (image.isGrayscale()) {
-        qDebug()<<"isGrayscale";
-        image_double in, out;
-        QGrayImageToImageDouble(image, in);
-        DistortionModule::distortionCorrect(in, out, polynome, distortion->maxOrder());
-        result = ImageDoubleToQGrayImage(out);
-        free_image_double(in);
-        free_image_double(out);
+    PolyOrderConvert_Qt2Lib(polynome, distValue._maxOrder);
+
+    if (imageIn.isGrayscale()) {
+        libMsg::cout<<"Color type: Gray scale "<<libMsg::endl;
+        ImageGray<double> in, out;
+        QImage2ImageDouble(imageIn, in);
+        if (!DistortionModule::distortionCorrect(in, out, polynome, distortion->maxOrder()))
+            return false;
+        ImageDouble2QImage(out, result);
     } else {
-        qDebug()<<"isRGB";
-        image_double_RGB in, out;
-        QColorImageToImageDoubleRGB(image, in);
-        DistortionModule::distortionCorrect_RGB(in, out, polynome,
-                                                distortion->maxOrder());
-        result = ImageDoubleRGBToQColorImage(out);
-        free_image_double_RGB(in);
-        free_image_double_RGB(out);
+        libMsg::cout<<"Color type: RGB "<<libMsg::endl;
+        ImageRGB<double> in, out;
+        QColorImage2ImageDoubleRGB(imageIn, in);
+        if (!DistortionModule::distortionCorrect_RGB(in, out, polynome, distortion->maxOrder()))
+            return false;
+        ImageDoubleRGB2QColorImage(out, result);
     }
-    return result;
+    out = result;
+    return true;
 }
 
-static KValue calculateK(const ImageList &circlePhotoList)
+static bool calculateKFromImages(ImageList *circlePhotoList, KValue &kValue)
 {
-    Q_ASSERT(!circlePhotoList.isEmpty());
+    QList<QPair<QString, QImage> > snapshot;
+    circlePhotoList->getContent(snapshot);
+    if (snapshot.size() == 0) return false;
     std::vector<QImage> stdImageList;
-    for(int i=0;i<circlePhotoList.size();++i){
-        stdImageList.push_back(circlePhotoList[i]);
-    }
-    double alpha,beta,gamma,u0,v0;
-    KMatrixSolve::KMatrixSolver(stdImageList,alpha,beta,gamma,u0,v0,3.0,1.0);
-    KValue k = {alpha,beta,gamma,u0,v0};
-    return k;
+    for (int i = 0; i < snapshot.size(); ++i)
+        stdImageList.push_back(snapshot[i].second);
+    double alpha, beta, gamma, u0, v0;
+    if (!KMatrixSolve::KMatrixSolver(stdImageList, alpha, beta, gamma, u0, v0, 3.0, 1.0))
+        return false;
+    kValue = {alpha, beta, gamma, u0, v0};
+    return true;
 }
 
 static CameraPosSolution openMVGSolver(Target2D target2D, const ImageList &photoList, KMatrix K)
@@ -206,22 +236,21 @@ static CameraPosSolution strechaSolver(Target2D target2D, Target3D target3D,
     return s;
 }
 
-void Solver::registerModels(ImageListContainer *photoContainer,
-                            ImageListContainer *photoCircleContainer,
-                            ImageListContainer *photoHarpContainer,
-                            ImageListContainer *noDistortion_photoContainer,
-                            ImageListContainer *noDistortion_photoCircleContainer,
-                            ImageListContainer *noDistortion_photoHarpContainer,
-                            Distortion *distortion, KMatrix *kMatrix,
+void Solver::registerModels(ImageList *photoList, ImageList *circleList, ImageList *harpList,
+                            ImageList *undistortedPhotoList, ImageList *undistortedCircleList,
+                            ImageList *undistortedHarpList, ImageList *harpFeedbackList,
+                            ImageList *circleFeedbackList, Distortion *distortion, KMatrix *kMatrix,
                             Target2DContainer *point2DContainer,
                             Target3DContainer *point3DContainer, Messager *messager)
 {
-    this->photoContainer = photoContainer;
-    this->photoCircleContainer = photoCircleContainer;
-    this->photoHarpContainer = photoHarpContainer;
-    this->noDistortionPhotoContainer = noDistortion_photoContainer;
-    this->noDistortionPhotoCircleContainer = noDistortion_photoCircleContainer;
-    this->noDistortionPhotoHarpContainer = noDistortion_photoHarpContainer;
+    this->photoList = photoList;
+    this->circleList = circleList;
+    this->harpList = harpList;
+    this->undistortedPhotoList = undistortedPhotoList;
+    this->undistortedCircleList = undistortedCircleList;
+    this->undistortedHarpList = undistortedHarpList;
+    this->harpFeedbackList = harpFeedbackList;
+    this->circleFeedbackList = circleFeedbackList;
     this->kMatrix = kMatrix;
     this->distortion = distortion;
     this->point2DContainer = point2DContainer;
@@ -229,50 +258,31 @@ void Solver::registerModels(ImageListContainer *photoContainer,
     this->messager = messager;
 }
 
-void Solver::message(const char *message, MessageType type)
+void Solver::message(std::string message, MessageType type)
 {
     if (this->messager != NULL)
         this->messager->message(message, type);
 }
 
-void Solver::startSolve()
+bool Solver::solveCamPos()
 {
-    CameraPosSolution solu;
-    if (!solve(solu))
-        this->message("Solve failed!", M_WARN);
-    else
-        this->message("Solve succeed");
-    // return solu;
-}
-
-bool Solver::solve(CameraPosSolution &solu)
-{
-    if (!DistortionCorrectPhoto()) {
-        this->message("Distortion correction of photo failed !");
+    if (this->undistortedPhotoList->isEmpty()) {
+        this->message("Didn't find undistorted photos!", M_WARN);
         return false;
     }
-    Q_ASSERT(!noDistortionPhotoContainer->isEmpty());
-    this->message("");
 
-    if (!calculateK()) {
-        this->message("Failed to calculate matrix K !");
+    if (this->kMatrix->isEmpty()) {
+        this->message("Didn't find Matrix K!", M_WARN);
         return false;
     }
-    this->message("");
-    Q_ASSERT(!kMatrix->isEmpty());
-
-    if (point2DContainer->isEmpty()) {
+    if (this->point2DContainer->isEmpty()) {
         this->message("You should set at least one 2D point", M_WARN);
         return false;
-    } else {
-        this->message("2D points loaded");
     }
 
-    if (point3DContainer->isEmpty()) {
+    if (this->point3DContainer->isEmpty()) {
         this->message("You should set at least one 3D point", M_WARN);
         return false;
-    } else {
-        this->message("3D points loaded");
     }
 
     Target2D target2D = this->point2DContainer->getTarget2D_threadSafe();
@@ -282,122 +292,214 @@ bool Solver::solve(CameraPosSolution &solu)
         this->message("You should set same amount of 2D and 3D point", M_WARN);
         return false;
     }
-
-    ImageList photoList = this->noDistortionPhotoContainer->getImageList_threadSafe();
     KValue K = this->kMatrix->getValue();
 
-    solu = strechaSolver(target2D, target3D, photoList, K);
+    // strechaSolver(target2D, target3D, this->undistortedPhotoList, K);
     return true;
 }
 
-bool Solver::DistortionCorrectPhoto()
+bool Solver::calculateDistortionThread()
 {
-    this->message("Loading distortion correction of photo...");
-    if (noDistortionPhotoContainer->isEmpty()) {
-        this->message("Distortion correction of photo is empty. Correct distortion for photos...");
-        if (!calculateDistortion()) {
-            this->message("Failed to load distortion !");
-            return false;
-        }
-        Q_ASSERT(!this->distortion->isEmpty());
+    bool ok;
+    try{
+        ok = this->calculateDistortion();
+    }catch (MyException &bad) {
+        this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
+        return false;
+    }
+    return ok;
+}
 
-        this->message("Loading photos...");
-        if (this->photoContainer->isEmpty()) {
-            this->message("No photo found ! You should load photos.", M_WARN);
+bool Solver::calculateKThread()
+{
+    bool ok;
+    try{
+        ok = this->calculateK();
+    }catch (MyException &bad) {
+        this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
+        return false;
+    }
+    return ok;
+}
+
+bool Solver::correctPhotoThread()
+{
+    bool ok;
+    try{
+        ok = this->correctPhoto();
+    }catch (MyException &bad) {
+        this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
+        return false;
+    }
+    return ok;
+}
+
+bool Solver::correctCircleThread()
+{
+    bool ok;
+    try{
+        ok = this->correctCircle();
+    }catch (MyException &bad) {
+        this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
+        return false;
+    }
+    return ok;
+}
+
+bool Solver::solveCamPosThread()
+{
+    bool ok;
+    try{
+        ok = this->solveCamPos();
+    }catch (MyException &bad) {
+        this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
+        return false;
+    }
+    return ok;
+}
+
+bool Solver::onCalculateDistortion()
+{
+    QtConcurrent::run(this, &Solver::calculateDistortionThread);
+}
+
+bool Solver::onCalculateK()
+{
+    QtConcurrent::run(this, &Solver::calculateKThread);
+}
+
+bool Solver::onCorrectPhoto()
+{
+    QtConcurrent::run(this, &Solver::correctPhotoThread);
+}
+
+bool Solver::onCorrectCircle()
+{
+    QtConcurrent::run(this, &Solver::correctCircleThread);
+}
+
+bool Solver::correctPhoto()
+{
+    if (this->undistortedPhotoList->isEmpty()) {
+        this->message("Correct distortion for photos...");
+        if (this->distortion->isEmpty()) {
+            this->message("Didn't find distortion polynomial!");
             return false;
         } else {
-            this->message("Photos loaded");
+            this->message("Distortion polynomial found.");
         }
-
-        ImageList photoList = photoContainer->getImageList_threadSafe();
-        ImageList outputList;
-        QImage image;
-        foreach (image, photoList)
-            outputList.append(correctDistortion(image, distortion));
-        noDistortionPhotoContainer->saveImageList_threadSafe(outputList);
+        if (this->photoList->isEmpty()) {
+            this->message("Didn't find photos !", M_WARN);
+            return false;
+        } else {
+            this->message("Photos loaded.");
+        }
+        QList<QPair<QString, QImage> > correctionList;
+        QList<QPair<QString, QImage> > resultList;
+        this->photoList->getContent(correctionList);
+        QPair<QString, QImage> pair;
+        int k = 0;
+        foreach (pair, correctionList) {
+            QImage result;
+            this->message("Correct photo:"+pair.first.toStdString());
+            if (!correctDistortion(pair.second, result, this->distortion)) {
+                this->message(
+                    "Distortion correction of photo failed. FileName:"+pair.first.toStdString(),
+                    M_WARN);
+                return false;
+            }
+            resultList.append(qMakePair(QString("Image_corrected_%1").arg(k+1), result));
+            ++k;
+        }
+        this->undistortedPhotoList->setContent(resultList);
         this->message("Distortion correction of photo finished.");
     } else {
-        this->message("Distortion correction of photo loaded.");
+        this->message("Undistorted photos already exist, please remove them.");
+        return false;
     }
     return true;
 }
 
-bool Solver::DistortionCorrectPhotoCircle()
+bool Solver::correctCircle()
 {
-    this->message("Loading distortion correction of circle photo...");
-    if (noDistortionPhotoCircleContainer->isEmpty()) {
-        this->message(
-            "Distortion correction of circle photo is empty. Correct distortion for circle photos...");
-        if (!calculateDistortion()) {
-            this->message("Failed to load distortion !");
+    if (this->undistortedCircleList->isEmpty()) {
+        if (this->circleList->isEmpty()) {
+            this->message("No circle photo found !", M_WARN);
             return false;
         }
-        Q_ASSERT(!this->distortion->isEmpty());
-
-        this->message("Loading circle photos...");
-        if (this->photoCircleContainer->isEmpty()) {
-            this->message("No circle photo found ! You should load circle photos.",
-                          M_WARN);
-            return false;
-        } else {
-            this->message("Circle photos loaded");
+        QList<QPair<QString, QImage> > correctionList;
+        QList<QPair<QString, QImage> > resultList;
+        this->circleList->getContent(correctionList);
+        QPair<QString, QImage> pair;
+        int k = 0;
+        foreach (pair, correctionList) {
+            QImage result;
+            this->message("Correct photo:"+pair.first.toStdString());
+            if (!correctDistortion(pair.second, result, this->distortion)) {
+                this->message(
+                    "Distortion correction of circle photo failed. FileName:"+pair.first.toStdString(),
+                    M_WARN);
+                return false;
+            }
+            resultList.append(qMakePair(QString("ImageCircle_corrected_%1").arg(k+1), result));
+            ++k;
         }
-
-        ImageList photoList = photoCircleContainer->getImageList_threadSafe();
-        ImageList outputList;
-        QImage image;
-        foreach (image, photoList)
-            outputList.append(correctDistortion(image, distortion));
-        noDistortionPhotoCircleContainer->saveImageList_threadSafe(outputList);
-
+        this->undistortedCircleList->setContent(resultList);
         this->message("Distortion correction of photo finished.");
     } else {
-        this->message("Distortion correction of circle photo loaded.");
+        this->message("Undistorted circle photos already exist, please remove them.");
+        return false;
     }
     return true;
 }
 
 bool Solver::calculateDistortion()
 {
-    this->message("Loading distortion parameter...");
-    if (distortion->isEmpty()) {
-        this->message("Distortion parameter is empty. Calculating distortion parameter ...");
+    if (this->distortion->isEmpty()) {
+        this->message("Starting calculation of distortion polynomial...");
 
-        if (photoHarpContainer->isEmpty()) {
+        if (this->harpList->isEmpty()) {
             this->message("You should load harp photos", M_WARN);
             return false;
         }
-        ImageList imageList = photoHarpContainer->getImageList_threadSafe();
-
-        bool ok = distortion->setValue(::calculateDistortion(imageList));
-        Q_ASSERT(ok);
-        if (distortion->isEmpty()) {
+        DistortionValue distValue;
+        if (!distortionFromImages(this->harpList, this->harpFeedbackList, distValue)) {
             this->message("Distortion calculation failed!", M_WARN);
+            return false;
+        }
+        if (!this->distortion->setValue(distValue)) {
+            this->message("Distortion calculated by program turns out to be corrupted");
             return false;
         }
         this->message("Distortion calculated");
     } else {
-        this->message("Distortion parameter loaded");
+        this->message(
+            "Distortion polynomial already exist, please clear it if you want to calculate a new one");
     }
     return true;
 }
 
 bool Solver::calculateK()
 {
-    this->message("Loading matrix K...");
-    if (kMatrix->isEmpty()) {
-        this->message("Matrix K is empty. Calculating K from corrected harp photos...");
-
-        if (!DistortionCorrectPhotoCircle()) {
-            this->message("Distortion Correction of circle photos failed !");
+    if (this->kMatrix->isEmpty()) {
+        this->message("Starting calculation of Matrix K");
+        if (this->undistortedCircleList->isEmpty()) {
+            this->message(
+                "Didn't find undistorted circle photo. Please load them,"
+                "or you can generate them from original circle photos");
             return false;
+        } else {
+            this->message("Undistorted circle photo loaded.");
         }
-        Q_ASSERT(!noDistortionPhotoCircleContainer->isEmpty());
-        ImageList imageList = noDistortionPhotoCircleContainer->getImageList_threadSafe();
-        this->kMatrix->setValue(::calculateK(imageList));
+        KValue kValue;
+        if (!calculateKFromImages(this->undistortedCircleList, kValue))
+            return false;
+        this->kMatrix->setValue(kValue);
         this->message("Matrix K generated");
+        return true;
     } else {
-        this->message("Matrix K loaded");
+        this->message(
+            "Matrix K already exist, please clear it if you want to calculate a new one");
+        return false;
     }
-    return true;
 }

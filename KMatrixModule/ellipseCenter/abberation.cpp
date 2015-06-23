@@ -3,37 +3,36 @@
 #include <iostream>
 
 #include "messager.h"
-int white_neighbors(const Pixel &p, image_double img)
+int white_neighbors(const Pixel &p,const ImageGray<BYTE> &img)
 {
     int nn = 0;
-    double color;
     Pixel p1(p.x-1, p.y);
-    if (p1.x >= 0 && p1.x < img->xsize && p1.y >= 0 && p1.y < img->ysize) {
-        if (img->data[p1.x+p1.y*img->xsize] == 255)
+    if (p1.x >= 0 && p1.x < img.xsize() && p1.y >= 0 && p1.y < img.ysize()) {
+        if (img.pixel(p1.x, p1.y) == 255)
             nn++;
     } else {
         nn++;
     }
 
     Pixel p2(p.x+1, p.y);
-    if (p2.x >= 0 && p2.x < img->xsize && p2.y >= 0 && p2.y < img->ysize) {
-        if (img->data[p2.x+p2.y*img->xsize] == 255)
+    if (p2.x >= 0 && p2.x < img.xsize() && p2.y >= 0 && p2.y < img.ysize()) {
+        if (img.pixel(p2.x, p2.y) == 255)
             nn++;
     } else {
         nn++;
     }
 
     Pixel p3(p.x, p.y-1);
-    if (p3.x >= 0 && p3.x < img->xsize && p3.y >= 0 && p3.y < img->ysize) {
-        if (img->data[p3.x+p3.y*img->xsize] == 255)
+    if (p3.x >= 0 && p3.x < img.xsize() && p3.y >= 0 && p3.y < img.ysize()) {
+        if (img.pixel(p3.x, p3.y) == 255)
             nn++;
     } else {
         nn++;
     }
 
     Pixel p4(p.x, p.y+1);
-    if (p4.x >= 0 && p4.x < img->xsize && p4.y >= 0 && p4.y < img->ysize) {
-        if (img->data[p4.x+p4.y*img->xsize] == 255)
+    if (p4.x >= 0 && p4.x < img.xsize() && p4.y >= 0 && p4.y < img.ysize()) {
+        if (img.pixel(p4.x, p4.y) == 255)
             nn++;
     } else {
         nn++;
@@ -43,12 +42,12 @@ int white_neighbors(const Pixel &p, image_double img)
     return nn;
 }
 
-void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, image_double img)
+void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats,const ImageGray<BYTE> &img)
 {
     stats.nPoints = cc.size();
     stats.perimeter = 0;
     double meanX = 0, meanY = 0;
-    double minX = img->xsize, minY = img->ysize, maxX = 0, maxY = 0;
+    double minX = img.xsize(), minY = img.ysize(), maxX = 0, maxY = 0;
     for (int i = 0; i < cc.size(); i++) {
         meanX += cc[i].x;
         meanY += cc[i].y;
@@ -64,19 +63,19 @@ void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, image_double img)
     stats.radius2 = 0.5 * (maxY - minY);
 }
 
-int extract_cc_(Pixel p, std::vector<Pixel> &cc, image_double &img)
+int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img)
 {
     std::stack<Pixel> s;
-    double *color;
-    if (p.x >= 0 && p.x < img->xsize && p.y >= 0 && p.y < img->ysize)
-        color = &img->data[p.x+p.y*img->xsize];
+    BYTE *pColor;
+    if (img.pixelInside(p.x, p.y))
+        pColor = &img.pixel(p.x, p.y);
     else
         return 0;
-    while (*color == 0 || !s.empty())
+    while (*pColor == 0 || !s.empty())
     {
-        if (*color == 0) {
+        if (*pColor == 0) {
             cc.push_back(p);
-            *color = 255;
+            *pColor = 255;
             s.push(Pixel(p.x+1, p.y));
             s.push(Pixel(p.x-1, p.y));
             s.push(Pixel(p.x, p.y+1));
@@ -84,51 +83,27 @@ int extract_cc_(Pixel p, std::vector<Pixel> &cc, image_double &img)
         }
         p = s.top();
         s.pop();
-        if (p.x >= 0 && p.x < img->xsize && p.y >= 0 && p.y < img->ysize)
-            color = &img->data[p.x+p.y*img->xsize];
+        if (img.pixelInside(p.x, p.y))
+            pColor = &img.pixel(p.x, p.y);
         else
-            *color = 255;
+            *pColor = 255;
     }
     return cc.size();
 }
 
-bool extract_cc(Pixel &p, std::vector<Pixel> &cc, image_double &img)
-{
-    bool result = false;
-    std::stack<Pixel> s;
-    double *color;
-    if (p.x >= 0 && p.x < img->xsize && p.y >= 0 && p.y < img->ysize)
-        color = &img->data[p.x+p.y*img->xsize];
-    else
-        return result;
-    if (*color == 0) {
-        result = true;
-        cc.push_back(p);
-        *color = 255;
-        s.push(Pixel(p.x+1, p.y));
-        s.push(Pixel(p.x-1, p.y));
-        s.push(Pixel(p.x, p.y+1));
-        s.push(Pixel(p.x, p.y-1));
-        while (!s.empty()) {
-            extract_cc(s.top(), cc, img);
-            s.pop();
-        }
-    }
-    return result;
-}
 
-void CC(std::vector<CCStats> &ccstats, image_double &imgbi, char channel)
+void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi)
 {
-    image_double img_copy = new_image_double_copy(imgbi);
+    ImageGray<BYTE> img_copy(imgbi);
     double meansize = 0;
-    for (int i = 0; i < imgbi->xsize; i++) {
-        for (int j = 0; j < imgbi->ysize; j++) {
+    for (int i = 0; i < imgbi.xsize(); i++) {
+        for (int j = 0; j < imgbi.ysize(); j++) {
             std::vector<Pixel> ccC;
             CCStats stats;
-            int npix = extract_cc_(Pixel(i, j), ccC, imgbi);
+            int npix = extract_cc_(Pixel(i, j), ccC, img_copy);
             if (npix > 180) {
                 // showImageDouble(imgbi);
-                extract_CCStats(ccC, stats, img_copy);
+                extract_CCStats(ccC, stats, imgbi);
                 double compactness = 4*PI*stats.nPoints / (stats.perimeter*stats.perimeter);
                 // !!compactness < 1.3 is not a good limit! I changed to 1.5 -Leman
                 if (std::min(stats.radius1,
@@ -138,10 +113,10 @@ void CC(std::vector<CCStats> &ccstats, image_double &imgbi, char channel)
                 }
             }
         }
-        double percent = ((double)i / (double)imgbi->xsize)*100;
-        if (!(i % (int)(0.2*imgbi->xsize+1)))
-        libMsg::cout<<(int)(percent+1)<<'%'<<libMsg::flush;
-        else if (!(i % (int)(0.04*imgbi->xsize+1)))
+        double percent = ((double)i / (double)imgbi.xsize())*100;
+        if (!(i % (int)(0.2*imgbi.xsize()+1)))
+            libMsg::cout<<(int)(percent+1)<<'%'<<libMsg::flush;
+        else if (!(i % (int)(0.04*imgbi.xsize()+1)))
             libMsg::cout<<'.'<<libMsg::flush;
     }
     libMsg::cout<<libMsg::endl;
@@ -167,20 +142,18 @@ void CC(std::vector<CCStats> &ccstats, image_double &imgbi, char channel)
         hist_stack[val].push(i);
         // }
     }
-//    int pick = 0, commonsize = 0;
-//    for (int i = 0; i < hist.size(); i++) {
-//        if (pick < hist[i]) {
-//            pick = hist[i];
-//            commonsize = i;
-//        }
-//    }
-    double averageSize=0;
-    for(int i=0;i<ccstats.size();++i){
-        averageSize+=ccstats[i].nPoints;
-    }
-    averageSize/=ccstats.size();
-    int commonsize=averageSize;
-
+// int pick = 0, commonsize = 0;
+// for (int i = 0; i < hist.size(); i++) {
+// if (pick < hist[i]) {
+// pick = hist[i];
+// commonsize = i;
+// }
+// }
+    double averageSize = 0;
+    for (int i = 0; i < ccstats.size(); ++i)
+        averageSize += ccstats[i].nPoints;
+    averageSize /= ccstats.size();
+    int commonsize = averageSize;
 
     // collect the inliers in positive direction from commonsize idx
     int zerosgap = 1700;
@@ -240,5 +213,4 @@ void CC(std::vector<CCStats> &ccstats, image_double &imgbi, char channel)
             idx++;
         }
     }
-    free_image_double(img_copy);
 }

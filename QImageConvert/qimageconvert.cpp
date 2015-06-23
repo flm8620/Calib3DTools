@@ -1,78 +1,57 @@
 #include "qimageconvert.h"
-QImage ImageDoubleToQGrayImage(image_double in)
+void ImageDouble2QImage(ImageGray<double> in, QImage &out)
 {
-    int w = in->xsize, h = in->ysize;
-    QImage image(w, h, QImage::Format_RGB32);
+    int w = in.xsize(), h = in.ysize();
+    out = QImage(w, h, QImage::Format_RGB32);
     for (int x = 0; x < w; ++x) {
         for (int y = 0; y < h; y++) {
-            int color = in->data[x+y*w];
-            image.setPixel(x, y, qRgb(color, color, color));
+            int color = roundColor(in.pixel(x, y));
+            out.setPixel(x, y, qRgb(color, color, color));
         }
     }
-    return image;
 }
 
-image_double qimage_to_image_double(const QImage &qimage)
+void QImage2ImageDouble(const QImage &in, ImageGray<double> &out)
 {
-    int w = qimage.width(), h = qimage.height();
-    image_double image = new_image_double(w, h);
+    int w = in.width(), h = in.height();
+    out.resize(w,h);
     for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
-            image->data[ x + y * w ] = qGray(qimage.pixel(x, y));
-    return image;
+            out.pixel(x, y) = qGray(in.pixel(x, y));
 }
 
-
-
-image_char qimage_to_image_char(const QImage &qimage)
+void QImage2ImageByte(const QImage &in, ImageGray<BYTE> &out)
 {
-    int w = qimage.width(), h = qimage.height();
-    image_char image = new_image_char(w, h);
+    int w = in.width(), h = in.height();
+    out.resize(w,h);
     for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
-            image->data[ x + y * w ] = qGray(qimage.pixel(x, y));
-    return image;
+            out.pixel(x, y) = qGray(in.pixel(x, y));
 }
 
-
-void QColorImageToImageDoubleRGB(const QImage &qimage, image_double_RGB &out)
+void QColorImage2ImageDoubleRGB(const QImage &qimage, ImageRGB<double> &out)
 {
-    Q_ASSERT(!qimage.isNull());
     int w = qimage.width(), h = qimage.height();
-    out = new_image_double_RGB(w, h);
+    out.resize(w,h);
     for (int x = 0; x < w; ++x) {
         for (int y = 0; y < h; y++) {
-            out->Rdata[x+y*w] = qRed(qimage.pixel(x, y));
-            out->Gdata[x+y*w] = qGreen(qimage.pixel(x, y));
-            out->Bdata[x+y*w] = qBlue(qimage.pixel(x, y));
+            out.pixel_R(x,y) = qRed(qimage.pixel(x, y));
+            out.pixel_G(x,y) = qGreen(qimage.pixel(x, y));
+            out.pixel_B(x,y) = qBlue(qimage.pixel(x, y));
         }
     }
 }
 
-
-void QGrayImageToImageDouble(const QImage &qimage, image_double &out)
+void ImageDoubleRGB2QColorImage(const ImageRGB<double> &in, QImage &out)
 {
-    Q_ASSERT(!qimage.isNull());
-    int w = qimage.width(), h = qimage.height();
-    out = new_image_double(w, h);
-    for (int x = 0; x < w; ++x) {
-        for (int y = 0; y < h; y++)
-            out->data[x+y*w] = qGray(qimage.pixel(x, y));
-    }
-}
-
-
-QImage ImageDoubleRGBToQColorImage(image_double_RGB in)
-{
-    int w = in->xsize, h = in->ysize;
-    QImage image(w, h, QImage::Format_RGB32);
+    int w = in.xsize(), h = in.ysize();
+    out = QImage(w, h, QImage::Format_RGB32);
     for (int x = 0; x < w; ++x) {
         for (int y = 0; y < h; y++) {
-            int red = in->Rdata[x+y*w];
-            int green = in->Gdata[x+y*w];
-            int blue = in->Bdata[x+y*w];
-            image.setPixel(x, y, qRgb(red, green, blue));
+            int red = in.pixel_R(x, y);
+            int green = in.pixel_G(x, y);
+            int blue = in.pixel_B(x, y);
+            out.setPixel(x, y, qRgb(red, green, blue));
         }
     }
-    return image;
 }

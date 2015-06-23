@@ -110,11 +110,11 @@
                        for a line segment from (x1,y1) to (x2,y2) and
                        a width 'width'.
  */
-ntuple_list LineSegmentDetection( image_double image, double scale,
+ntuple_list LineSegmentDetection(const ImageGray<double> &image, double scale,
                                   double sigma_scale, double quant,
                                   double ang_th, double eps, double density_th,
                                   int n_bins, double max_grad,
-                                  image_int * region );
+                                  ImageGray<int> *region );
 
 
 /*----------------------------------------------------------------------------*/
@@ -143,8 +143,8 @@ ntuple_list LineSegmentDetection( image_double image, double scale,
 
     @return a 5-tuple list of detected line segments.
  */
-ntuple_list lsd_scale_region( image_double image, double scale,
-                              image_int * region );
+ntuple_list lsd_scale_region(const ImageGray<double> &image, double scale,
+                              ImageGray<int> *region );
 
 /*----------------------------------------------------------------------------*/
 /* LSD Simple Interface with Scale                                            */
@@ -162,7 +162,7 @@ ntuple_list lsd_scale_region( image_double image, double scale,
 
     @return a 5-tuple list of detected line segments.
  */
-ntuple_list lsd_scale(image_double image, double scale);
+ntuple_list lsd_scale(const ImageGray<double>& image, double scale);
 
 /*----------------------------------------------------------------------------*/
 /** LSD Simple Interface with Region output.                                  */
@@ -183,7 +183,7 @@ ntuple_list lsd_scale(image_double image, double scale);
 
     @return a 5-tuple list of detected line segments.
  */
-ntuple_list lsd_region(image_double image, image_int * region);
+ntuple_list lsd_region(const ImageGray<double>& image, ImageGray<int> *region);
 
 /*----------------------------------------------------------------------------*/
 /* LSD Simple Interface                                                       */
@@ -194,7 +194,7 @@ ntuple_list lsd_region(image_double image, image_int * region);
 
     @return a 5-tuple list of detected line segments.
  */
-ntuple_list lsd(image_double image);
+ntuple_list lsd(const ImageGray<double>& image);
 
 #endif /* !LSD_HEADER */
 /*----------------------------------------------------------------------------*/

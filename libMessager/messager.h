@@ -1,6 +1,7 @@
 #ifndef MESSAGER_H
 #define MESSAGER_H
 #include <sstream>
+#include <stdexcept>
 namespace libMsg {
 enum MessageType {
     M_TEXT, M_INFO, M_WARN, M_ERROR
@@ -36,4 +37,9 @@ extern ostream cout;
 extern Messager *globalMessager;
 void error(const char *msg);
 }
+class MyException:public std::runtime_error{
+public:
+    MyException(const std::string& msg);
+};
+
 #endif
