@@ -17,13 +17,13 @@ add_subdirectory(libMessager)
 add_subdirectory(QImageConvert)
 
 add_subdirectory(ClickImage)
-add_subdirectory(Distortion)
+add_subdirectory(distortion)
 add_subdirectory(KMatrixModule)
 
 include_directories(QImageConvert)
 include_directories(libMessager)
 include_directories(libImage)
-include_directories(Distortion)
+include_directories(distortion)
 include_directories(KMatrixModule)
 #include_directories(ClickImage)
 
