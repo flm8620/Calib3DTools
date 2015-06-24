@@ -10,6 +10,7 @@ class DistortionModel : public QAbstractListModel
     Q_OBJECT
 public:
     DistortionModel(QObject* parent=0, Distortion * core=NULL);
+    ~DistortionModel();
 
     inline Distortion* core() { return this->coreData; }
     int rowCount(const QModelIndex & index=QModelIndex()) const;
@@ -20,13 +21,14 @@ public:
     bool removeRows(int row, int count, const QModelIndex &parent);
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
 
-private slots:
-    void onCoreDataChanged(int fromIndex, int toIndex);
-    void onCoreSizeChanged();
 private:
 
     Distortion* coreData;
     bool coreDisposingRequired;
+
+    void onCoreDataChanged(int fromIndex, int toIndex);
+    void onCoreSizeChanged(int newSize);
+    QVarLengthArray<event::EventConnection*> subscriptions;
 };
 
 #endif // DISTORTIONMODEL_H

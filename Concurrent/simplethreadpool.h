@@ -8,18 +8,19 @@
 #include <mutex>
 #include <condition_variable>
 
-class Runnable;
+namespace concurrent {
 
-class EventThreadPool : AbstractThreadPool
+
+class SimpleThreadPool : public AbstractThreadPool
 {
 public:
-    EventThreadPool(int initSize=2, int maxSize=5);
-    ~EventThreadPool();
-    void start( Runnable* task );
+    SimpleThreadPool(int threads=5);
+    ~SimpleThreadPool();
+    void start( Runnable* task ) const;
+    static SimpleThreadPool DEFAULT;
 
 private:
     std::vector<std::thread*> pool;
-    int initsize, maxsize;
 
     class TaskQueue
     {
@@ -28,12 +29,14 @@ private:
         Runnable* Pop();
         void close();
     private:
-        std::queue<Runnable*> q;
+        mutable std::queue<Runnable*> q;
         std::mutex mtx;
         std::condition_variable notEmpty;
         bool closed = false;
-    } tasks;
+    };
+    mutable TaskQueue tasks;
     static void threadMain(TaskQueue* tasks);
 };
 
+} //namespace concurrent
 #endif // EVENTTHREADPOOL_H

@@ -1,6 +1,7 @@
 #include "kmatrixmodel.h"
 
 #include <QDebug>
+#include <functional>
 
 typedef double (KMatrix::*KMemberGetter)() const;
 typedef void (KMatrix::*KMemberSetter)(double);
@@ -14,8 +15,7 @@ const static QVariant INVALID_VARIANT;
 
 static inline bool inDataRange(int index)  { return index>=0 && index<ITEM_COUNT; }
 
-KMatrixModel::KMatrixModel(QObject *parent, KMatrix* core)
-    :QAbstractListModel(parent)
+KMatrixModel::KMatrixModel(QObject *parent, KMatrix* core) :QAbstractListModel(parent)
 {
     if(core!=NULL) {
         this->coreData = core;
@@ -24,17 +24,27 @@ KMatrixModel::KMatrixModel(QObject *parent, KMatrix* core)
         this->coreData = new KMatrix();
         this->coreDisposingRequired = true;
     }
-    connect( this->coreData, SIGNAL(dataChanged()), this, SLOT(onCoreDataChanged()) );
+
+    //subscribe the data changed event of coreData
+    this->subscription =
+            this->coreData->dataChangedEvent.subscribe(this, &KMatrixModel::onCoreDataChanged);
 }
 
 KMatrixModel::~KMatrixModel() {
+    //close the event subscription.
+    if(this->subscription!=NULL) {
+        this->subscription->close();
+        this->subscription = NULL;
+    }
+
+    //dispose the coreData if required.
     if( this->coreDisposingRequired && this->coreData!=NULL ) {
         delete this->coreData;
         this->coreData = NULL;
     }
 }
 
-void KMatrixModel::onCoreDataChanged()
+void KMatrixModel::onCoreDataChanged( )
 {
     emit this->dataChanged(this->index(0), this->index(ITEM_COUNT-1));
 }

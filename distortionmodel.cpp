@@ -1,5 +1,9 @@
 #include "distortionmodel.h"
 #include <QDebug>
+#include <limits>
+
+using event::_1_;
+using event::_2_;
 
 DistortionModel::DistortionModel(QObject *parent, Distortion *core)
     :QAbstractListModel(parent)
@@ -11,16 +15,38 @@ DistortionModel::DistortionModel(QObject *parent, Distortion *core)
         this->coreData = new Distortion();
         this->coreDisposingRequired = true;
     }
-    connect( this->coreData, SIGNAL(dataChanged(int,int)), this, SLOT(onCoreDataChanged(int,int)) );
-    connect( this->coreData, SIGNAL(dataSizeChanged(int)), this, SLOT(onCoreSizeChanged()) );
+
+    this->subscriptions<<
+            this->coreData->dataChangedEvent.subscribe(
+                this, &DistortionModel::onCoreDataChanged, _1_, _2_ );
+
+    this->subscriptions<<
+            this->coreData->dataSizeChangedEvent.subscribe(
+                this, &DistortionModel::onCoreSizeChanged, _1_ );
 }
+
+DistortionModel::~DistortionModel()
+{
+    //close all event subscribings.
+    foreach(event::EventConnection* conn, this->subscriptions)
+        if(conn!=NULL)
+            conn->close();
+    this->subscriptions.clear();
+
+    // dispose the coreData if needed.
+    if(this->coreDisposingRequired && this->coreData!=NULL) {
+        delete this->coreData;
+        this->coreData = NULL;
+    }
+}
+
 
 void DistortionModel::onCoreDataChanged(int fromIndex, int toIndex)
 {
     emit this->dataChanged(this->index(fromIndex), this->index(toIndex));
 }
 
-void DistortionModel::onCoreSizeChanged()
+void DistortionModel::onCoreSizeChanged(int newSize )
 {
     this->beginResetModel();
     this->endResetModel();
@@ -32,7 +58,7 @@ int DistortionModel::rowCount(const QModelIndex &index) const
 }
 
 const static QVariant INVALID_QVARIANT;
-const static double INVALID_DOUBLE = -100000000000;
+const static double INVALID_DOUBLE = std::numeric_limits<double>::min();
 
 QVariant DistortionModel::data(const QModelIndex &index, int role) const
 {
@@ -63,24 +89,12 @@ bool DistortionModel::setData(const QModelIndex &index, const QVariant &value, i
 
 bool DistortionModel::insertRows(int row, int count, const QModelIndex &parent)
 {
-    if(row<0||row>coreData->size())return false;
-    beginInsertRows(parent,row,row+count-1);
-    for(int i=0;i<count;i++){
-        coreData->insert(row,0);
-    }
-    endInsertRows();
-    return true;
+    return false;
 }
 
 bool DistortionModel::removeRows(int row, int count, const QModelIndex &parent)
 {
-    if(row<0||row+count-1>=coreData->size())return false;
-    beginRemoveRows(parent,row,row+count-1);
-    for(int i=0;i<row;++i){
-        coreData->remove(row);
-    }
-    endRemoveRows();
-    return true;
+    return false;
 }
 
 QVariant DistortionModel::headerData(int section, Qt::Orientation orientation, int role) const

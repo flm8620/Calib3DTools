@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QAbstractListModel>
 #include "kmatrix.h"
+#include "Event/eventhandler.h"
 
 class KMatrixModel : public QAbstractListModel
 {
@@ -25,9 +26,8 @@ public:
 private:
     KMatrix * coreData;
     bool coreDisposingRequired;
-
-private slots:
     void onCoreDataChanged();
+    event::EventConnection* subscription;
 };
 
 #endif // KMATRIXMODEL_H

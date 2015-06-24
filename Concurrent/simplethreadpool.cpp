@@ -1,32 +1,34 @@
-#include "eventthreadpool.h"
+#include "simplethreadpool.h"
 #include <thread>
 #include <functional>
 
-EventThreadPool::EventThreadPool(int initSize, int maxSize) : pool(initSize)
+using namespace concurrent;
+using std::thread;
+SimpleThreadPool SimpleThreadPool::DEFAULT;
+
+SimpleThreadPool::SimpleThreadPool(int threads) : pool(threads)
 {
-    this->initsize = initSize;
-    this->maxsize = maxSize;
-    for(int i=0; i<initSize; i++)
-        this->pool[i] = new std::thread(&threadMain, &this->tasks);
+    for(int i=0; i<threads; i++)
+        this->pool[i] = new thread(&threadMain, &this->tasks);
 }
 
-void EventThreadPool::threadMain(TaskQueue* tasks)
+void SimpleThreadPool::threadMain(TaskQueue* tasks)
 {
     Runnable* task;
     while(NULL!= (task=tasks->Pop())) {
         task->run();
-        delete task;
+        task->done();
     }
 }
 
-void EventThreadPool::start(Runnable *task) {
+void SimpleThreadPool::start(Runnable* task) const {
     this->tasks.Push(task);
 }
 
-EventThreadPool::~EventThreadPool() {
+SimpleThreadPool::~SimpleThreadPool() {
     this->tasks.close();
     for(unsigned i=0; i<this->pool.size(); i++) {
-        std::thread*& th = this->pool[i];
+        thread*& th = this->pool[i];
         if(th!=NULL) {
             th->join();
             delete th;
@@ -37,7 +39,7 @@ EventThreadPool::~EventThreadPool() {
 
 typedef std::unique_lock<std::mutex> UniqueLock;
 
-void EventThreadPool::TaskQueue::Push(Runnable*  t) {
+void SimpleThreadPool::TaskQueue::Push(Runnable*  t) {
     UniqueLock lock(this->mtx);
     if(!this->closed) {
         this->q.push(t);
@@ -45,7 +47,7 @@ void EventThreadPool::TaskQueue::Push(Runnable*  t) {
     }
 }
 
-Runnable* EventThreadPool::TaskQueue::Pop() {
+Runnable* SimpleThreadPool::TaskQueue::Pop() {
     UniqueLock lock(this->mtx);
     while(!closed && this->q.size()<=0)
         this->notEmpty.wait(lock);
@@ -59,7 +61,7 @@ Runnable* EventThreadPool::TaskQueue::Pop() {
     }
 }
 
-void EventThreadPool::TaskQueue::close() {
+void SimpleThreadPool::TaskQueue::close() {
     UniqueLock lock(this->mtx);
     this->closed = true;
     this->notEmpty.notify_all();

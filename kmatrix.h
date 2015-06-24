@@ -1,12 +1,14 @@
 #ifndef KMATRIX_H
 #define KMATRIX_H
 
-#include "readwritelock.h"
-#include <QtCore>
+#include "Concurrent/readwritelock.h"
+#include "Event/eventhandler.h"
 
-
+using concurrent::ReadWriteLock;
+using event::NotifyEventHandler;
 typedef struct { double fx, fy, x0, y0, s; } KValue;
 typedef struct { double x, y; } Vector2D;
+
 inline bool operator ==(const KValue& l, const KValue& r)
 {
     return l.fx==r.fx && l.fy==r.fy && l.x0==r.x0 && l.y0==r.y0 && l.s==r.s ;
@@ -16,15 +18,20 @@ inline bool operator ==(const KValue& l, const KValue& r)
  * @brief The KMatrix ; //TODO: more detailed documents needed.
  * @note All public functions of this class are thread-safe
  */
-class KMatrix : public QObject
+class KMatrix
 {
-    Q_OBJECT
+private:
+    KValue value;
+    NotifyEventHandler _dataChangedEvent;
+protected:
+    mutable ReadWriteLock rwLock;
+
 public:
+    KMatrix();
+    KMatrix(const KValue& value);
+    KMatrix(const KMatrix& value);
 
-    KMatrix(QObject * parent = 0);
-    KMatrix(const KValue& value, QObject * parent = 0);
-    KMatrix(const KMatrix& value, QObject * parent = 0);
-
+    const NotifyEventHandler& dataChangedEvent = this->_dataChangedEvent;
     bool isEmpty() const;
 
 //properties' getters
@@ -109,16 +116,8 @@ public:
     bool operator ==(const KValue& value) const;
     bool operator ==(const KMatrix& other) const;
 
-signals:
-    void dataChanged();
 
-protected:
-    mutable ReadWriteLock rwLock;
-private:
-    KValue value;
 };
-
-Q_DECLARE_METATYPE(KMatrix)
 
 #endif // KMATRIX_H
 

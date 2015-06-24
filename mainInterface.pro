@@ -37,8 +37,8 @@ SOURCES += main.cpp\
     worker.cpp \
     kmatrix.cpp \
     distortion.cpp \
-    readwritelock.cpp \
-    eventthreadpool.cpp
+    Concurrent/readwritelock.cpp \
+    Concurrent/simplethreadpool.cpp
 
 HEADERS  += mainwindow.h \
     solver.h \
@@ -68,7 +68,7 @@ HEADERS  += mainwindow.h \
     imagelist.h \
     cameraposition.h \
     distortion.h \
-    eventdelegate.h \
-    readwritelock.h \
-    eventthreadpool.h \
-    abstractthreadpool.h
+    Concurrent/readwritelock.h \
+    Concurrent/abstractthreadpool.h \
+    Event/eventhandler.h \
+    Concurrent/simplethreadpool.h

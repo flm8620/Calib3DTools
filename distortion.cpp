@@ -1,110 +1,64 @@
 #include "distortion.h"
+using concurrent::ReadLock;
+using concurrent::WriteLock;
 
-static inline void unsafeCopy( double* dest, const double * src, int count )
-{
-    for(int i; i<count; i++, dest++, src++ )
-        *dest = *src;
-}
-
-Distortion::Distortion( const double* original, int size, QObject* parent ) :
-    QObject(parent), values(size), delegates(*this)
+Distortion::Distortion(const double* original, size_t size) :
+    values(size), delegates(*this)
 
 {
-    if( original!=NULL && size>0 )
-        unsafeCopy( this->values.data(), original, size );
+    for(size_t i=0; i<size; i++) values[i] = original[i];
 }
 
-Distortion::Distortion( const QVarLengthArray<double>& other, QObject* parent ) :
-    Distortion(other.data(), other.size(), parent)
+Distortion::Distortion(const std::vector<double> &other) :
+    values(other), delegates(*this)
 {
 
 }
 
-Distortion::Distortion(const Distortion& other, QObject* parent ) :
-    Distortion( (other.rwLock.lockForRead(), other.values), parent )
+Distortion::Distortion(const Distortion& other) :
+    Distortion( (other.rwLock.lockForRead(), other.values) )
 {
     other.rwLock.unlock();
 }
 
-double Distortion::value(int index, double defaultValue) const
+double Distortion::value(size_t index, double defaultValue) const
 {
-    QReadLocker lock(&this->rwLock);
-    return values.value(index, defaultValue);
+    ReadLock lock(this->rwLock);
+    return values.size()>index ? values[index] : defaultValue;
 }
 
 int Distortion::size() const
 {
-    QReadLocker lock(&this->rwLock);
+    ReadLock lock(this->rwLock);
     return values.size();
 }
 
-void Distortion::set(int index, double value)
+void Distortion::set(size_t index, double value)
 {
-    if( index<0 )
-        return;
-
-    QWriteLocker lock( &this->rwLock );
-
-    if(index>=values.size()) {
-
-        values.resize( index+1 );
-        this->values.replace( index, value );
-        lock.unlock();
-        emit this->dataSizeChanged(index+1);
-
-    } else if(value != this->values.value(index)) {
-
-        this->values.replace( index, value );
-        lock.unlock();
-        emit this->dataChanged(index,index);
-
-    }
-}
-
-void Distortion::insert(int index, double value)
-{
-    if( index<0 )
-        return;
-
-    QWriteLocker lock( &this->rwLock );
+    WriteLock lock( this->rwLock );
 
     if(index>=this->values.size()) {
+
         this->values.resize( index+1 );
-        this->values.replace( index, value );
-    } else {
-        this->values.insert(index, value);
-    }
-
-    int newSize = this->values.size();
-    lock.unlock();
-    emit this->dataSizeChanged(newSize);
-}
-
-void Distortion::remove(int index)
-{
-    if(index<0)
-        return ;
-
-    QWriteLocker lock( &this->rwLock );
-
-    if(index<this->values.size()) {
-        this->values.remove(index);
-
-        int newSize = this->values.size();
+        this->values[index] = value;
         lock.unlock();
-        emit this->dataSizeChanged(newSize);
+        this->_dataSizeChangedEvent.trigger(index+1);
+
+    } else if(value != this->values[index]) {
+
+        this->values[index] = value;
+        lock.unlock();
+        this->_dataChangedEvent.trigger(index,index);
+
     }
 }
 
-void Distortion::copyItem(const Distortion& from, int fromIndex, int toIndex, int count)
+void Distortion::copyItem(const Distortion& from, size_t fromIndex, size_t toIndex, size_t count)
 {
-    if( fromIndex<0 || toIndex<0 )
-        return;
+    ReadLock srcLock( from.rwLock );
+    WriteLock lock( this->rwLock );
 
-    QReadLocker srcLock( &from.rwLock );
-    QWriteLocker lock( &this->rwLock );
-
-    int fromSize = from.values.size();
+    size_t fromSize = from.values.size();
     if( fromIndex+count>=fromSize )
         count = fromSize - fromIndex;
     if( count<=0 )
@@ -112,79 +66,85 @@ void Distortion::copyItem(const Distortion& from, int fromIndex, int toIndex, in
 
     if(toIndex+count>=this->values.size()) {
 
-        int newSize = toIndex+count+1;
+        size_t newSize = toIndex+count+1;
         this->values.resize( newSize );
-        unsafeCopy(this->values.data()+toIndex, from.values.data()+fromIndex, count);
+        for(size_t i=0, t=toIndex, f=fromIndex; i<count; i++,t++,f++) this->values[t] = from.values[f];
         lock.unlock();
         srcLock.unlock();
-        emit this->dataSizeChanged( newSize );
+        this->_dataSizeChangedEvent.trigger( newSize );
 
     } else {
 
-        unsafeCopy(this->values.data()+toIndex, from.values.data()+fromIndex, count);
+        for(size_t i=0, t=toIndex, f=fromIndex; i<count; i++,t++,f++) this->values[t] = from.values[f];
         lock.unlock();
         srcLock.unlock();
-        emit this->dataChanged( toIndex, toIndex+count-1 );
+        this->_dataChangedEvent.trigger( toIndex, toIndex+count-1 );
     }
 }
 
-double Distortion::atomicAdd(int index, double addend)
+double Distortion::atomicAdd(size_t index, double addend)
 {
-    if( index<0 )
-        return 0;
-
-    QWriteLocker lock( &this->rwLock );
+    WriteLock lock( this->rwLock );
 
     double result;
     if(index>=this->values.size()) {
         this->values.resize( index+1 );
-        this->values.replace(index, addend);
+        this->values[index]=addend;
         lock.unlock();
         result = addend;
-        emit this->dataSizeChanged(index+1);
+        this->_dataSizeChangedEvent.trigger(index+1);
     } else {
-        result = this->values.data()[index] += addend;
+        result = this->values[index] += addend;
         lock.unlock();
-        emit this->dataChanged(index, index);
+        this->_dataChangedEvent.trigger(index, index);
     }
     return result;
 }
 
-double Distortion::atomicAdd(int index, const Distortion& addend, int addendIndex)
+double Distortion::atomicAdd(size_t index, const Distortion& addend, size_t addendIndex)
 {
-    QReadLocker srcLock( &addend.rwLock );
-    return this->atomicAdd(index, addend.values.value(addendIndex, 0));
+    ReadLock srcLock( addend.rwLock );
+    return addend.values.size()>addendIndex ?
+                this->atomicAdd(index, addend.values[addendIndex]) :
+                this->value(index);
 }
 
-double Distortion::atomicSubstract(int index, const Distortion& subtrahend, int subtrahendIndex)
+double Distortion::atomicSubstract(size_t index, const Distortion& subtrahend, size_t subtrahendIndex)
 {
-    QReadLocker srcLock( &subtrahend.rwLock );
-    return this->atomicAdd(index, -subtrahend.values.value(subtrahendIndex));
+    ReadLock srcLock( subtrahend.rwLock );
+    return subtrahend.values.size()>subtrahendIndex ?
+                this->atomicAdd(index, -subtrahend.values[subtrahendIndex]) :
+                this->value(index);
 }
 
 
-int Distortion::atomicCompare(int index, const Distortion& other, int otherIndex) const
+int Distortion::atomicCompare(size_t index, const Distortion& other, size_t otherIndex) const
 {
-    QReadLocker srcLock( &other.rwLock );
-    QReadLocker lock(&this->rwLock);
-    double thisValue = values.value(index, 0);
-    double otherValue = other.values.value(otherIndex, 0);
+    ReadLock srcLock( other.rwLock );
+    ReadLock lock(this->rwLock);
+    double thisValue = values.size()>index ? values[index] : 0;
+    double otherValue = other.values.size()>otherIndex ? other.values[otherIndex] : 0;
     return thisValue==otherValue ? 0 : thisValue>otherValue ? 1 : -1;
 }
 
-Distortion::ItemDelegate* Distortion::DelegateDealer::get(int index)
+Distortion::ItemDelegate* Distortion::DelegateDealer::get(size_t index)
 {
-    if(this->contains(index))
-        return this->value(index);
+    auto it = this->find(index);
+    if(it != this->end())
+        return it->second;
 
-    QWriteLocker lock(&this->parent.rwLock);
-    return this->contains(index) ? this->value(index) :
-               ((*this)[index] = new ItemDelegate(this->parent, index));
+    WriteLock lock(this->parent.rwLock);
+    it = this->find(index);
+    if(it != this->end())
+         return it->second;
+
+    return (*this)[index] = new ItemDelegate(this->parent, index);
 }
 
 Distortion::DelegateDealer::~DelegateDealer()
 {
-    foreach(ItemDelegate* delegate, this->values())
-        delete delegate;
+    WriteLock lock(this->parent.rwLock);
+    for( auto it = this->begin(); it!=this->end(); ++it)
+        delete it->second;
     this->clear();
 }

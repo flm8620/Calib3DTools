@@ -1,10 +1,12 @@
 #include "kmatrix.h"
 
+using concurrent::ReadLock;
+using concurrent::WriteLock;
 const static KValue EMPTY_K = {0,0,0,0,0};
 
-KMatrix::KMatrix(const KValue& value, QObject * parent) : QObject(parent), value(value) {}
-KMatrix::KMatrix(QObject * parent) : KMatrix(EMPTY_K, parent) {}
-KMatrix::KMatrix(const KMatrix& k, QObject *parent) : KMatrix(k.getValue(), parent) {}
+KMatrix::KMatrix(const KValue& value) : value(value) {}
+KMatrix::KMatrix() : KMatrix(EMPTY_K) {}
+KMatrix::KMatrix(const KMatrix& k) : KMatrix(k.getValue()) {}
 
 bool KMatrix::isEmpty() const
 {
@@ -118,67 +120,67 @@ static inline bool lockAndSet(double& varX, double& varY, double x, double y, Re
 void KMatrix::setFx( double fx )
 {
     if( lockAndSet( this->value.fx, fx, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 void KMatrix::setFy( double fy )
 {
     if( lockAndSet( this->value.fy, fy, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 void KMatrix::setX0( double x0 )
 {
     if( lockAndSet( this->value.x0, x0, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 void KMatrix::setY0( double y0 )
 {
     if( lockAndSet( this->value.y0, y0, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 void KMatrix::setS( double s )
 {
     if( lockAndSet( this->value.s, s, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 void KMatrix::setValue( const KValue& value )
 {
     if( lockAndSet( this->value, value.fx, value.fy, value.x0, value.y0, value.s, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 void KMatrix::setValue(double fx, double fy, double x0, double y0, double s )
 {
     if( lockAndSet( this->value, fx, fy, x0, y0, s, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 void KMatrix::setF( const Vector2D& f )
 {
     if( lockAndSet( this->value.fx, this->value.fy, f.x, f.y, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 void KMatrix::setF(double fx, double fy)
 {
     if( lockAndSet( this->value.fx, this->value.fy, fx, fy, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 void KMatrix::setOrigin( const Vector2D origin )
 {
     if( lockAndSet( this->value.x0, this->value.y0, origin.x, origin.y, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 void KMatrix::setOrigin( double x0, double y0 )
 {
     if( lockAndSet( this->value.x0, this->value.y0, x0, y0, this->rwLock ) )
-        emit this->dataChanged();
+        this->_dataChangedEvent.trigger();
 }
 
 

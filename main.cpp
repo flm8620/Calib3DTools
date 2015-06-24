@@ -11,8 +11,9 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    qRegisterMetaType<KMatrix>();
-    qRegisterMetaType<Distortion>();
+    qRegisterMetaType<QVector<int>>(); // The QT complained the type not registered when the KmatrixModel emits the dataChanged signal.
+    qRegisterMetaType<KMatrix>("KMatrix");
+    qRegisterMetaType<Distortion>("Distortion");
     qRegisterMetaType<ImageList >("ImageList");
     qRegisterMetaType<Target2D>();
     qRegisterMetaType<Target3D>("Target3D");

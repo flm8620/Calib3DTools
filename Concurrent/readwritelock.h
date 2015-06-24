@@ -7,6 +7,13 @@
 #include <mutex>
 #include <condition_variable>
 
+namespace concurrent {
+
+using std::mutex;
+using std::condition_variable;
+using std::stack;
+using std::map;
+
 class ReadWriteLock
 {
 public:
@@ -17,17 +24,18 @@ public:
 private:
     typedef enum { READ_LOCK, WRITE_LOCK } LockType;
     typedef struct {
-        std::stack<LockType> locks;
+        stack<LockType> locks;
         int readLockCount=0, writeLockCount=0;
     } ThreadLockCounting;
 
-    std::map<std::thread::id, ThreadLockCounting*> threadMap;
+    map<std::thread::id, ThreadLockCounting*> threadMap;
 
     int totalReadLockCount = 0;
     int totalWaitingForWrite = 0;
     bool isLockedForWrite = false;
-    std::mutex mutex;
-    std::condition_variable forRead, forWrite;
+    mutex mtx;
+    condition_variable forRead;
+    condition_variable forWrite;
 
     ThreadLockCounting* threadLockCounting();
     inline bool isLockedForWriteByAnother(ThreadLockCounting* th) {
@@ -108,4 +116,5 @@ public:
     ~WriteLock() { this->unlock(); }
 };
 
+} //namespace concurrent
 #endif // READWRITELOCK_H
