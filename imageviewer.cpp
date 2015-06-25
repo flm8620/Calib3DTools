@@ -12,7 +12,8 @@ ImageViewer::ImageViewer(const QImage &image, QWidget *parent) :
     setDragMode(QGraphicsView::ScrollHandDrag);
 }
 
-ImageViewer::ImageViewer(QWidget *parent) : myImage(0),QGraphicsView(parent)
+ImageViewer::ImageViewer(QWidget *parent) : myImage(0),
+    QGraphicsView(parent)
 {
     scene = new QGraphicsScene(this);
     setScene(scene);
@@ -21,8 +22,8 @@ ImageViewer::ImageViewer(QWidget *parent) : myImage(0),QGraphicsView(parent)
 
 void ImageViewer::setImage(QImage image)
 {
-    myImage=image;
-    QPixmap pix=QPixmap::fromImage(myImage);
+    myImage = image;
+    QPixmap pix = QPixmap::fromImage(myImage);
     scene->clear();
     scene->addPixmap(pix);
 }
@@ -38,7 +39,8 @@ void ImageViewer::wheelEvent(QWheelEvent *event)
 
 void ImageViewer::zoomIn()
 {
-    scale(1.25, 1.25);
+    if (this->transform().m11() < 100 && this->transform().m22() < 100)
+        scale(1.25, 1.25);
 }
 
 void ImageViewer::zoomOut()

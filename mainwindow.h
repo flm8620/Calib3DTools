@@ -13,6 +13,7 @@
 #include "messager.h"
 #include "console.h"
 #include "consolewidget.h"
+#include "markerimageview.h"
 #include "solver.h"
 
 #include <QMainWindow>
@@ -48,9 +49,12 @@ private:
     ImageListModel *undistortedCircleModel;
     ImageListModel *undistortedHarpModel;
 
-    ImageViewer* imageViewer;
+    ImageListWithPoint2D *imagePoint2DCore;
 
-    ConsoleWidget* consoleWidget;
+    MarkerImageView *markerViewer;
+    ImageViewer *imageViewer;
+
+    ConsoleWidget *consoleWidget;
 
     DistortionModel *distModel;
     DistortionWidget *distWidget;

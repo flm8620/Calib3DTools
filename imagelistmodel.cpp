@@ -6,13 +6,22 @@
 ImageListModel::ImageListModel(QObject *parent) :
     QAbstractListModel(parent)
 {
-    coreData = new ImageList(this);
-    connect(coreData, SIGNAL(dataChanged()), this, SLOT(onCoreDataChanged()));
+    this->coreData = new ImageList(this);
+    connect(this->coreData, SIGNAL(dataChanged()), this, SLOT(onCoreDataChanged()));
+}
+
+void ImageListModel::setCoreData(ImageList *core)
+{
+    disconnect(this->coreData, SIGNAL(dataChanged()), this, SLOT(onCoreDataChanged()));
+    delete this->coreData;
+    this->coreData = core;
+    connect(this->coreData, SIGNAL(dataChanged()), this, SLOT(onCoreDataChanged()));
+    // (*this) doesn't own the new core
 }
 
 bool ImageListModel::isEmpty()
 {
-    return rowCount() == 0;
+    return this->coreData->isEmpty();
 }
 
 int ImageListModel::rowCount(const QModelIndex & /*parent*/) const
@@ -55,29 +64,39 @@ bool ImageListModel::setData(const QModelIndex &index, const QVariant &value, in
     return false;
 }
 
-bool ImageListModel::insertRows(int row, int count, const QModelIndex &parent)
+void ImageListModel::storeImage(const QString &name, const QImage &image)
 {
-    return false;
-}
-
-bool ImageListModel::removeRows(int row, int count, const QModelIndex &parent)
-{
-    if (row < 0 || row+count-1 >= coreData->size()) return false;
-    beginRemoveRows(parent, row, row+count-1);
-    for (int i = 0; i < count; ++i)
-        coreData->remove(row);
-    endRemoveRows();
-    return true;
-}
-
-void ImageListModel::storeImage(const QString& name, const QImage &image)
-{
-    coreData->append(name,image);
+    coreData->append(name, image);
 }
 
 ImageList *ImageListModel::core()
 {
     return this->coreData;
+}
+
+void ImageListModel::moveUp(int index)
+{
+    this->coreData->moveUp(index);
+}
+
+void ImageListModel::moveDown(int index)
+{
+    this->coreData->moveDown(index);
+}
+
+void ImageListModel::clear()
+{
+    this->coreData->clear();
+}
+
+void ImageListModel::deleteImage(int index)
+{
+    this->coreData->remove(index);
+}
+
+void ImageListModel::appendImage(const QString &name, const QImage &image)
+{
+    this->coreData->append(name, image);
 }
 
 void ImageListModel::onCoreDataChanged()

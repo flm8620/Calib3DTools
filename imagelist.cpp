@@ -1,6 +1,6 @@
 #include "imagelist.h"
 
-ImageList::ImageList(QObject *parent) : QObject(parent)
+ImageList::ImageList(QObject *parent) : QObject(parent),rwLock(QReadWriteLock::Recursive)
 {
 }
 
@@ -29,36 +29,37 @@ void ImageList::append(const QString &name, const QImage &image)
 {
     {
         QWriteLocker locker(&this->rwLock);
-        this->imageData.append(qMakePair(name,image));
+        this->imageData.append(qMakePair(name, image));
     }
     emit dataChanged();
 }
 
 void ImageList::setImage(int index, const QImage &image)
 {
-    if(this->indexValid(index))
     {
         QWriteLocker locker(&this->rwLock);
-        this->imageData[index].second=image;
+        if (this->indexValidNolock(index))
+            this->imageData[index].second = image;
     }
     emit dataChanged();
 }
 
 void ImageList::setName(int index, const QString &name)
 {
-    if(this->indexValid(index))
     {
         QWriteLocker locker(&this->rwLock);
-        this->imageData[index].first=name;
+        if (this->indexValidNolock(index))
+            this->imageData[index].first = name;
     }
     emit dataChanged();
 }
 
 void ImageList::remove(int index)
 {
-    if (this->indexValid(index)) {
+    {
         QWriteLocker locker(&this->rwLock);
-        imageData.removeAt(index);
+        if (this->indexValidNolock(index))
+            imageData.removeAt(index);
     }
     emit dataChanged();
 }
@@ -66,7 +67,7 @@ void ImageList::remove(int index)
 QImage ImageList::getImage(int index) const
 {
     QReadLocker locker(&this->rwLock);
-    if (this->indexValid(index))
+    if (this->indexValidNolock(index))
         return this->imageData.at(index).second;
     return QImage();
 }
@@ -74,50 +75,55 @@ QImage ImageList::getImage(int index) const
 QString ImageList::getName(int index) const
 {
     QReadLocker locker(&this->rwLock);
-    if (this->indexValid(index))
+    if (this->indexValidNolock(index))
         return this->imageData.at(index).first;
     return QString();
 }
 
-void ImageList::getContent(QList<QPair<QString, QImage> > &listOut)const
+void ImageList::getContent(QList<QPair<QString, QImage> > &listOut) const
 {
     QReadLocker locker(&this->rwLock);
-    listOut=this->imageData;
+    listOut = this->imageData;
 }
 
 void ImageList::setContent(QList<QPair<QString, QImage> > &listIn)
 {
     {
-    QWriteLocker locker(&this->rwLock);
-    this->imageData=listIn;
+        QWriteLocker locker(&this->rwLock);
+        this->imageData = listIn;
     }
     emit dataChanged();
 }
 
 void ImageList::moveUp(int index)
 {
-    if(index>=1&&index<imageData.size()){
-        {
+    bool valid = false;
+    {
         QWriteLocker locker(&this->rwLock);
-        this->imageData.swap(index,index-1);
+        if (index >= 1 && index < imageData.size()) {
+            valid = true;
+            this->imageData.swap(index, index-1);
         }
-        emit dataChanged();
     }
+    if (valid)
+        emit dataChanged();
 }
 
 void ImageList::moveDown(int index)
 {
-    if(index>=0&&index<imageData.size()-1){
-        {
+    bool valid = false;
+    {
         QWriteLocker locker(&this->rwLock);
-        this->imageData.swap(index,index+1);
+        if (index >= 0 && index < imageData.size()-1) {
+            valid = true;
+            this->imageData.swap(index, index+1);
         }
-        emit dataChanged();
     }
+    if (valid)
+        emit dataChanged();
 }
 
-bool ImageList::indexValid(int index)const
+bool ImageList::indexValidNolock(int index) const
 {
-    QReadLocker locker(&this->rwLock);
-    return index>=0&&index<imageData.size();
+    return index >= 0 && index < imageData.size();
 }

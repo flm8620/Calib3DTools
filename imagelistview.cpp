@@ -55,7 +55,7 @@ bool ImageListView::loadImage(const QStringList &list)
         QFileInfo info(filePath);
         QString name = info.fileName();
         QImage image(filePath);
-        this->imageModel->core()->append(name, image);
+        this->imageModel->appendImage(name, image);
     }
     return true;
 }
@@ -65,7 +65,7 @@ void ImageListView::deleteImage()
     QModelIndexList idList = selectionModel()->selectedRows();
     if (idList.isEmpty()) return;
     int row = idList.first().row();
-    this->imageModel->core()->remove(row);
+    this->imageModel->deleteImage(row);
 }
 
 void ImageListView::moveUp()
@@ -75,7 +75,7 @@ void ImageListView::moveUp()
     int row = idList.first().row();
     QAbstractItemModel *m = model();
     if (row <= 0 || row >= m->rowCount()) return;
-    this->imageModel->core()->moveUp(row);
+    this->imageModel->moveUp(row);
     QModelIndex id = m->index(row-1, 0);
     selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
 }
@@ -87,7 +87,7 @@ void ImageListView::moveDown()
     int row = idList.first().row();
     QAbstractItemModel *m = model();
     if (row < 0 || row >= m->rowCount()-1) return;
-    this->imageModel->core()->moveDown(row);
+    this->imageModel->moveDown(row);
     QModelIndex id = m->index(row+1, 0);
     selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
 }
@@ -108,5 +108,5 @@ void ImageListView::openInViewer()
 
 void ImageListView::clear()
 {
-    this->imageModel->core()->clear();
+    this->imageModel->clear();
 }

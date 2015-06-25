@@ -28,9 +28,9 @@ void DistortionTab::registerModel(ImageListModel *harpPhotoModel, ImageListModel
 void DistortionTab::connectToImageViewer(ImageViewer *viewer)
 {
     ImageListView *view = this->harpPhotoWidget->getView();
-    connect(view,SIGNAL(imageToDisplay(QImage)),viewer,SLOT(setImage(QImage)));
+    connect(view, SIGNAL(imageToDisplay(QImage)), viewer, SLOT(setImage(QImage)));
     view = this->harpFeedbackWidget->getView();
-    connect(view,SIGNAL(imageToDisplay(QImage)),viewer,SLOT(setImage(QImage)));
+    connect(view, SIGNAL(imageToDisplay(QImage)), viewer, SLOT(setImage(QImage)));
 }
 
 KMatrixTab::KMatrixTab(QWidget *parent) : QWidget(parent)
@@ -68,11 +68,11 @@ void KMatrixTab::registerModel(ImageListModel *circlePhotoModel,
 void KMatrixTab::connectToImageViewer(ImageViewer *viewer)
 {
     ImageListView *view = this->circlePhotoWidget->getView();
-    connect(view,SIGNAL(imageToDisplay(QImage)),viewer,SLOT(setImage(QImage)));
+    connect(view, SIGNAL(imageToDisplay(QImage)), viewer, SLOT(setImage(QImage)));
     view = this->circleCorrectedWidget->getView();
-    connect(view,SIGNAL(imageToDisplay(QImage)),viewer,SLOT(setImage(QImage)));
+    connect(view, SIGNAL(imageToDisplay(QImage)), viewer, SLOT(setImage(QImage)));
     view = this->circleFeedbackWidget->getView();
-    connect(view,SIGNAL(imageToDisplay(QImage)),viewer,SLOT(setImage(QImage)));
+    connect(view, SIGNAL(imageToDisplay(QImage)), viewer, SLOT(setImage(QImage)));
 }
 
 PhotoTab::PhotoTab(QWidget *parent) : QWidget(parent)
@@ -101,9 +101,9 @@ void PhotoTab::registerModel(ImageListModel *photoModel, ImageListModel *correct
 void PhotoTab::connectToImageViewer(ImageViewer *viewer)
 {
     ImageListView *view = this->photoWidget->getView();
-    connect(view,SIGNAL(imageToDisplay(QImage)),viewer,SLOT(setImage(QImage)));
+    connect(view, SIGNAL(imageToDisplay(QImage)), viewer, SLOT(setImage(QImage)));
     view = this->correctedWidget->getView();
-    connect(view,SIGNAL(imageToDisplay(QImage)),viewer,SLOT(setImage(QImage)));
+    connect(view, SIGNAL(imageToDisplay(QImage)), viewer, SLOT(setImage(QImage)));
 }
 
 Point2D3DTab::Point2D3DTab(QWidget *parent) : QWidget(parent)
@@ -133,6 +133,17 @@ void Point2D3DTab::registerModel(ImageListModel *correctedModel, Point2DModel *p
     this->correctedWidget->setModel(correctedModel);
     this->point2DWidget->setModel(point2DModel);
     this->point3DWidget->setModel(point3DModel);
+}
+
+void Point2D3DTab::connectToImageViewer(ImageViewer *viewer)
+{
+    ImageListView *view = this->correctedWidget->getView();
+    connect(view, SIGNAL(imageToDisplay(QImage)), viewer, SLOT(setImage(QImage)));
+}
+
+void Point2D3DTab::connectToMarkerViewer(MarkerImageView *markerViewer)
+{
+    markerViewer->setPoint2DView(this->point2DWidget->getPoint2DView());
 }
 
 TabWidget::TabWidget(QWidget *parent) : QTabWidget(parent)
@@ -174,4 +185,9 @@ void TabWidget::connectToImageViewer(ImageViewer *viewer)
     this->distortionTab->connectToImageViewer(viewer);
     this->kmatrixTab->connectToImageViewer(viewer);
     this->photoTab->connectToImageViewer(viewer);
+}
+
+void TabWidget::connectToMarkerViewer(MarkerImageView *markerViewer)
+{
+    this->point2d3dTab->connectToMarkerViewer(markerViewer);
 }

@@ -16,6 +16,10 @@ Distortion *DistortionModel::core()
     return this->coreData;
 }
 
+void DistortionModel::clear()
+{
+    this->coreData->clear();
+}
 
 int DistortionModel::rowCount(const QModelIndex &) const
 {
@@ -65,16 +69,6 @@ bool DistortionModel::setData(const QModelIndex &index, const QVariant &value, i
     return false;
 }
 
-bool DistortionModel::insertRows(int row, int count, const QModelIndex &parent)
-{
-    return false;
-}
-
-bool DistortionModel::removeRows(int row, int count, const QModelIndex &parent)
-{
-    return false;
-}
-
 QVariant DistortionModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (role != Qt::DisplayRole) return QVariant();
@@ -94,7 +88,10 @@ QVariant DistortionModel::headerData(int section, Qt::Orientation orientation, i
 
 QModelIndex DistortionModel::index(int row, int column, const QModelIndex &parent) const
 {
-    return createIndex(row, column);
+    if (!parent.isValid())
+        return createIndex(row, column);
+    else
+        return QModelIndex();
 }
 
 QModelIndex DistortionModel::parent(const QModelIndex &child) const

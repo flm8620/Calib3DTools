@@ -51,7 +51,7 @@ void DistortionWidget::loadFile()
 
 void DistortionWidget::clearDistortion()
 {
-    this->model->core()->clear();
+    this->model->clear();
 }
 
 bool DistortionWidget::saveDistortion(const QStringList &list)
