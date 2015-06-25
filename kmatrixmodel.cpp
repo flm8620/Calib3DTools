@@ -41,6 +41,11 @@ KMatrix *KMatrixModel::core()
     return this->coreData;
 }
 
+void KMatrixModel::clear()
+{
+    this->coreData->clear();
+}
+
 int KMatrixModel::rowCount(const QModelIndex &) const
 {
     return ITEM_COUNT;

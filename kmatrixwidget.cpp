@@ -1,7 +1,6 @@
-#include "distortionwidget.h"
-#include "distortionmodel.h"
-#include <QtWidgets>
-DistortionWidget::DistortionWidget(QWidget *parent) : QWidget(parent)
+#include "kmatrixwidget.h"
+
+KMatrixWidget::KMatrixWidget(QWidget *parent) : QWidget(parent)
 {
     QVBoxLayout *layout = new QVBoxLayout;
     QPushButton *loadButton = new QPushButton(tr("Load"));
@@ -11,11 +10,11 @@ DistortionWidget::DistortionWidget(QWidget *parent) : QWidget(parent)
     bLay->addWidget(loadButton);
     bLay->addWidget(saveButton);
     bLay->addWidget(clearButton);
-    this->tableView = new QTableView;
+    this->view = new QTableView;
     layout->addLayout(bLay);
-    layout->addWidget(this->tableView);
+    layout->addWidget(this->view);
 
-    QGroupBox *groupBox = new QGroupBox(tr("Distortion"));
+    QGroupBox *groupBox = new QGroupBox(tr("KMatrix"));
     groupBox->setLayout(layout);
     QHBoxLayout *boxLayout = new QHBoxLayout;
     boxLayout->addWidget(groupBox);
@@ -25,41 +24,41 @@ DistortionWidget::DistortionWidget(QWidget *parent) : QWidget(parent)
     connect(clearButton, SIGNAL(clicked(bool)), this, SLOT(clear()));
 }
 
-void DistortionWidget::setModel(DistortionModel *model)
+void KMatrixWidget::setModel(KMatrixModel *model)
 {
-    this->tableView->setModel(model);
     this->model = model;
+    this->view->setModel(model);
 }
 
-QTableView *DistortionWidget::getView()
+QTableView *KMatrixWidget::getView()
 {
-    return this->tableView;
+    return this->view;
 }
 
-void DistortionWidget::saveFile()
+void KMatrixWidget::saveFile()
 {
-    QFileDialog dialog(this, tr("Save Distortion"), QDir::currentPath());
+    QFileDialog dialog(this, tr("Save Matrix K"), QDir::currentPath());
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     dialog.setFileMode(QFileDialog::AnyFile);
     while (dialog.exec() == QDialog::Accepted)
-        if (saveDistortion(dialog.selectedFiles())) break;
+        if (saveKMatrix(dialog.selectedFiles())) break;
 }
 
-void DistortionWidget::loadFile()
+void KMatrixWidget::loadFile()
 {
     QFileDialog dialog(this, tr("Load Distortion"), QDir::currentPath());
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFile);
     while (dialog.exec() == QDialog::Accepted)
-        if (loadDistortion(dialog.selectedFiles())) break;
+        if (loadKMatrix(dialog.selectedFiles())) break;
 }
 
-void DistortionWidget::clear()
+void KMatrixWidget::clear()
 {
     this->model->clear();
 }
 
-bool DistortionWidget::saveDistortion(const QStringList &list)
+bool KMatrixWidget::saveKMatrix(const QStringList &list)
 {
     if (list.size() != 1) return false;
     QString name = list.first();
@@ -67,28 +66,28 @@ bool DistortionWidget::saveDistortion(const QStringList &list)
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
         return false;
     QTextStream st(&file);
-    DistortionValue value = this->model->core()->getValue();
-    Q_ASSERT(value.isValid());
+    KValue value = this->model->core()->getValue();
 
-    int size = value._size;
 
     // writing:
     st.setRealNumberPrecision(16);
-    st<<"maxOrder: \n";
-    st<<value._maxOrder<<'\n';
-    st<<"Polynomial for X: \n";
-    for (int i = 0; i < size; ++i)
-        st<<value._XYData[i].first<<'\n';
-    st<<"Polynomial for Y: \n";
-    for (int i = 0; i < size; ++i)
-        st<<value._XYData[i].second<<'\n';
-    // end writing
+    st<<"fx: \n";
+    st<<value.fx<<'\n';
+    st<<"fy: \n";
+    st<<value.fy<<'\n';
+    st<<"x0: \n";
+    st<<value.x0<<'\n';
+    st<<"y0: \n";
+    st<<value.y0<<'\n';
+    st<<"s: \n";
+    st<<value.s<<'\n';
+
 
     if (file.commit()) return true;
     else return false;
 }
 
-bool DistortionWidget::loadDistortion(const QStringList &list)
+bool KMatrixWidget::loadKMatrix(const QStringList &list)
 {
     if (list.size() != 1) return false;
     QString name = list.first();
@@ -96,25 +95,25 @@ bool DistortionWidget::loadDistortion(const QStringList &list)
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return false;
     QTextStream st(&file);
-    DistortionValue value;
-    int maxOrder, size;
+    KValue value;
 
     // reading
     st.setRealNumberPrecision(16);
-    st.readLine();// "maxOrder: \n"
-    st>>maxOrder;
-    if (st.status() != QTextStream::Ok) return false;
-    if (maxOrder < 0) return false;
-    value.setMaxOrder(maxOrder);
-    size = value._size;
-    st.readLine();
-    st.readLine();              // "\nPolynomial for X: \n"
-    for (int i = 0; i < size; ++i)
-        st>>value._XYData[i].first;
-    st.readLine();
-    st.readLine();              // "\nPolynomial for Y: \n"
-    for (int i = 0; i < size; ++i)
-        st>>value._XYData[i].second;
+    st.readLine();// "fx: \n"
+    st>>value.fx;
+    st.readLine();//n"
+    st.readLine();// "fy: \n"
+    st>>value.fy;
+    st.readLine();//n"
+    st.readLine();// "x0: \n"
+    st>>value.x0;
+    st.readLine();//n"
+    st.readLine();// "y0: \n"
+    st>>value.y0;
+    st.readLine();//n"
+    st.readLine();// "s: \n"
+    st>>value.s;
+
     if (st.status() != QTextStream::Ok) return false;
     // end reading
     this->model->core()->setValue(value);

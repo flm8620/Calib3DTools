@@ -13,6 +13,7 @@ public:
     KMatrixModel(QObject *parent = 0, KMatrix *core = 0);
 
     KMatrix *core();
+    void clear();
     int rowCount(const QModelIndex &) const;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;

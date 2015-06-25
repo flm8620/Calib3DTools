@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-#include "doublespindelegate.h"
+#include "sciencedoubledelegate.h"
 #include "imagelistwithpoint2d.h"
 #include <QtWidgets>
 #include <QPushButton>
@@ -93,21 +93,16 @@ void MainWindow::setupPointModels()
 
 void MainWindow::setupKMatrixWidget()
 {
-    kModel = new KMatrixModel(this);
-    kView = new QTableView;
-    kView->setModel(kModel);
-    kWidget = new QGroupBox("K Matrix");
-    QHBoxLayout *l = new QHBoxLayout;
-    l->addWidget(kView);
-    kWidget->setLayout(l);
+    this->kModel = new KMatrixModel(this);
+    this->kWidget=new KMatrixWidget(this);
+    this->kWidget->setModel(this->kModel);
+    this->kWidget->getView()->setItemDelegate(new ScienceDoubleDelegate);
 }
 
 void MainWindow::setupDistortionWidgets()
 {
     distModel = new DistortionModel(this);
-// distView=new QTableView;
-// distView->setItemDelegate(new DoubleSpinDelegate);
-// distView->setModel(distModel);
     distWidget = new DistortionWidget(this);
     distWidget->setModel(distModel);
+    distWidget->getView()->setItemDelegate(new ScienceDoubleDelegate);
 }

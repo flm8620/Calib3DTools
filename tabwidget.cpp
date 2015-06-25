@@ -185,6 +185,7 @@ void TabWidget::connectToImageViewer(ImageViewer *viewer)
     this->distortionTab->connectToImageViewer(viewer);
     this->kmatrixTab->connectToImageViewer(viewer);
     this->photoTab->connectToImageViewer(viewer);
+    this->point2d3dTab->connectToImageViewer(viewer);
 }
 
 void TabWidget::connectToMarkerViewer(MarkerImageView *markerViewer)

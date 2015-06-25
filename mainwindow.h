@@ -6,6 +6,7 @@
 #include "distortionmodel.h"
 #include "distortionwidget.h"
 #include "kmatrixmodel.h"
+#include "kmatrixwidget.h"
 #include "point2dmodel.h"
 #include "point3dmodel.h"
 #include "imageviewer.h"
@@ -60,8 +61,7 @@ private:
     DistortionWidget *distWidget;
 
     KMatrixModel *kModel;
-    QTableView *kView;
-    QWidget *kWidget;
+    KMatrixWidget *kWidget;
 
     Point2DModel *point2DModel;
     Point3DModel *point3DModel;
