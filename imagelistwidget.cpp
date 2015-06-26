@@ -11,6 +11,7 @@ ImageListWidget::ImageListWidget(const QString &label, QWidget *parent) : QWidge
     QPushButton *viewerButton = new QPushButton(tr("View..."));
     QHBoxLayout *bLay = new QHBoxLayout;
     loadButton->setMaximumWidth(40);
+    clearButton->setMaximumWidth(40);
     upButton->setMaximumWidth(20);
     downButton->setMaximumWidth(20);
     deleteButton->setMaximumWidth(20);

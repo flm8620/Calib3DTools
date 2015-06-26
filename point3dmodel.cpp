@@ -1,90 +1,160 @@
 #include "point3dmodel.h"
 #include <QDebug>
 Point3DModel::Point3DModel(QObject *parent)
-    :QStandardItemModel(parent)
+    :QAbstractItemModel(parent)
 {
-    QStringList list;
-    list.append("x");
-    list.append("y");
-    list.append("z");
-    setHorizontalHeaderLabels(list);
-    connect(this,SIGNAL(requestGet()),this,SLOT(prepareTarget3D()));
-    connect(this,SIGNAL(requestSave(Target3D)),this,SLOT(saveTarget3D(Target3D)));
+    this->coreData=new Point3D(this);
+    connect(this->coreData, SIGNAL(dataChanged()), this, SLOT(onCoreDataChanged()));
+}
+
+Point3D *Point3DModel::core()
+{
+    return this->coreData;
 }
 
 bool Point3DModel::isEmpty()
 {
-    return rowCount()==0;
+    return this->coreData->isEmpty();
 }
 
-void Point3DModel::makeEmpty()
+void Point3DModel::clear()
 {
-    beginResetModel();
-    if(rowCount()>0)
-        removeRows(0,rowCount());
-    endResetModel();
+    this->coreData->clear();
 }
 
 int Point3DModel::pointCount()
 {
-    return rowCount();
+    return this->coreData->pointCount();
 }
 
-Target3D Point3DModel::getTarget3D_threadSafe()
+void Point3DModel::append()
 {
-    QMutexLocker locker(&mutex);
-    qDebug()<<"3D: emit requestGet();";
-    emit requestGet();
-    qDebug()<<"conditionGet.wait(&mutex);";
-    conditionGet.wait(&mutex);
-    qDebug()<<"waked up by conditionGet";
-    return preparedTarget3D;
-    //auto-unlock by locker
+    this->coreData->append();
 }
 
-void Point3DModel::saveTarget3D_threadSafe(const Target3D &target3D)
+void Point3DModel::remove(int index)
 {
-    QMutexLocker locker(&mutex);
-    qDebug()<<"3D: emit requestSave";
-    emit requestSave(target3D);
-    qDebug()<<"conditionSave.wait(&mutex);";
-    conditionSave.wait(&mutex);
-    qDebug()<<"waked up by conditionSave";
-    //auto-unlock by locker
+    this->coreData->remove(index);
 }
 
-void Point3DModel::prepareTarget3D()
+void Point3DModel::moveUp(const QModelIndex &index)
 {
-    QMutexLocker locker(&mutex);
-    preparedTarget3D.clear();
-    int points=rowCount();
-    for(int j=0;j<points;j++){
-        QVector3D p;
-        p.setX(item(j,0)->text().toDouble());
-        p.setY(item(j,1)->text().toDouble());
-        p.setZ(item(j,2)->text().toDouble());
-        preparedTarget3D.append(p);
+    this->coreData->moveUp(index.row());
+}
+
+void Point3DModel::moveDown(const QModelIndex &index)
+{
+    this->coreData->moveDown(index.row());
+}
+
+int Point3DModel::rowCount(const QModelIndex &parent) const
+{
+    if(!parent.isValid()){
+        return this->coreData->pointCount();
+    }else{
+        return 0;
     }
-    conditionGet.wakeAll();
 }
 
-void Point3DModel::saveTarget3D(const Target3D &target3D)
+int Point3DModel::columnCount(const QModelIndex &parent) const
 {
-    QMutexLocker locker(&mutex);
-    makeEmpty();
-    int points=target3D.size();
-    for(int j=0;j<points;j++){
-        const QVector3D& p=target3D[j];
-        double x=p.x(),y=p.y(),z=p.z();
-        QStandardItem *item1=new QStandardItem(QString::number(x));
-        QStandardItem *item2=new QStandardItem(QString::number(y));
-        QStandardItem *item3=new QStandardItem(QString::number(z));
-        QList<QStandardItem*> list;
-        list.append(item1);
-        list.append(item2);
-        list.append(item3);
-        appendRow(list);
+    if(!parent.isValid()){
+        return 3;
+    }else{
+        return 0;
     }
-    conditionSave.wakeAll();
 }
 
+QVariant Point3DModel::data(const QModelIndex &index, int role) const
+{
+    if (index.isValid() && (role == Qt::DisplayRole || role == Qt::EditRole)) {
+        QVector3D v=this->coreData->getPoint(index.row());
+        switch (index.column()) {
+        case 0:
+            return v.x();
+            break;
+        case 1:
+            return v.y();
+            break;
+        case 2:
+            return v.z();
+            break;
+        default:
+            break;
+        }
+    }
+    return QVariant();
+}
+
+bool Point3DModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (index.isValid() && (role == Qt::DisplayRole || role == Qt::EditRole)) {
+
+
+            QVector3D v = this->coreData->getPoint(index.row());
+            switch (index.column()) {
+            case 0:
+                v.setX(qvariant_cast<double>(value));
+                break;
+            case 1:
+                v.setY(qvariant_cast<double>(value));
+                break;
+            case 2:
+                v.setZ(qvariant_cast<double>(value));
+                break;
+            default:
+                return false;
+                break;
+            }
+            this->coreData->setPoint(index.row(), v);
+            return true;
+
+    }
+    return false;
+}
+QVariant Point3DModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if (role != Qt::DisplayRole) return QVariant();
+    if (orientation == Qt::Horizontal) {
+        switch (section) {
+        case 0:
+            return tr("X");
+            break;
+        case 1:
+            return tr("Y");
+            break;
+        case 2:
+            return tr("Z");
+            break;
+        default:
+            break;
+        }
+    }
+    return QVariant();
+}
+
+QModelIndex Point3DModel::index(int row, int column, const QModelIndex &parent) const
+{
+    if (!parent.isValid())
+        return createIndex(row, column);
+    else
+        return QModelIndex();
+}
+
+QModelIndex Point3DModel::parent(const QModelIndex &child) const
+{
+    return QModelIndex();
+}
+
+Qt::ItemFlags Point3DModel::flags(const QModelIndex &index) const
+{
+    if (index.isValid())
+        return Qt::ItemIsSelectable|Qt::ItemIsEnabled|Qt::ItemIsEditable;
+    return 0;
+}
+
+void Point3DModel::onCoreDataChanged()
+{
+    beginResetModel();
+    endResetModel();
+}

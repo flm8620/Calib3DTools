@@ -10,17 +10,16 @@ class DistortionWidget : public QWidget
 public:
     explicit DistortionWidget(QWidget *parent = 0);
     void setModel(DistortionModel *model);
-signals:
-
+    QTableView *getView();
 public slots:
     void saveFile();
     void loadFile();
-    void clearDistortion();
+    void clear();
 private:
-    bool saveDistortion(const QStringList& list);
-    bool loadDistortion(const QStringList& list);
+    bool saveDistortion(const QStringList &list);
+    bool loadDistortion(const QStringList &list);
     QTableView *tableView;
-    DistortionModel* model;
+    DistortionModel *model;
 };
 
 #endif // DISTORTIONWIDGET_H

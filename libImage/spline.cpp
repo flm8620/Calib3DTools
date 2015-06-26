@@ -307,7 +307,7 @@ bool interpolate_spline(ImageGray<double> &im, int order, double x, double y, do
             int n2 = (order == -3) ? 2 : (order+1)/2;
             int n1 = 1-n2;
             /* this test saves computation time */
-            if (im.pixelInside(xi+n1, yi+n1), im.pixelInside(xi+n2, yi+n2)) {
+            if (im.pixelInside(xi+n1, yi+n1)&& im.pixelInside(xi+n2, yi+n2)) {
                 double color = 0.0;
                 for (int dy = n1; dy <= n2; dy++) {
                     int adrs = (xi+n1) + (yi+dy) * im.xsize();
@@ -383,7 +383,7 @@ bool interpolate_spline_RGB(ImageRGB<double> &im, int order, double x, double y,
             int n2 = (order == -3) ? 2 : (order+1)/2;
             int n1 = 1-n2;
             /* this test saves computation time */
-            if (im.pixelInside(xi+n1, yi+n1), im.pixelInside(xi+n2, yi+n2)) {
+            if (im.pixelInside(xi+n1, yi+n1)&&im.pixelInside(xi+n2, yi+n2)) {
                 Rout = Gout = Bout = 0.0;
                 for (int dy = n1; dy <= n2; dy++) {
                     int adrs = (xi+n1) + (yi+dy) * im.xsize();

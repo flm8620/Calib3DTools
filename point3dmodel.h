@@ -2,32 +2,36 @@
 #define POINT3DMODEL_H
 
 #include <QObject>
-#include <QStandardItemModel>
+#include <QAbstractItemModel>
 #include <QMutex>
 #include <QWaitCondition>
-#include "target3d.h"
+#include "point3d.h"
 
-class Point3DModel : public QStandardItemModel, public Target3DContainer
+class Point3DModel : public QAbstractItemModel
 {
     Q_OBJECT
 public:
     Point3DModel(QObject* parent=0);
+    Point3D *core();
     bool isEmpty();
-    void makeEmpty();
+    void clear();
     int pointCount();
-    Target3D getTarget3D_threadSafe();
-    void saveTarget3D_threadSafe(const Target3D& target3D);
-signals:
-    void requestGet();
-    void requestSave(const Target3D& target3D);
+    void append();
+    void remove(int index);
+    void moveUp(const QModelIndex &index);
+    void moveDown(const QModelIndex &index);
+    int rowCount(const QModelIndex &parent) const;
+    int columnCount(const QModelIndex &parent) const;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+    QModelIndex index(int row, int column, const QModelIndex &parent=QModelIndex()) const;
+    QModelIndex parent(const QModelIndex &child) const;
+    Qt::ItemFlags flags(const QModelIndex &index) const;
 private slots:
-    void prepareTarget3D();
-    void saveTarget3D(const Target3D& target3D);
+    void onCoreDataChanged();
 private:
-    QMutex mutex;
-    QWaitCondition conditionGet;
-    QWaitCondition conditionSave;
-    Target3D preparedTarget3D;//locked by mutex
+    Point3D *coreData;
 };
 
 #endif // POINT3DMODEL_H

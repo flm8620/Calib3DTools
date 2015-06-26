@@ -32,7 +32,7 @@ public:
 
     KMatrix(QObject * parent = 0);
     bool isEmpty() const;
-
+    void clear();
 //properties' getters
     /**
      * @brief fx getter //TODO: more detailed document needed.

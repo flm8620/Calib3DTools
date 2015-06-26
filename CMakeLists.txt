@@ -25,7 +25,7 @@ include_directories(libMessager)
 include_directories(libImage)
 include_directories(distortion)
 include_directories(KMatrixModule)
-#include_directories(ClickImage)
+include_directories(ClickImage)
 
 
 
