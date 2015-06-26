@@ -13,7 +13,7 @@ Point3DWidget::Point3DWidget(QWidget *parent) : QWidget(parent)
     bLay->addWidget(addPointButton);
     bLay->addWidget(removePointButton);
 
-    connect(addPointButton,SIGNAL(clicked(bool)),this,SLOT(addPoint()));
+    connect(addPointButton,SIGNAL(clicked(bool)),this,SLOT(appendPoint()));
     connect(removePointButton,SIGNAL(clicked(bool)),this,SLOT(removePoint()));
 
     QVBoxLayout* hLay=new QVBoxLayout;
@@ -33,33 +33,34 @@ void Point3DWidget::setModel(Point3DModel *model)
 }
 
 
-void Point3DWidget::addPoint()
+void Point3DWidget::appendPoint()
 {
-    QStandardItem *item1=new QStandardItem("0");
-    QStandardItem *item2=new QStandardItem("0");
-    QStandardItem *item3=new QStandardItem("0");
-    QList<QStandardItem*> list;
-    list.append(item1);
-    list.append(item2);
-    list.append(item3);
-    model->appendRow(list);
+    this->model->append();
 }
 
 void Point3DWidget::removePoint()
 {
-    QItemSelection s=view->selectionModel()->selection();
-    if(s.isEmpty())return;
-    QModelIndex sId= s.first().indexes().first();
-    model->removeRow(sId.row());
-    view->selectionModel()->select(sId,QItemSelectionModel::ClearAndSelect);
+    QModelIndex index= this->getFirstSelectedItem();
+    model->removeRow(index.row());
+    view->selectionModel()->select(index,QItemSelectionModel::ClearAndSelect);
 }
 
 void Point3DWidget::moveUp()
 {
-
+    QModelIndex index= this->getFirstSelectedItem();
+    this->model->moveUp(index);
 }
 
 void Point3DWidget::moveDown()
 {
+    QModelIndex index= this->getFirstSelectedItem();
+    this->model->moveDown(index);
+}
 
+QModelIndex Point3DWidget::getFirstSelectedItem()
+{
+    QItemSelection s = view->selectionModel()->selection();
+    if (!s.isEmpty())
+        return s.first().indexes().first();
+    return QModelIndex();
 }

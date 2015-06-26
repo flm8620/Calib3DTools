@@ -27,14 +27,12 @@ QPainterPath Marker::shape() const
 
 void Marker::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget * /*widget*/)
 {
-    //qDebug()<<"marker paint"<<rand();
     QColor color=Qt::blue;
 
     if(option->state & QStyle::State_Selected)
         color=Qt::yellow;
     if(option->state & QStyle::State_MouseOver)
         color=color.dark();
-    //qDebug()<<option->state;
 
     QPainterPath circle,triangle;
     circle.addEllipse(-radius,-radius,radius*2+1,radius*2+1);

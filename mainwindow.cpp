@@ -1,6 +1,6 @@
 #include "mainwindow.h"
-#include "doublespindelegate.h"
-
+#include "sciencedoubledelegate.h"
+#include "imagelistwithpoint2d.h"
 #include <QtWidgets>
 #include <QPushButton>
 #include <QtConcurrent>
@@ -18,11 +18,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, SIGNAL(messageSignal(QString, libMsg::MessageType)), consoleWidget->getConsole(),
             SLOT(messageReceiver(QString, libMsg::MessageType)));
     this->solver->registerModels(photoModel->core(), photoCircleModel->core(),
-                                 photoHarpModel->core(), undistortedPhotoModel->core(),
+                                 photoHarpModel->core(), this->imagePoint2DCore,
                                  undistortedCircleModel->core(), undistortedHarpModel->core(),
                                  harpFeedbackModel->core(),
                                  circleFeedbackModel->core(), distModel->core(),
-                                 kModel->core(), point2DModel, point3DModel, this);
+                                 kModel->core(), point3DModel->core(), this);
 
     tabWidget = new TabWidget;
     tabWidget->connectToSolver(this->solver);
@@ -30,23 +30,19 @@ MainWindow::MainWindow(QWidget *parent) :
                              undistortedCircleModel, circleFeedbackModel, photoModel,
                              undistortedPhotoModel, point2DModel, point3DModel);
 
+    this->markerViewer=new MarkerImageView(this);
     this->imageViewer = new ImageViewer(this);
+    QTabWidget *centerTab=new QTabWidget;
+    centerTab->addTab(this->imageViewer,"ImageViewer");
+    centerTab->addTab(this->markerViewer,"Point2DViewer");
+
     tabWidget->connectToImageViewer(this->imageViewer);
+    tabWidget->connectToMarkerViewer(this->markerViewer);
     // layout
 
-// QVBoxLayout *leftLay = new QVBoxLayout;
-// leftLay->addWidget(this->distWidget);
-// leftLay->addWidget(this->kWidget);
-// QVBoxLayout *centerLayout = new QVBoxLayout;
-// centerLayout->addWidget(this->imageViewer);
-// centerLayout->addWidget(this->consoleWidget);
-// QHBoxLayout *layout = new QHBoxLayout;
-// layout->addLayout(leftLay);
-// layout->addLayout(centerLayout);
-// layout->addWidget(this->tabWidget);
     QList<int> sizes;
     QSplitter *centerSp = new QSplitter(Qt::Vertical);
-    centerSp->addWidget(this->imageViewer);
+    centerSp->addWidget(centerTab);
     centerSp->addWidget(this->consoleWidget);
     centerSp->setStretchFactor(0, 3);
     centerSp->setStretchFactor(2, 1);
@@ -82,32 +78,31 @@ void MainWindow::setupPhotoModels()
     undistortedPhotoModel = new ImageListModel(this);
     undistortedCircleModel = new ImageListModel(this);
     undistortedHarpModel = new ImageListModel(this);
+
+
+    this->imagePoint2DCore=new ImageListWithPoint2D(this);
+    undistortedPhotoModel->setCoreData(this->imagePoint2DCore);
 }
 
 void MainWindow::setupPointModels()
 {
     point2DModel = new Point2DModel(this);
-    point2DModel->setImageModel(undistortedPhotoModel);
+    point2DModel->setCoreData(this->imagePoint2DCore);
     point3DModel = new Point3DModel(this);
 }
 
 void MainWindow::setupKMatrixWidget()
 {
-    kModel = new KMatrixModel(this);
-    kView = new QTableView;
-    kView->setModel(kModel);
-    kWidget = new QGroupBox("K Matrix");
-    QHBoxLayout *l = new QHBoxLayout;
-    l->addWidget(kView);
-    kWidget->setLayout(l);
+    this->kModel = new KMatrixModel(this);
+    this->kWidget=new KMatrixWidget(this);
+    this->kWidget->setModel(this->kModel);
+    this->kWidget->getView()->setItemDelegate(new ScienceDoubleDelegate);
 }
 
 void MainWindow::setupDistortionWidgets()
 {
     distModel = new DistortionModel(this);
-// distView=new QTableView;
-// distView->setItemDelegate(new DoubleSpinDelegate);
-// distView->setModel(distModel);
     distWidget = new DistortionWidget(this);
     distWidget->setModel(distModel);
+    distWidget->getView()->setItemDelegate(new ScienceDoubleDelegate);
 }

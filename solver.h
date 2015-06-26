@@ -2,10 +2,10 @@
 #define SOLVER_H
 
 #include "imagelist.h"
+#include "imagelistwithpoint2d.h"
 #include "distortion.h"
 #include "kmatrix.h"
-#include "target2d.h"
-#include "target3d.h"
+#include "point3d.h"
 #include "cameraposition.h"
 #include "messager.h"
 #include <QtCore>
@@ -17,10 +17,9 @@ class Solver : public QObject
 public:
     explicit Solver(QObject *parent = 0);
     void registerModels(ImageList *photoList, ImageList *circleList, ImageList *harpList,
-                        ImageList *undistortedPhotoList, ImageList *undistortedCircleList,
+                        ImageListWithPoint2D *undistortedPhotoPoint2DList, ImageList *undistortedCircleList,
                         ImageList *undistortedHarpList, ImageList *harpFeedbackList,
-                        ImageList *circleFeedbackList, Distortion *distortion, KMatrix *kMatrix,
-                        Target2DContainer *point2DContainer, Target3DContainer *point3DContainer,
+                        ImageList *circleFeedbackList, Distortion *distortion, KMatrix *kMatrix, Point3D *point3D,
                         libMsg::Messager *messager = 0);
 
 public slots:
@@ -46,15 +45,14 @@ private:
     ImageList *photoList;
     ImageList *circleList;
     ImageList *harpList;
-    ImageList *undistortedPhotoList;
+    ImageListWithPoint2D *undistortedPhotoPoint2DList;
     ImageList *undistortedCircleList;
     ImageList *undistortedHarpList;
     ImageList *harpFeedbackList;
     ImageList *circleFeedbackList;
     Distortion *distortion;
     KMatrix *kMatrix;
-    Target2DContainer *point2DContainer;
-    Target3DContainer *point3DContainer;
+    Point3D *point3D;
     libMsg::Messager *messager;
 };
 

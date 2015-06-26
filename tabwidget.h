@@ -5,6 +5,7 @@
 #include "imagelistwidget.h"
 #include "imageviewer.h"
 #include "solver.h"
+#include "markerimageview.h"
 class ImageListModel;
 class Point3DWidget;
 class Point2DWidget;
@@ -64,6 +65,8 @@ public:
     void connectToSolver(Solver *solver);
     void registerModel(ImageListModel *correctedModel, Point2DModel *point2DModel,
                        Point3DModel *point3DModel);
+    void connectToImageViewer(ImageViewer* viewer);
+    void connectToMarkerViewer(MarkerImageView *markerViewer);
 private:
     ImageListWidget *correctedWidget;
     Point2DWidget *point2DWidget;
@@ -84,6 +87,7 @@ public:
                        ImageListModel *photoCorrectedModel,
                        Point2DModel *point2DModel, Point3DModel *point3DModel);
     void connectToImageViewer(ImageViewer* viewer);
+    void connectToMarkerViewer(MarkerImageView* markerViewer);
 private:
     DistortionTab *distortionTab;
     KMatrixTab *kmatrixTab;

@@ -142,13 +142,13 @@ static bool distortionFromImages(ImageList *imageList, ImageList *feedbackList,
     polynome2DistortionValue(out, polynome, order);
     QList<QPair<QString, QImage> > feedback;
     for (int i = 0; i < snapshot.size(); ++i) {
-        QString name=snapshot[i].first+" Feedback";
-        QImage image=snapshot[i].second.convertToFormat(QImage::Format_RGB32);
+        QString name = snapshot[i].first+" Feedback";
+        QImage image = snapshot[i].second.convertToFormat(QImage::Format_RGB32);
         QPainter painter(&image);
         painter.setRenderHint(QPainter::Antialiasing);
         std::vector<std::vector<std::pair<double, double> > > &lines = detectedLines[i];
         for (int j = 0; j < lines.size(); ++j) {
-            std::vector<std::pair<double, double> >&oneline=lines[j];
+            std::vector<std::pair<double, double> > &oneline = lines[j];
             double x1, y1, x2, y2;
             x1 = oneline[0].first;
             y1 = oneline[0].second;
@@ -157,14 +157,14 @@ static bool distortionFromImages(ImageList *imageList, ImageList *feedbackList,
                 y2 = oneline[k].second;
                 painter.setPen(Qt::green);
                 painter.drawLine(x1, y1, x2, y2);
-//                painter.setPen(Qt::red);
-//                painter.drawPoint(x2, y2);
-                painter.fillRect(x2-2, y2-2,5,5,Qt::red);
+// painter.setPen(Qt::red);
+// painter.drawPoint(x2, y2);
+                painter.fillRect(x2-2, y2-2, 5, 5, Qt::red);
                 x1 = x2;
                 y1 = y2;
             }
         }
-        feedback.append(qMakePair(name,image));
+        feedback.append(qMakePair(name, image));
     }
     feedbackList->clear();
     feedbackList->setContent(feedback);
@@ -221,15 +221,15 @@ static bool calculateKFromImages(ImageList *circlePhotoList, KValue &kValue)
     return true;
 }
 
-static CameraPosSolution openMVGSolver(Target2D target2D, const ImageList &photoList, KMatrix K)
+static CameraPosSolution openMVGSolver(ImageListWithPoint2D *photoWithPoint2D, const KValue &K)
 {
     CameraPosSolution s;
     s << QVector3D(10, 10, 10) << QVector3D(20, 20, 20);
     return s;
 }
 
-static CameraPosSolution strechaSolver(Target2D target2D, Target3D target3D,
-                                       const ImageList &photoList, KValue K)
+static CameraPosSolution strechaSolver(ImageListWithPoint2D *photoWithPoint2D, Point3D *target3D,
+                                       const KValue &K)
 {
     CameraPosSolution s;
     s << QVector3D(10, 10, 10) << QVector3D(20, 20, 20);
@@ -237,24 +237,23 @@ static CameraPosSolution strechaSolver(Target2D target2D, Target3D target3D,
 }
 
 void Solver::registerModels(ImageList *photoList, ImageList *circleList, ImageList *harpList,
-                            ImageList *undistortedPhotoList, ImageList *undistortedCircleList,
-                            ImageList *undistortedHarpList, ImageList *harpFeedbackList,
-                            ImageList *circleFeedbackList, Distortion *distortion, KMatrix *kMatrix,
-                            Target2DContainer *point2DContainer,
-                            Target3DContainer *point3DContainer, Messager *messager)
+                            ImageListWithPoint2D *undistortedPhotoPoint2DList,
+                            ImageList *undistortedCircleList, ImageList *undistortedHarpList,
+                            ImageList *harpFeedbackList, ImageList *circleFeedbackList,
+                            Distortion *distortion, KMatrix *kMatrix, Point3D *point3D,
+                            libMsg::Messager *messager)
 {
     this->photoList = photoList;
     this->circleList = circleList;
     this->harpList = harpList;
-    this->undistortedPhotoList = undistortedPhotoList;
+    this->undistortedPhotoPoint2DList = undistortedPhotoPoint2DList;
     this->undistortedCircleList = undistortedCircleList;
     this->undistortedHarpList = undistortedHarpList;
     this->harpFeedbackList = harpFeedbackList;
     this->circleFeedbackList = circleFeedbackList;
     this->kMatrix = kMatrix;
     this->distortion = distortion;
-    this->point2DContainer = point2DContainer;
-    this->point3DContainer = point3DContainer;
+    this->point3D = point3D;
     this->messager = messager;
 }
 
@@ -266,7 +265,7 @@ void Solver::message(std::string message, MessageType type)
 
 bool Solver::solveCamPos()
 {
-    if (this->undistortedPhotoList->isEmpty()) {
+    if (this->undistortedPhotoPoint2DList->isEmpty()) {
         this->message("Didn't find undistorted photos!", M_WARN);
         return false;
     }
@@ -275,26 +274,23 @@ bool Solver::solveCamPos()
         this->message("Didn't find Matrix K!", M_WARN);
         return false;
     }
-    if (this->point2DContainer->isEmpty()) {
+    if (this->undistortedPhotoPoint2DList->pointCount() == 0) {
         this->message("You should set at least one 2D point", M_WARN);
         return false;
     }
 
-    if (this->point3DContainer->isEmpty()) {
+    if (this->point3D->isEmpty()) {
         this->message("You should set at least one 3D point", M_WARN);
         return false;
     }
 
-    Target2D target2D = this->point2DContainer->getTarget2D_threadSafe();
-    Target3D target3D = this->point3DContainer->getTarget3D_threadSafe();
-
-    if (target2D.pointCount() != target3D.count()) {
+    if (undistortedPhotoPoint2DList->pointCount() != point3D->pointCount()) {
         this->message("You should set same amount of 2D and 3D point", M_WARN);
         return false;
     }
     KValue K = this->kMatrix->getValue();
 
-    // strechaSolver(target2D, target3D, this->undistortedPhotoList, K);
+    // strechaSolver(this->undistortedPhotoPoint2DList,this->point3D,K);
     return true;
 }
 
@@ -380,7 +376,7 @@ bool Solver::onCorrectCircle()
 
 bool Solver::correctPhoto()
 {
-    if (this->undistortedPhotoList->isEmpty()) {
+    if (this->undistortedPhotoPoint2DList->isEmpty()) {
         this->message("Correct distortion for photos...");
         if (this->distortion->isEmpty()) {
             this->message("Didn't find distortion polynomial!");
@@ -411,7 +407,7 @@ bool Solver::correctPhoto()
             resultList.append(qMakePair(QString("Image_corrected_%1").arg(k+1), result));
             ++k;
         }
-        this->undistortedPhotoList->setContent(resultList);
+        this->undistortedPhotoPoint2DList->setContent(resultList);
         this->message("Distortion correction of photo finished.");
     } else {
         this->message("Undistorted photos already exist, please remove them.");
