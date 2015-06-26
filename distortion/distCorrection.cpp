@@ -271,7 +271,7 @@ static void read_images(DistortedLines<T> &distLines,
     int total_nb_lines, total_threshed_nb_lines, threshed_nb_lines;
     ntuple_list convolved_pts;
 
-    libMsg::cout<<"There are "<<imageList.size()
+    libMsg::cout<<"There are "<<static_cast<unsigned>(imageList.size())
                 <<" input images.\n The minimal length of lines is set to "<<length_thresh
                 <<libMsg::endl;
 

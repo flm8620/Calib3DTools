@@ -36,6 +36,12 @@
 
 #include "ntuple.h"
 
+#ifndef UINT_MAX
+#include <limits>
+const static unsigned UINT_MAX = std::numeric_limits<unsigned>::max();
+#endif
+
+
 /*----------------------------------------------------------------------------*/
 /** Compute a Gaussian kernel of length 'kernel->dim',
     standard deviation 'sigma', and centered at value 'mean'.

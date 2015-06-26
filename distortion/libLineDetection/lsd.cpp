@@ -112,6 +112,12 @@
 /** Label for pixels already used in detection. */
 #define USED    1
 
+#ifndef UINT_MAX
+#include <limits>
+const static unsigned UINT_MAX = std::numeric_limits<unsigned>::max();
+#endif
+
+
 /*----------------------------------------------------------------------------*/
 /** Chained list of coordinates.
  */
