@@ -21,6 +21,37 @@
 #include <cmath>
 #include <cfloat>
 #include <cstring>
+#include <assert.h>
+
+const static unsigned int MAX_ORDER = 11;
+const static int INIT_SPLINE_N_ARRARY_START = 4;
+const static double INIT_SPLINE_N[][MAX_ORDER+2] = {
+    #define _ INIT_SPLINE_N
+   /* order= 4 */  {1./2./3./ 4., -_[0][0]* 5., -_[0][1]* 4./2., -_[0][2]* 3./3., -_[0][3]*2./4., -_[0][4]*1./5. },
+   /* order= 5 */  { _[0][0]/ 5., -_[1][0]* 6., -_[1][1]* 5./2., -_[1][2]* 4./3., -_[1][3]*3./4., -_[1][4]*2./5., -_[1][5]*1./6. },
+   /* order= 6 */  { _[1][0]/ 6., -_[2][0]* 7., -_[2][1]* 6./2., -_[2][2]* 5./3., -_[2][3]*4./4., -_[2][4]*3./5., -_[2][5]*2./6., -_[2][6]*1./7. },
+   /* order= 7 */  { _[2][0]/ 7., -_[3][0]* 8., -_[3][1]* 7./2., -_[3][2]* 6./3., -_[3][3]*5./4., -_[3][4]*4./5., -_[3][5]*3./6., -_[3][6]*2./7., -_[3][7]*1./8. },
+   /* order= 8 */  { _[3][0]/ 8., -_[4][0]* 9., -_[4][1]* 8./2., -_[4][2]* 7./3., -_[4][3]*6./4., -_[4][4]*5./5., -_[4][5]*4./6., -_[4][6]*3./7., -_[4][7]*2./8., -_[4][8]*1./9. },
+   /* order= 9 */  { _[4][0]/ 9., -_[5][0]*10., -_[5][1]* 9./2., -_[5][2]* 8./3., -_[5][3]*7./4., -_[5][4]*6./5., -_[5][5]*5./6., -_[5][6]*4./7., -_[5][7]*3./8., -_[5][8]*2./9., -_[5][9]*1./10. },
+   /* order=10 */  { _[5][0]/10., -_[6][0]*11., -_[6][1]*10./2., -_[6][2]* 9./3., -_[6][3]*8./4., -_[6][4]*7./5., -_[6][5]*6./6., -_[6][6]*5./7., -_[6][7]*4./8., -_[6][8]*3./9., -_[6][9]*2./10., -_[6][10]*1./11. },
+   /* order=11 */  { _[6][0]/11., -_[7][0]*12., -_[7][1]*11./2., -_[7][2]*10./3., -_[7][3]*9./4., -_[7][4]*8./5., -_[7][5]*7./6., -_[7][6]*6./7., -_[7][7]*5./8., -_[7][8]*4./9., -_[7][9]*3./10., -_[7][10]*2./11., -_[7][11]*1./12. }
+    #undef _
+};
+
+//z-filters for order == 2 to MAX_ORDER
+const static int Z_FILTERS_ARRARY_START = 2;
+const static double Z_FILTERS[][5] = {
+   /* order= 2 */  { -0.17157288/* sqrt(8)-3 */},
+   /* order= 3 */  { -0.26794919/* sqrt(3)-2 */},
+   /* order= 4 */  { -0.361341,     -0.0137254 },
+   /* order= 5 */  { -0.430575,     -0.0430963 },
+   /* order= 6 */  { -0.488295,     -0.0816793,   -0.00141415 },
+   /* order= 7 */  { -0.53528,      -0.122555,    -0.00914869 },
+   /* order= 8 */  { -0.574687,     -0.163035,    -0.0236323,    -0.000153821 },
+   /* order= 9 */  { -0.607997,     -0.201751,    -0.0432226,    -0.00212131  },
+   /* order=10 */  { -0.636551,     -0.238183,    -0.065727,     -0.00752819,   -0.0000169828 },
+   /* order=11 */  { -0.661266,     -0.27218,     -0.0897596,    -0.0166696,    -0.000510558  }
+};
 
 static double initcausal(double *c, int step, int n, double z)
 {
@@ -44,7 +75,7 @@ static double initanticausal(double *c, int step, int n, double z)
     return (z/(z*z-1.)) * (z*c[step*(n-2)]+c[step*(n-1)]);
 }
 
-static void invspline1D(double *c, int step, int size, double *z, int npoles)
+static void invspline1D(double *c, int step, int size, const double *z, int npoles)
 {
     /* normalization */
     double lambda = 1.0;
@@ -65,16 +96,17 @@ static void invspline1D(double *c, int step, int size, double *z, int npoles)
     }
 }
 
+/*
 /// Put in array \a z the poles of the spline of given \a order.
 static bool fill_poles(double *z, int order)
 {
     switch (order) {
     case 1:
         break;
-    // case 2: z[0]=-0.17157288;  /* sqrt(8)-3 */
+    // case 2: z[0]=-0.17157288;  // sqrt(8)-3
     // break;
     case 3:
-        z[0] = -0.26794919;    /* sqrt(3)-2 */
+        z[0] = -0.26794919;    // sqrt(3)-2
         break;
     // case 4: z[0]=-0.361341; z[1]=-0.0137254;
     // break;
@@ -112,7 +144,7 @@ static bool fill_poles(double *z, int order)
         return false;
     }
     return true;
-}
+} */
 
 /// Prepare image for cardinal spline interpolation.
 bool prepare_spline(ImageGray<double> &im, int order)
@@ -121,9 +153,9 @@ bool prepare_spline(ImageGray<double> &im, int order)
         return true;
 
     // Init poles of associated z-filter
-    double z[5];
-    if (!fill_poles(z, order))
-        return false;
+    const double *z = Z_FILTERS[order-Z_FILTERS_ARRARY_START];
+//    if (!fill_poles(z, order))
+//        return false;
     int npoles = order/2;
 
     for (int y = 0; y < im.ysize(); y++) // Filter on lines
@@ -138,9 +170,9 @@ bool prepare_spline_RGB(ImageRGB<double> &im, int order)
         return true;
 
     // Init poles of associated z-filter
-    double z[5];
-    if (!fill_poles(z, order))
-        return false;
+    const double *z = Z_FILTERS[order-Z_FILTERS_ARRARY_START];
+//    if (!fill_poles(z, order))
+//        return false;
     int npoles = order/2;
 
     for (int y = 0; y < im.ysize(); y++) {     // Filter on lines
@@ -163,23 +195,26 @@ static void keys(double *c, double t, double a)
 {
     double t2 = t*t;
     double at = a*t;
-    c[0] = a*t2*(1.0f-t);
-    c[1] = (2.0f*a+3.0f - (a+2.0f)*t)*t2 - at;
-    c[2] = ((a+2.0f)*t - a-3.0f)*t2 + 1.0f;
-    c[3] = a*(t-2.0f)*t2 + at;
+    c[0] = a*t2*(1.0-t);
+    c[1] = (2.0*a+3.0 - (a+2.0)*t)*t2 - at;
+    c[2] = ((a+2.0)*t - a-3.0)*t2 + 1.0;
+    c[3] = a*(t-2.0)*t2 + at;
 }
 
 /* coefficients for cubic spline */
 static void spline3(double *c, double t)
 {
-    double tmp = 1.0f-t;
-    c[0] = 0.1666666666f *t*t*t;
-    c[1] = 0.6666666666f -0.5f*tmp*tmp*(1.0f+t);
-    c[2] = 0.6666666666f -0.5f*t*t*(2.0f-t);
-    c[3] = 0.1666666666f *tmp*tmp*tmp;
+    const static double TWO_THIRDS = 2./3., ONE_SIXTH = 1./6.;
+    double t2 = t*t, t3 = t2*t;
+    double tmp = 1.0-t, tmp2 = t2-t-t+1.0, tmp3 = tmp*tmp2;
+    c[0] = ONE_SIXTH * t3;
+    c[1] = TWO_THIRDS - 0.5f*tmp2*(1.0f+t);
+    c[2] = TWO_THIRDS - 0.5f*t2*(2.0f-t);
+    c[3] = ONE_SIXTH * tmp3;
 }
 
-/* pre-computation for spline of order >3 */
+/*
+// pre-computation for spline of order >3
 static void init_splinen(double *a, int n)
 {
     a[0] = 1.;
@@ -187,7 +222,7 @@ static void init_splinen(double *a, int n)
         a[0] /= (double)k;
     for (int k = 1; k <= n+1; k++)
         a[k] = -a[k-1] *(n+2-k)/k;
-}
+} */
 
 /* fast integral power function */
 static float ipow(float x, int n)
@@ -202,7 +237,7 @@ static float ipow(float x, int n)
 }
 
 /* coefficients for spline of order >3 */
-static void splinen(double *c, double t, double *a, int n)
+static void splinen(double *c, double t, const double *a, int n)
 {
     memset((void *)c, 0, (n+1)*sizeof(double));
     for (int k = 0; k <= n+1; k++) {
@@ -228,9 +263,9 @@ bool interpolate_spline(ImageGray<double> &im, int order, double x, double y, do
         && order != 3 && order != 5 && order != 7 && order != 9 && order != 11)
         return false;
 
-    double ak[13];
-    if (order > 3)
-        init_splinen(ak, order);
+    const double * ak = INIT_SPLINE_N[order-INIT_SPLINE_N_ARRARY_START];
+//    if (order > 3)
+//        init_splinen(ak, order);
 
     bool bInside = false;
     /* INTERPOLATION */
@@ -301,9 +336,9 @@ bool interpolate_spline_RGB(ImageRGB<double> &im, int order, double x, double y,
         && order != 3 && order != 5 && order != 7 && order != 9 && order != 11)
         return false;
 
-    double ak[13];
-    if (order > 3)
-        init_splinen(ak, order);
+    const double * ak = INIT_SPLINE_N[order-INIT_SPLINE_N_ARRARY_START];
+//    if (order > 3)
+//        init_splinen(ak, order);
 
     bool bInside = false;
     /* INTERPOLATION */
