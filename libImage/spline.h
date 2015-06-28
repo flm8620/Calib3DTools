@@ -22,16 +22,25 @@
 #include "image.h"
 //#include "libLWImage/LWImage.h"
 
-bool prepare_spline(ImageGray<double>& im, int order);
-bool prepare_spline_RGB(ImageRGB<double> &im, int order);
-bool interpolate_spline(ImageGray<double> &im, int order,
+/* fast integral power function */
+inline double ipow(double x, int power)
+{
+    unsigned abs = power<0 ? -power:power;
+    double result;
+    for (result=1.0; abs!=0; abs>>=1, x*=x) if( abs&1 ) result *= x;
+    return power<0 ? 1.0/result : result;
+}
+
+bool prepare_spline(ImageGray<double>& image, int order);
+bool prepare_spline_RGB(ImageRGB<double> &image, int order);
+bool interpolate_spline(const ImageGray<double> &im, int order,
                         double x, double y,
                         double &out,
-                        double paramKeys=-.5f);
-bool interpolate_spline_RGB(ImageRGB<double> &im, int order,
+                        double paramKeys=-.5);
+bool interpolate_spline_RGB(const ImageRGB<double> &image, int order,
                         double x, double y,
                         double &Rout, double &Gout, double &Bout,
-                        double paramKeys=-.5f);
+                        double paramKeys=-.5);
 
 
 

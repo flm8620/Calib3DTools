@@ -35,6 +35,7 @@
 #include "straight_edge_points.h"
 
 #include <iostream>
+#include <ctime>
 
 /*----------------------------------------------------------------------------*/
 /* Static parameters.
@@ -129,6 +130,7 @@ void correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_ord
     double xp = (double)wi/2+0.2, yp = (double)he/2+0.2;
     out.resize(wi, he);
     libMsg::cout << "[" << libMsg::flush;
+    clock_t start=clock();
     prepare_spline(in, spline_order);
     double clrR;
     for (int y = 0; y < he; y++) {
@@ -147,7 +149,9 @@ void correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_ord
         else if (!(y % (int)(0.04*he))) libMsg::cout << "." << libMsg::flush;
     }
     libMsg::cout << "] " << libMsg::flush;
-    libMsg::cout<<" done \n"<<libMsg::endl;
+    libMsg::cout<<" Done, " <<
+                  static_cast<double>(clock()-start) / CLOCKS_PER_SEC <<
+                  " Seconds spent." << libMsg::endl;
 }
 
 void correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int spline_order,
