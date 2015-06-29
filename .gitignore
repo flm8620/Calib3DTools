@@ -1,2 +1,5 @@
 *.user
 *.autosave
+CMakeLists.txt.user.*
+mainInterface.pro.user.*
+
