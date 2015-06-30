@@ -1,144 +1,110 @@
-
 #include "mainwindow.h"
+#include "sciencedoubledelegate.h"
+#include "imagelistwithpoint2d.h"
 #include <QtWidgets>
 #include <QPushButton>
 #include <QtConcurrent>
 
-
-
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent),console(new Console()),con(*console)
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent)
 {
-    setupPhotoWidgets();
+    setupPhotoModels();
+    setupPointModels();
     setupKMatrixWidget();
     setupDistortionWidgets();
-    setupPointWidgets();
-
-    this->solver=new Solver(this);
-    connect(this,SIGNAL(message(QString,bool)),console,SLOT(messageReceiver(QString,bool)));
-    this->solver->registerModels(photoModel,photoCircleModel,photoHarpModel,
-                           noDistortion_photoModel,noDistortion_photoCircleModel,
-                           noDistortion_photoHarpModel,distModel->core(),
-                           kModel->core(),point2DModel,point3DModel, this);
 
 
+    this->solver = new Solver(this);
+    this->consoleWidget = new ConsoleWidget;
+    connect(this, SIGNAL(messageSignal(QString, libMsg::MessageType)), consoleWidget->getConsole(),
+            SLOT(messageReceiver(QString, libMsg::MessageType)));
+    this->solver->registerModels(photoModel->core(), photoCircleModel->core(),
+                                 photoHarpModel->core(), this->imagePoint2DCore,
+                                 undistortedCircleModel->core(), undistortedHarpModel->core(),
+                                 harpFeedbackModel->core(),
+                                 circleFeedbackModel->core(), &distModel->core(),
+                                 &kModel->core(), point3DModel->core(), this);
 
-    //layout
-    QHBoxLayout* photoLay=new QHBoxLayout;
-    QHBoxLayout* circleLay=new QHBoxLayout;
-    QHBoxLayout* harpLay=new QHBoxLayout;
-    photoLay->addWidget(photoWidget);
-    photoLay->addWidget(noDistortion_photoWidget);
-    circleLay->addWidget(photoCircleWidget);
-    circleLay->addWidget(noDistortion_photoCircleWidget);
-    harpLay->addWidget(photoHarpWidget);
-    harpLay->addWidget(noDistortion_photoHarpWidget);
+    tabWidget = new TabWidget;
+    tabWidget->connectToSolver(this->solver);
+    tabWidget->registerModel(photoHarpModel, harpFeedbackModel, photoCircleModel,
+                             undistortedCircleModel, circleFeedbackModel, photoModel,
+                             undistortedPhotoModel, point2DModel, point3DModel);
 
-    QVBoxLayout* leftLay=new QVBoxLayout;
-    leftLay->addLayout(photoLay);
-    leftLay->addLayout(circleLay);
-    leftLay->addLayout(harpLay);
+    this->markerViewer=new MarkerImageView(this);
+    this->imageViewer = new ImageViewer(this);
+    QTabWidget *centerTab=new QTabWidget;
+    centerTab->addTab(this->imageViewer,"ImageViewer");
+    centerTab->addTab(this->markerViewer,"Point2DViewer");
 
+    tabWidget->connectToImageViewer(this->imageViewer);
+    tabWidget->connectToMarkerViewer(this->markerViewer);
+    // layout
 
-    QHBoxLayout* bLayout=new QHBoxLayout;
-    QPushButton* generateButton=new QPushButton(tr("Generate"));
-    QPushButton* saveDistortionButton=new QPushButton(tr("Save Distortion"));
-    QPushButton* saveKMatrixButton=new QPushButton(tr("Save K Matrix"));
+    QList<int> sizes;
+    QSplitter *centerSp = new QSplitter(Qt::Vertical);
+    centerSp->addWidget(centerTab);
+    centerSp->addWidget(this->consoleWidget);
+    centerSp->setStretchFactor(0, 3);
+    centerSp->setStretchFactor(2, 1);
+    QSplitter *leftSp = new QSplitter(Qt::Vertical);
+    leftSp->addWidget(this->distWidget);
+    leftSp->addWidget(this->kWidget);
+    QSplitter *splitter = new QSplitter;
+    splitter->addWidget(leftSp);
+    splitter->addWidget(centerSp);
+    splitter->addWidget(this->tabWidget);
+    splitter->setStretchFactor(0, 1);
+    splitter->setStretchFactor(1, 4);
+    splitter->setStretchFactor(2, 1);
+    sizes.clear();
 
-    connect(generateButton,SIGNAL(clicked(bool)),this,SLOT(startSolve()));
+    this->setCentralWidget(splitter);
 
-    bLayout->addWidget(generateButton);
-    bLayout->addWidget(saveDistortionButton);
-    bLayout->addWidget(saveKMatrixButton);
-    QGridLayout* rightLay=new QGridLayout;
-    rightLay->addWidget(kWidget,0,0);
-    rightLay->addWidget(distWidget,1,0);
-    rightLay->addWidget(point2DWidget,0,1,2,1);
-    rightLay->addWidget(point3DWidget,0,2,2,1);
-    rightLay->addLayout(bLayout,2,0,1,3);
-    rightLay->addWidget(console,3,0,1,3);
-
-    QHBoxLayout* layout=new QHBoxLayout;
-    layout->addLayout(leftLay);
-    layout->addLayout(rightLay);
-
-    QWidget* center=new QWidget;
-    center->setLayout(layout);
-    setCentralWidget(center);
-    statusBar();
-
-    //connect(generateButton,SIGNAL(clicked(bool)),worker,SLOT(solve()));
+    this->resize(1000, 800);
 }
 
-void MainWindow::message( const char *content, MessageType type )
+void MainWindow::message(std::string content, libMsg::MessageType type)
 {
-    emit this->message(tr(content), type>=WARN);
+    emit this->messageSignal(QString::fromStdString(content), type);
 }
 
-void MainWindow::startSolve()
+void MainWindow::setupPhotoModels()
 {
-    QtConcurrent::run(this->solver,&Solver::startSolve);
+    photoModel = new ImageListModel(this);
+    photoCircleModel = new ImageListModel(this);
+    photoHarpModel = new ImageListModel(this);
+    circleFeedbackModel = new ImageListModel(this);
+    harpFeedbackModel = new ImageListModel(this);
+    undistortedPhotoModel = new ImageListModel(this);
+    undistortedCircleModel = new ImageListModel(this);
+    undistortedHarpModel = new ImageListModel(this);
+
+
+    this->imagePoint2DCore=new ImageListWithPoint2D(this);
+    undistortedPhotoModel->setCoreData(this->imagePoint2DCore);
 }
 
-
-void MainWindow::setupPhotoWidgets()
+void MainWindow::setupPointModels()
 {
-    photoWidget=new ImageListWidget(tr("Photo"));
-    photoCircleWidget=new ImageListWidget(tr("Circle Photo"));
-    photoHarpWidget=new ImageListWidget(tr("Harp Photo"));
-
-    photoModel=new ImageListModel(this);
-    photoCircleModel=new ImageListModel(this);
-    photoHarpModel=new ImageListModel(this);
-
-    photoWidget->setModel(photoModel);
-    photoCircleWidget->setModel(photoCircleModel);
-    photoHarpWidget->setModel(photoHarpModel);
-
-    noDistortion_photoWidget=new ImageListWidget(tr("Correction: Photo"));
-    noDistortion_photoCircleWidget=new ImageListWidget(tr("Correction: Circle Photo"));
-    noDistortion_photoHarpWidget=new ImageListWidget(tr("Correction: Harp Photo"));
-
-    noDistortion_photoModel=new ImageListModel(this);
-    noDistortion_photoCircleModel=new ImageListModel(this);
-    noDistortion_photoHarpModel=new ImageListModel(this);
-
-    noDistortion_photoWidget->setModel(noDistortion_photoModel);
-    noDistortion_photoCircleWidget->setModel(noDistortion_photoCircleModel);
-    noDistortion_photoHarpWidget->setModel(noDistortion_photoHarpModel);
+    point2DModel = new Point2DModel(this);
+    point2DModel->setCoreData(this->imagePoint2DCore);
+    point3DModel = new Point3DModel(this);
 }
 
 void MainWindow::setupKMatrixWidget()
 {
-    kModel=new KMatrixModel(this);
-    kView=new QTableView;
-    kView->setModel(kModel);
-    kWidget=new QGroupBox("K Matrix");
-    QHBoxLayout* l=new QHBoxLayout;
-    l->addWidget(kView);
-    kWidget->setLayout(l);
-
+    this->kModel = new KMatrixModel(this);
+    this->kWidget=new KMatrixWidget(this);
+    this->kWidget->setModel(this->kModel);
+    this->kWidget->getView()->setItemDelegate(new ScienceDoubleDelegate);
 }
 
 void MainWindow::setupDistortionWidgets()
 {
-    distModel=new DistortionModel(this);
-    distView=new QTableView;
-    distView->setModel(distModel);
-    distWidget=new QGroupBox("Distortion");
-    QHBoxLayout* l=new QHBoxLayout;
-    l->addWidget(distView);
-    distWidget->setLayout(l);
+    distModel = new DistortionModel(this);
+    distWidget = new DistortionWidget(this);
+    distWidget->setModel(distModel);
+    distWidget->getView()->setItemDelegate(new ScienceDoubleDelegate);
 }
 
-void MainWindow::setupPointWidgets()
-{
-    point2DModel=new Point2DModel(this);
-    point2DModel->setImageModel(photoModel);
-    point2DWidget=new Point2DWidget;
-    point2DWidget->setModel(point2DModel);
-
-    point3DModel=new Point3DModel(this);
-    point3DWidget=new Point3DWidget;
-    point3DWidget->setModel(point3DModel);
-}

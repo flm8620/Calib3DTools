@@ -2,59 +2,58 @@
 #define SOLVER_H
 
 #include "imagelist.h"
+#include "imagelistwithpoint2d.h"
 #include "distortion.h"
 #include "kmatrix.h"
-#include "target2d.h"
-#include "target3d.h"
+#include "point3d.h"
 #include "cameraposition.h"
-
+#include "messager.h"
 #include <QtCore>
 #include <QtGui>
-
-class Messager {
-public:
-    typedef enum { INFO, WARN, ERROR } MessageType ;
-    virtual void message(const char * content, MessageType type ) =0;
-};
 
 class Solver : public QObject
 {
     Q_OBJECT
 public:
     explicit Solver(QObject *parent = 0);
-    void registerModels(ImageListContainer* photoContainer,
-                        ImageListContainer* photoCircleContainer,
-                        ImageListContainer* photoHarpContainer,
-                        ImageListContainer* noDistortionPhotoContainer,
-                        ImageListContainer* noDistortionPhotoCircleContainer,
-                        ImageListContainer* noDistortionPhotoHarpContainer,
-                        Distortion* dist,
-                        KMatrix* kMatrix,
-                        Target2DContainer* point2DContainer,
-                        Target3DContainer* point3DContainer,
-                        Messager* messager =0
-                        );
+    void registerModels(ImageList *photoList, ImageList *circleList, ImageList *harpList,
+                        ImageListWithPoint2D *undistortedPhotoPoint2DList, ImageList *undistortedCircleList,
+                        ImageList *undistortedHarpList, ImageList *harpFeedbackList,
+                        ImageList *circleFeedbackList, Distortion *distortion, KMatrix *kMatrix, Point3D *point3D,
+                        libMsg::Messager *messager = 0);
 
-    bool solve(CameraPosSolution &solu);
-    bool DistortionCorrectPhoto();
-    bool DistortionCorrectPhotoCircle();
+public slots:
+    bool onCalculateDistortion();
+    bool onCalculateK();
+    bool onCorrectPhoto();
+    bool onCorrectCircle();
+
+private:
     bool calculateDistortion();
     bool calculateK();
-public slots:
-    void startSolve();
-private:
-    ImageListContainer* photoContainer;
-    ImageListContainer* photoCircleContainer;
-    ImageListContainer* photoHarpContainer;
-    ImageListContainer* noDistortionPhotoContainer;
-    ImageListContainer* noDistortionPhotoCircleContainer;
-    ImageListContainer* noDistortionPhotoHarpContainer;
-    Distortion* distortion;
-    KMatrix* kMatrix;
-    Target2DContainer* point2DContainer;
-    Target3DContainer* point3DContainer;
-    Messager* messager;
-    void message(const char * message, Messager::MessageType type=Messager::INFO);
+    bool correctPhoto();
+    bool correctCircle();
+    bool solveCamPos();
+
+    bool calculateDistortionThread();
+    bool calculateKThread();
+    bool correctPhotoThread();
+    bool correctCircleThread();
+    bool solveCamPosThread();
+
+    void message(std::string message, libMsg::MessageType type = libMsg::M_INFO);
+    ImageList *photoList;
+    ImageList *circleList;
+    ImageList *harpList;
+    ImageListWithPoint2D *undistortedPhotoPoint2DList;
+    ImageList *undistortedCircleList;
+    ImageList *undistortedHarpList;
+    ImageList *harpFeedbackList;
+    ImageList *circleFeedbackList;
+    Distortion *distortion;
+    KMatrix *kMatrix;
+    Point3D *point3D;
+    libMsg::Messager *messager;
 };
 
 #endif // SOLVER_H

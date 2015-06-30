@@ -1,104 +1,135 @@
-#ifndef DISTORTION_H
-#define DISTORTION_H
+#ifndef DISTRORTION_H
+#define DISTRORTION_H
 
 #include "Concurrent/readwritelock.h"
 #include "Event/eventhandler.h"
+#include <vector>
+#include <utility>
 #include <functional>
 #include <vector>
 #include <map>
 
 using concurrent::ReadWriteLock;
 using event::EventConnection;
-using event::IntegerNotifyEventHandler;
+using event::NotifyEventHandler;
+//using event::IntegerNotifyEventHandler;
 
-typedef event::EventHandler<void, int, int> IntRangeNotifyEventHandler;
-typedef IntRangeNotifyEventHandler::Listener IntRangeNotifyEventListener;
+//typedef event::EventHandler<void, int, int> IntRangeNotifyEventHandler;
+//typedef IntRangeNotifyEventHandler::Listener IntRangeNotifyEventListener;
 
 /**
- * @brief The Distortion
+ * @brief Distortion of image
+ * Distortion is presented by two polynomial who correct respectively
+ * the X and Y coordinate of pixels in a image.
+ * For a pixel (x0, y0) in image, after correction, it moves to (X0, Y0),
+ * and we have:
+ *
+ * X0 = polyX(x0,y0) = a0*x^0*y0 + a1*x^1*y^0 + a2*x^0*y^1+ ...
+ * Y0 = polyY(x0,y0) = b0*x^0*y0 + b1*x^1*y^0 + b2*x^0*y^1+ ...
+ *
+ * For example, when maxOrder=3:
+ * QList<QPair<double,double> >:
+ * xParam           yParam
+ *
+ * a0 * x^0*y^0    b0 * x^0*y^0
+ *
+ * a1 * x^1*y^0    b1 * x^1*y^0
+ * a2 * x^0*y^1    b2 * x^0*y^1
+ *
+ * a3 * x^2*y^0    b3 * x^2*y^0
+ * a4 * x^1*y^1    b4 * x^1*y^1
+ * a5 * x^0*y^2    b5 * x^0*y^2
+ *
+ * a6 * x^3*y^0    b6 * x^3*y^0
+ * a7 * x^2*y^1    b7 * x^2*y^1
+ * a8 * x^1*y^2    b8 * x^1*y^2
+ * a9 * x^0*y^3    b9 * x^0*y^3
+ * size = 10 = (2+maxOrder) * (1+maxOrder) / 2
+ * maxOrder = -1 if the distortion is empty
+ *
+ */
+struct DistortionValue
+{
+    DistortionValue();
+    std::vector<std::pair<double, double> > _XYData;
+    int _maxOrder;
+    int _size;
+    void setMaxOrder(int maxOrder);
+    bool isValid()const;
+    int sizeFromMaxOrder(int maxOrder)const
+    {
+        return maxOrder >= 0 ? (2+maxOrder)*(1+maxOrder)/2 : 0;
+    }
+};
+
+
+/**
+ * @brief The Distortion class
+ *
  * @note All public functions of this class are thread-safe
  */
 class Distortion
 {
 private:
-    std::vector<double> values;
-    IntegerNotifyEventHandler _dataSizeChangedEvent;
-    IntRangeNotifyEventHandler _dataChangedEvent;
+    DistortionValue value;
+//    IntegerNotifyEventHandler _dataSizeChangedEvent;
+//    IntRangeNotifyEventHandler _dataChangedEvent;
+    NotifyEventHandler _dataChangedEvent;
 
 protected:
     mutable ReadWriteLock rwLock;
 
 public:
-    Distortion(const double* original=NULL, size_t size=0 );
-    Distortion( const std::vector<double>& other );
-    Distortion( const Distortion& other );
+    Distortion();
 
-    const IntegerNotifyEventHandler& dataSizeChangedEvent = this->_dataSizeChangedEvent;
-    const IntRangeNotifyEventHandler& dataChangedEvent = this->_dataChangedEvent;
+//    const IntegerNotifyEventHandler& dataSizeChangedEvent = this->_dataSizeChangedEvent;
+//    const IntRangeNotifyEventHandler& dataChangedEvent = this->_dataChangedEvent;
+    const NotifyEventHandler& dataChangedEvent = this->_dataChangedEvent;
+    bool isEmpty();
 
-    double value(size_t index, double defaultValue=0) const;
-    inline double operator [](size_t index) const { return this->value(index); }
+    int maxOrder() const;
+
+    void setMaxOrder(int maxOrder);
+
     int size() const;
-    inline bool isEmpty() const { return this->size()<=0; }
-    inline bool isNotEmpty() const { return this->size()>0; }
 
-    void set(size_t index, double value);
-    void copyItem(const Distortion& from, size_t fromIndex, size_t toIndex, size_t count);
-    double atomicAdd(size_t index, double addend);
-    double atomicAdd(size_t index, const Distortion& addend, size_t addendIndex);
-    double atomicSubstract(size_t index, const Distortion& subtrahend, size_t subtrahendIndex);
-    int atomicCompare(size_t index, const Distortion& other, size_t otherIndex) const;
+    /**
+     * @brief XYfromIdx
+     * @param idx index in array
+     * @param degX integer powers of X
+     * @param degY integer powers of Y
+     *    X 0 1 2 3
+     *   Y
+     *   0  0 1 3 6
+     *   1  2 4 7
+     *   2  5 8    <--idx
+     *   3  9
+     *
+     * e.g. idx=6, a6 -> x^3*y^0, so x=3 y=0
+     */
+    static void XYfromIdx(int idx, int &degX, int &degY);
+    static int idxFromXY(int degX, int degY);
 
-    class ItemDelegate
-    {
-    private:
-        Distortion& parent;
-        const size_t index;
+    DistortionValue getValue() const;
+    bool setValue(const DistortionValue &value);
 
-    public:
-        inline ItemDelegate(Distortion& parent, size_t index) :parent(parent),index(index) {}
+    bool setXParamVector(const std::vector<double> &xVector);
+    bool setYParamVector(const std::vector<double> &yVector);
 
-        inline double value() const { return parent.value(this->index); }
-        inline operator double() const { return this->value(); }
+    void setXParam(double value, int degX, int degY);
+    void setYParam(double value, int degX, int degY);
 
-        inline ItemDelegate& operator =(double value)
-                    { return parent.set(this->index, value), *this; }
-        inline ItemDelegate& operator =(const ItemDelegate& other)
-                    { return parent.copyItem(other.parent, other.index, this->index, 1), *this; }
+    void setXParam(double value, int idx);
+    void setYParam(double value, int idx);
 
-        inline bool operator ==(double value) const { return this->value()==value; }
-        inline bool operator !=(double value) const { return this->value()!=value; }
-        inline bool operator ==(const ItemDelegate& another) const
-                    { return this->parent.atomicCompare(this->index, another.parent, another.index)==0; }
-        inline bool operator !=(const ItemDelegate& another) const { return !((*this)==another); }
+    int xParam(int degX, int degY) const;
+    int yParam(int degX, int degY) const;
 
-        inline ItemDelegate& operator +=(double addend)
-                    { return parent.atomicAdd(this->index, addend), *this; }
-        inline ItemDelegate& operator -=(double subtrahend) { return *this += -subtrahend; }
-        inline ItemDelegate& operator +=(const ItemDelegate& addend)
-                    { return parent.atomicAdd(this->index, addend.parent, addend.index), *this; }
-        inline ItemDelegate& operator -=(const ItemDelegate& subtrahend)
-                    { return parent.atomicSubstract(this->index, subtrahend.parent, subtrahend.index), *this; }
+    double xParam(int idx) const;
+    double yParam(int idx) const;
 
-        //TODO: add more item operator overloading here.
-    };
-    inline ItemDelegate& operator [](size_t index) { return *( this->delegates.get(index) ); }
+    void clear();
 
-private:
-
-    class DelegateDealer : private std::map<size_t, ItemDelegate*>
-    {
-    private:
-        Distortion& parent;
-    public:
-        inline DelegateDealer(Distortion& parent) : parent(parent) {}
-        ~DelegateDealer();
-
-        ItemDelegate* get(size_t index);
-    } delegates;
 };
 
-
-
-#endif // DISTORTION_H
-
+#endif // DISTRORTION_H

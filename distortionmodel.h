@@ -2,33 +2,37 @@
 #define DISTORTIONMODEL_H
 
 #include <QtCore>
-#include <QAbstractListModel>
+#include <QAbstractItemModel>
 #include "distortion.h"
 
-class DistortionModel : public QAbstractListModel
+class DistortionModel : public QAbstractItemModel
 {
     Q_OBJECT
-public:
-    DistortionModel(QObject* parent=0, Distortion * core=NULL);
-    ~DistortionModel();
 
-    inline Distortion* core() { return this->coreData; }
-    int rowCount(const QModelIndex & index=QModelIndex()) const;
-    QVariant data(const QModelIndex &index, int role=Qt::DisplayRole) const;
+public:
+    DistortionModel(QObject *parent = 0);
+    ~DistortionModel();
+    Distortion &core();
+    void clear();
+    int rowCount(const QModelIndex &) const;
+    int columnCount(const QModelIndex &) const;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
-    bool setData(const QModelIndex &index, const QVariant &value, int role=Qt::DisplayRole);
-    bool insertRows(int row, int count, const QModelIndex &parent);
-    bool removeRows(int row, int count, const QModelIndex &parent);
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+    QModelIndex index(int row, int column, const QModelIndex &parent=QModelIndex()) const;
+    QModelIndex parent(const QModelIndex &child) const;
 
 private:
+    Distortion coreData;
 
-    Distortion* coreData;
-    bool coreDisposingRequired;
 
-    void onCoreDataChanged(int fromIndex, int toIndex);
-    void onCoreSizeChanged(int newSize);
-    QVarLengthArray<event::EventConnection*> subscriptions;
+//    void onCoreDataChanged(int fromIndex, int toIndex);
+//    void onCoreSizeChanged(int newSize);
+//    QVarLengthArray<event::EventConnection*> subscriptions;
+    void onCoreDataChanged();
+    event::EventConnection* subscriptions;
+
 };
 
 #endif // DISTORTIONMODEL_H

@@ -2,7 +2,7 @@
 
 using concurrent::ReadLock;
 using concurrent::WriteLock;
-const static KValue EMPTY_K = {0,0,0,0,0};
+const static KValue EMPTY_K = {0, 0, 0, 0, 0};
 
 KMatrix::KMatrix(const KValue& value) : value(value) {}
 KMatrix::KMatrix() : KMatrix(EMPTY_K) {}
@@ -12,6 +12,11 @@ bool KMatrix::isEmpty() const
 {
     ReadLock locker(this->rwLock);
     return this->value == EMPTY_K;
+}
+
+void KMatrix::clear()
+{
+    this->setValue(EMPTY_K);
 }
 
 double KMatrix::fx() const
@@ -25,7 +30,6 @@ double KMatrix::fy() const
     ReadLock locker(this->rwLock);
     return this->value.fy;
 }
-
 
 double KMatrix::x0() const
 {
@@ -51,22 +55,10 @@ KValue KMatrix::getValue() const
     return this->value;
 }
 
-Vector2D KMatrix::getF() const
-{
-    ReadLock locker(this->rwLock);
-    return Vector2D({this->value.fx, this->value.fy});
-}
-
-Vector2D KMatrix::getOrigin() const
-{
-    ReadLock locker(this->rwLock);
-    return Vector2D({this->value.x0, this->value.y0});
-}
-
-static inline bool lockAndSet(double& var, double value, ReadWriteLock& rwlock)
+static inline bool lockAndSet(double &var, double value, ReadWriteLock &rwlock)
 {
     WriteLock lock(rwlock);
-    if( value != var ) {
+    if (value != var) {
         var = value;
         return true;
     }
@@ -78,23 +70,23 @@ static inline bool lockAndSet(KValue& var, double fx, double fy, double x0, doub
     WriteLock lock(rwlock);
 
     bool result = false;
-    if( fx != var.fx ) {
+    if (fx != var.fx) {
         var.fx = fx;
         result = true;
     }
-    if( fy != var.fy ) {
+    if (fy != var.fy) {
         var.fy = fy;
         result = true;
     }
-    if( x0 != var.x0 ) {
+    if (x0 != var.x0) {
         var.x0 = x0;
         result = true;
     }
-    if( y0 != var.y0 ) {
+    if (y0 != var.y0) {
         var.y0 = y0;
         result = true;
     }
-    if( s != var.s ) {
+    if (s != var.s) {
         var.s = s;
         result = true;
     }
@@ -106,11 +98,11 @@ static inline bool lockAndSet(double& varX, double& varY, double x, double y, Re
     WriteLock lock(rwlock);
 
     bool result = false;
-    if( x != varX ) {
+    if (x != varX) {
         varX = x;
         result = true;
     }
-    if( y != varY ) {
+    if (y != varY) {
         varY = y;
         result = true;
     }
@@ -141,62 +133,37 @@ void KMatrix::setY0( double y0 )
         this->_dataChangedEvent.trigger();
 }
 
-void KMatrix::setS( double s )
+void KMatrix::setS(double s)
 {
     if( lockAndSet( this->value.s, s, this->rwLock ) )
         this->_dataChangedEvent.trigger();
 }
 
-void KMatrix::setValue( const KValue& value )
+void KMatrix::setValue(const KValue &value)
 {
-    if( lockAndSet( this->value, value.fx, value.fy, value.x0, value.y0, value.s, this->rwLock ) )
+    if (lockAndSet(this->value, value.fx, value.fy, value.x0, value.y0, value.s, this->rwLock ) )
         this->_dataChangedEvent.trigger();
 }
 
-void KMatrix::setValue(double fx, double fy, double x0, double y0, double s )
+void KMatrix::setValue(double fx, double fy, double x0, double y0, double s)
 {
-    if( lockAndSet( this->value, fx, fy, x0, y0, s, this->rwLock ) )
+    if (lockAndSet(this->value, fx, fy, x0, y0, s, this->rwLock))
         this->_dataChangedEvent.trigger();
 }
 
-void KMatrix::setF( const Vector2D& f )
-{
-    if( lockAndSet( this->value.fx, this->value.fy, f.x, f.y, this->rwLock ) )
-        this->_dataChangedEvent.trigger();
-}
-
-void KMatrix::setF(double fx, double fy)
-{
-    if( lockAndSet( this->value.fx, this->value.fy, fx, fy, this->rwLock ) )
-        this->_dataChangedEvent.trigger();
-}
-
-void KMatrix::setOrigin( const Vector2D origin )
-{
-    if( lockAndSet( this->value.x0, this->value.y0, origin.x, origin.y, this->rwLock ) )
-        this->_dataChangedEvent.trigger();
-}
-
-void KMatrix::setOrigin( double x0, double y0 )
-{
-    if( lockAndSet( this->value.x0, this->value.y0, x0, y0, this->rwLock ) )
-        this->_dataChangedEvent.trigger();
-}
-
-
-KMatrix& KMatrix::operator =(const KValue& value)
+KMatrix &KMatrix::operator =(const KValue &value)
 {
     this->setValue(value);
     return *this;
 }
 
-bool KMatrix::operator ==(const KValue& value) const
+bool KMatrix::operator ==(const KValue &value) const
 {
     ReadLock lock(this->rwLock);
     return this->value == value;
 }
 
-bool KMatrix::operator ==(const KMatrix& other) const
+bool KMatrix::operator ==(const KMatrix &other) const
 {
     ReadLock lock(this->rwLock);
     ReadLock otherLock(other.rwLock);

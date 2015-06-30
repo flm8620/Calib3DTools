@@ -2,181 +2,265 @@
 #include "imagelistmodel.h"
 
 #include <QDebug>
-Point2DModel::Point2DModel(QObject *parent)
-    :QStandardItemModel(parent)
+/**
+ * Tree structure of this model:
+ *    root
+ *      |
+ *      |-Image 0
+ *      |   |--Point 0: x, y
+ *      |   |--Point 1: x, y
+ *      |-Image 1
+ *          |--Point 0: x, y
+ *          |--Point 1: x, y
+ */
+static const quintptr rootId = 0;
+Point2DModel::Point2DModel(QObject *parent) :
+    QAbstractItemModel(parent)
 {
-    QStringList list;
-    list.append("Image/Point");
-    list.append("x");
-    list.append("y");
-    setHorizontalHeaderLabels(list);
-    connect(this,SIGNAL(requestGet()),this,SLOT(prepareTarget2D()));
-    connect(this,SIGNAL(requestSave(Target2D)),this,SLOT(saveTarget2D(Target2D)));
+    this->coreData = new ImageListWithPoint2D(this);
+    connect(this->coreData, SIGNAL(pointChanged(int, int)), this, SLOT(onPointChanged(int, int)));
+    connect(this->coreData, SIGNAL(pointRemoved(int)), this, SLOT(onPointRemoved(int)));
+    connect(this->coreData, SIGNAL(pointAppended()), this, SLOT(onPointAppended()));
+    connect(this->coreData, SIGNAL(pointSwaped(int, int)), this, SLOT(onPointSwaped(int, int)));
+    connect(this->coreData, SIGNAL(imageChanged(int)), this, SLOT(onImageChanged(int)));
+    connect(this->coreData, SIGNAL(imageAppended()), this, SLOT(onImageAppended()));
+    connect(this->coreData, SIGNAL(dataReset()), this, SLOT(onDataReset()));
 }
 
-bool Point2DModel::isEmpty()
+void Point2DModel::setCoreData(ImageListWithPoint2D *core)
 {
-    return rowCount()==0 || this->item(0)->rowCount() == 0;
+    if (this->coreData) {
+        disconnect(this->coreData, SIGNAL(pointChanged(int, int)), this,
+                   SLOT(onPointChanged(int, int)));
+        disconnect(this->coreData, SIGNAL(pointRemoved(int)), this, SLOT(onPointRemoved(int)));
+        disconnect(this->coreData, SIGNAL(pointAppended()), this, SLOT(onPointAppended()));
+        disconnect(this->coreData, SIGNAL(pointSwaped(int, int)), this, SLOT(onPointSwaped(int,
+                                                                                           int)));
+        disconnect(this->coreData, SIGNAL(imageChanged(int)), this, SLOT(onImageChanged(int)));
+        disconnect(this->coreData, SIGNAL(imageAppended()), this, SLOT(onImageAppended()));
+        disconnect(this->coreData, SIGNAL(dataReset()), this, SLOT(onDataReset()));
+        if (this->coreData->parent() == this || this->coreData->parent() == 0)
+            delete this->coreData;
+    }
+
+    this->coreData = core;
+    connect(this->coreData, SIGNAL(pointChanged(int, int)), this, SLOT(onPointChanged(int, int)));
+    connect(this->coreData, SIGNAL(pointRemoved(int)), this, SLOT(onPointRemoved(int)));
+    connect(this->coreData, SIGNAL(pointAppended()), this, SLOT(onPointAppended()));
+    connect(this->coreData, SIGNAL(pointSwaped(int, int)), this, SLOT(onPointSwaped(int, int)));
+    connect(this->coreData, SIGNAL(imageChanged(int)), this, SLOT(onImageChanged(int)));
+    connect(this->coreData, SIGNAL(imageAppended()), this, SLOT(onImageAppended()));
+    connect(this->coreData, SIGNAL(dataReset()), this, SLOT(onDataReset()));
+    // (*this) doesn't own the new core
 }
 
-void Point2DModel::makeEmpty()
+int Point2DModel::pointCount() const
 {
-    beginResetModel();
-    if(rowCount()>0)
-        removeRows(0,rowCount());
-    endResetModel();
+    return this->coreData->pointCount();
 }
 
-int Point2DModel::pointCount()
+QImage Point2DModel::getImage(int row) const
 {
-    return this->rowCount()>0 ? this->item(0)->rowCount() : 0 ;
+    return this->coreData->getImage(row);
 }
 
-void Point2DModel::setImageModel(ImageListModel *model)
+void Point2DModel::removePoint(QModelIndex &index)
 {
-    imageModel=model;
-    connect(imageModel,SIGNAL(rowsInserted(QModelIndex,int,int)),this,SLOT(imagesInserted(QModelIndex,int,int)));
-    connect(imageModel,SIGNAL(rowsRemoved(QModelIndex,int,int)),this,SLOT(imagesRemoved(QModelIndex,int,int)));
-    connect(imageModel,SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)),this,SLOT(imagesChanged(QModelIndex)));
+    if (this->indexMeansPoint(index))
+        this->coreData->removePoint(index.row());
 }
 
-QImage Point2DModel::getImage(int row)
+void Point2DModel::movePointUp(QModelIndex &index)
 {
-    QModelIndex id = imageModel->index(row);
-    QImage image=qvariant_cast<QImage>(imageModel->data(id,Qt::UserRole));
-    Q_ASSERT(!image.isNull());
-    return image;
-
+    if (this->indexMeansPoint(index))
+        this->coreData->movePointUp(index.row());
 }
 
-Target2D Point2DModel::getTarget2D_threadSafe()
+void Point2DModel::movePointDown(QModelIndex &index)
 {
-    QMutexLocker locker(&mutex);
-    qDebug()<<"2D: emit requestGet();";
-    emit requestGet();
-    qDebug()<<"conditionGet.wait(&mutex);";
-    conditionGet.wait(&mutex);
-    qDebug()<<"waked up by conditionGet";
-    return preparedTarget2D;
-    //auto-unlock by locker
+    if (this->indexMeansPoint(index))
+        this->coreData->movePointDown(index.row());
 }
 
-void Point2DModel::saveTarget2D_threadSafe(const Target2D &target2D)
+void Point2DModel::appendPoint()
 {
-    QMutexLocker locker(&mutex);
-    qDebug()<<"2D: emit requestSave";
-    emit requestSave(target2D);
-    qDebug()<<"conditionSave.wait(&mutex);";
-    conditionSave.wait(&mutex);
-    qDebug()<<"waked up by conditionSave";
-    //auto-unlock by locker
+    this->coreData->appendPoint();
 }
 
+int Point2DModel::rowCount(const QModelIndex &parent) const
+{
+    if (!parent.isValid())
+        return this->coreData->size();
+    else if (this->indexMeansImage(parent))
+        return this->coreData->pointCount();
+    else
+        return 0;
+}
+
+int Point2DModel::columnCount(const QModelIndex &parent) const
+{
+    if (!parent.isValid())
+        return 3;
+    else if (this->indexMeansImage(parent))
+        return 3;
+    else
+        return 0;
+}
+
+QVariant Point2DModel::data(const QModelIndex &index, int role) const
+{
+    if (index.isValid() && (role == Qt::DisplayRole || role == Qt::EditRole)) {
+        if (this->indexMeansImage(index)) {
+            if (index.column() == 0)
+                return this->coreData->getName(index.row());
+        } else {
+            int idximg = (int)index.internalId()-1;
+            QPointF p = this->coreData->getPoint(idximg, index.row());
+            if (index.column() == 1) return p.x();
+            if (index.column() == 2) return p.y();
+        }
+    }
+    return QVariant();
+}
+
+bool Point2DModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (index.isValid() && (role == Qt::DisplayRole || role == Qt::EditRole)) {
+        if (this->indexMeansPoint(index)) {
+            int idximg = (int)index.internalId()-1;
+            QPointF p = this->coreData->getPoint(idximg, index.row());
+            if (index.column() == 1) p.setX(qvariant_cast<double>(value));
+            if (index.column() == 2) p.setY(qvariant_cast<double>(value));
+            this->coreData->setPoint(idximg, index.row(), p);
+            return true;
+        }
+    }
+    return false;
+}
+
+QVariant Point2DModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if (role != Qt::DisplayRole) return QVariant();
+    if (orientation == Qt::Horizontal) {
+        switch (section) {
+        case 0:
+            return tr("Image");
+            break;
+        case 1:
+            return tr("X");
+            break;
+        case 2:
+            return tr("Y");
+            break;
+        default:
+            break;
+        }
+    }
+    return QVariant();
+}
+
+ImageListWithPoint2D *Point2DModel::core()
+{
+    return this->coreData;
+}
 
 QModelIndex Point2DModel::index(int row, int column, const QModelIndex &parent) const
 {
-    QModelIndex newParent=parent;
-    if(!parent.isValid()){
-        newParent=indexFromItem( invisibleRootItem());
+    // here we use the internalId as a parent Identifier
+    if (!parent.isValid()) {
+        return this->createIndex(row, column, rootId);
+    } else if (this->indexMeansImage(parent)) {
+        quintptr rowImagePlusOne = parent.row()+1;
+        return this->createIndex(row, column, rowImagePlusOne);
     }
-    return QStandardItemModel::index(row,column,newParent);
+}
+
+QModelIndex Point2DModel::parent(const QModelIndex &child) const
+{
+    if (this->indexMeansImage(child)) {
+        return QModelIndex();
+    } else if (this->indexMeansPoint(child)) {
+        int imageRow = child.internalId()-1;
+        return this->createIndex(imageRow, 0, rootId);
+    }
+    return QModelIndex();
 }
 
 Qt::ItemFlags Point2DModel::flags(const QModelIndex &index) const
 {
-    if(index.isValid()){
-        return Qt::ItemIsSelectable|Qt::ItemIsEnabled;
+    if (index.isValid()) {
+        if (this->indexMeansPoint(index)) {
+            if (index.column() >= 1 && index.column() <= 2)
+                return Qt::ItemIsSelectable|Qt::ItemIsEnabled|Qt::ItemIsEditable;
+        } else {
+            return Qt::ItemIsSelectable|Qt::ItemIsEnabled;
+        }
     }
     return 0;
 }
 
-
-void Point2DModel::imagesInserted(const QModelIndex &/*parent*/, int first, int last)
+void Point2DModel::onPointChanged(int indexImg, int indexPoint)
 {
-    int pointCount=0;
-    if(rowCount()>0){
-        pointCount=item(0)->rowCount();
+    QModelIndex imgId = this->index(indexImg, 0);
+    QModelIndex ptId1 = this->index(indexPoint, 1, imgId);
+    QModelIndex ptId2 = this->index(indexPoint, 2, imgId);
+    emit dataChanged(ptId1, ptId2);
+}
+
+void Point2DModel::onPointRemoved(int indexPoint)
+{
+    for (int i = 0; i < this->coreData->size(); ++i) {
+        QModelIndex imgId = this->index(i, 0);
+        beginRemoveRows(imgId, indexPoint, indexPoint);
+        endRemoveRows();
     }
-    for(int i=first;i<=last;++i){
-        QModelIndex id=imageModel->index(i);
-        QString s=qvariant_cast<QString>(imageModel->data(id,Qt::DisplayRole));
-        QStandardItem* imageItem=new QStandardItem(s);
-        QList<QStandardItem*> imageList;
-        imageList.append(imageItem);
-        imageList.append(new QStandardItem);
-        imageList.append(new QStandardItem);
-        insertRow(i,imageList);
-        for(int j=0;j<pointCount;j++){
-            QStandardItem *item1=new QStandardItem(tr("Point"));
-            QStandardItem *item2=new QStandardItem("0");
-            QStandardItem *item3=new QStandardItem("0");
-            QList<QStandardItem*> list;
-            list.append(item1);
-            list.append(item2);
-            list.append(item3);
+}
 
-            imageItem->appendRow(list);
-        }
+void Point2DModel::onPointAppended()
+{
+    int first = this->coreData->pointCount();
+    for (int i = 0; i < this->coreData->size(); ++i) {
+        QModelIndex imgId = this->index(i, 0);
+        beginInsertRows(imgId, first, first);
+        endInsertRows();
     }
-
 }
 
-void Point2DModel::imagesRemoved(const QModelIndex &/*parent*/, int first, int last)
+void Point2DModel::onPointSwaped(int indexPoint1, int indexPoint2)
 {
-    removeRows(first,last-first+1);
-}
-
-void Point2DModel::imagesChanged(const QModelIndex &topLeft)
-{
-    int row=topLeft.row();
-    Q_ASSERT(row<rowCount());
-    QString s=qvariant_cast<QString>(imageModel->data(topLeft,Qt::DisplayRole));
-    item(row)->setText(s);
-}
-
-void Point2DModel::prepareTarget2D()
-{
-    QMutexLocker locker(&mutex);
-    preparedTarget2D.clear();
-    int rows=rowCount();
-    int points=item(0)->rowCount();
-    for(int i=0;i<rows;++i){
-        preparedTarget2D.append(QList<QPointF>());
-        QList<QPointF>& l=preparedTarget2D.last();
-        for(int j=0;j<points;j++){
-            QPointF p;
-            p.setX(item(i)->child(j,1)->text().toDouble());
-            p.setY(item(i)->child(j,2)->text().toDouble());
-            l.append(p);
-        }
+    for (int i = 0; i < this->coreData->size(); ++i) {
+        QModelIndex imgId = this->index(i, 0);
+        QModelIndex ptId1 = this->index(indexPoint1, 1, imgId);
+        QModelIndex ptId2 = this->index(indexPoint2, 2, imgId);
+        emit dataChanged(ptId1, ptId2);
     }
-    conditionGet.wakeAll();
 }
 
-void Point2DModel::saveTarget2D(const Target2D &target2D)
+void Point2DModel::onImageChanged(int indexImg)
 {
-    QMutexLocker locker(&mutex);
-    makeEmpty();
-    int rows=target2D.size();
-    if(rows==0)return;
-    int points=target2D.first().size();
-    for(int i=0;i<rows;++i){
-        insertRow(i);
-        QList<QPointF>& l=preparedTarget2D[i];
-        QStandardItem *parent=invisibleRootItem()->child(i);
-        for(int j=0;j<points;++j){
-            double x=l.value(j).x();
-            double y=l.value(j).y();
-            QStandardItem *item1=new QStandardItem(tr("Point"));
-            QStandardItem *item2=new QStandardItem(QString::number(x));
-            QStandardItem *item3=new QStandardItem(QString::number(y));
-            QList<QStandardItem*> list;
-            list.append(item1);
-            list.append(item2);
-            list.append(item3);
-            parent->appendRow(list);
-        }
-    }
-    conditionSave.wakeAll();
+    QModelIndex imgId = this->index(indexImg, 0);
+    emit dataChanged(imgId, imgId);
 }
 
+void Point2DModel::onImageAppended()
+{
+    int size = this->coreData->size();
+    beginInsertRows(QModelIndex(), size, size);
+    endInsertRows();
+}
+
+void Point2DModel::onDataReset()
+{
+    beginResetModel();
+    endResetModel();
+}
+
+bool Point2DModel::indexMeansImage(const QModelIndex &index) const
+{
+    return index.isValid() && index.internalId() == rootId;
+}
+
+bool Point2DModel::indexMeansPoint(const QModelIndex &index) const
+{
+    return index.isValid() && index.internalId() > rootId;
+}

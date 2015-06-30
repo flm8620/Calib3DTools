@@ -1,150 +1,178 @@
 #include "distortion.h"
+#include <cmath>
 using concurrent::ReadLock;
 using concurrent::WriteLock;
 
-Distortion::Distortion(const double* original, size_t size) :
-    values(size), delegates(*this)
 
+Distortion::Distortion()
 {
-    for(size_t i=0; i<size; i++) values[i] = original[i];
 }
 
-Distortion::Distortion(const std::vector<double> &other) :
-    values(other), delegates(*this)
+bool Distortion::isEmpty()
 {
-
+    ReadLock locker(this->rwLock);
+    return this->value._size == 0;
 }
 
-Distortion::Distortion(const Distortion& other) :
-    Distortion( (other.rwLock.lockForRead(), other.values) )
+int Distortion::maxOrder() const
 {
-    other.rwLock.unlock();
+    ReadLock locker(this->rwLock);
+    return this->value._maxOrder;
 }
 
-double Distortion::value(size_t index, double defaultValue) const
+void Distortion::setMaxOrder(int maxOrder)
 {
-    ReadLock lock(this->rwLock);
-    return values.size()>index ? values[index] : defaultValue;
+    {
+        WriteLock locker(this->rwLock);
+        this->value.setMaxOrder(maxOrder);
+    }
+    this->_dataChangedEvent.trigger();
 }
 
 int Distortion::size() const
 {
-    ReadLock lock(this->rwLock);
-    return values.size();
+    ReadLock locker(this->rwLock);
+    return this->value._size;
 }
 
-void Distortion::set(size_t index, double value)
+void Distortion::XYfromIdx(int idx, int &degX, int &degY)
 {
-    WriteLock lock( this->rwLock );
+    int j = std::ceil((std::sqrt(9+8*idx)-1)/2);
+    degY = idx-(j-1)*j/2;
+    degX = j-1-degY;
+}
 
-    if(index>=this->values.size()) {
+int Distortion::idxFromXY(int degX, int degY)
+{
+    return (1+degX+degY)*(degX+degY)/2+degY;
+}
 
-        this->values.resize( index+1 );
-        this->values[index] = value;
-        lock.unlock();
-        this->_dataSizeChangedEvent.trigger(index+1);
+DistortionValue Distortion::getValue() const
+{
+    ReadLock locker(this->rwLock);
+    return this->value;
+}
 
-    } else if(value != this->values[index]) {
-
-        this->values[index] = value;
-        lock.unlock();
-        this->_dataChangedEvent.trigger(index,index);
-
+bool Distortion::setValue(const DistortionValue &value)
+{
+    {
+        WriteLock locker(this->rwLock);
+        if (!value.isValid())
+            return false;
+        this->value = value;
     }
+    this->_dataChangedEvent.trigger();
+    return true;
 }
 
-void Distortion::copyItem(const Distortion& from, size_t fromIndex, size_t toIndex, size_t count)
+bool Distortion::setXParamVector(const std::vector<double> &xVector)
 {
-    ReadLock srcLock( from.rwLock );
-    WriteLock lock( this->rwLock );
+    {
+        WriteLock locker(this->rwLock);
+        if (xVector.size() != this->value._size) return false;
+        for (int i = 0; i < value._size; ++i)
+            this->value._XYData.at(i).first = xVector[i];
+    }
+    this->_dataChangedEvent.trigger();
+    return true;
+}
 
-    size_t fromSize = from.values.size();
-    if( fromIndex+count>=fromSize )
-        count = fromSize - fromIndex;
-    if( count<=0 )
+bool Distortion::setYParamVector(const std::vector<double> &yVector)
+{
+    {
+        WriteLock locker(rwLock);
+        if (yVector.size() != this->value._size) return false;
+        for (int i = 0; i < value._size; ++i)
+            this->value._XYData.at(i).second = yVector[i];
+    }
+    this->_dataChangedEvent.trigger();
+    return true;
+}
+
+void Distortion::setXParam(double value, int degX, int degY)
+{
+    {
+        WriteLock locker(rwLock);
+        this->value._XYData[idxFromXY(degX, degY)].first = value;
+    }
+    this->_dataChangedEvent.trigger();
+}
+
+void Distortion::setYParam(double value, int degX, int degY)
+{
+    {
+        WriteLock locker(rwLock);
+        this->value._XYData[idxFromXY(degX, degY)].second = value;
+    }
+    this->_dataChangedEvent.trigger();
+}
+
+void Distortion::setXParam(double value, int idx)
+{
+    {
+        WriteLock locker(rwLock);
+        this->value._XYData[idx].first = value;
+    }
+    this->_dataChangedEvent.trigger();
+}
+
+void Distortion::setYParam(double value, int idx)
+{
+    {
+        WriteLock locker(rwLock);
+        this->value._XYData[idx].second = value;
+    }
+    this->_dataChangedEvent.trigger();
+}
+
+int Distortion::xParam(int degX, int degY) const
+{
+    ReadLock locker(rwLock);
+    return this->value._XYData[idxFromXY(degX, degY)].first;
+}
+
+int Distortion::yParam(int degX, int degY) const
+{
+    ReadLock locker(rwLock);
+    return this->value._XYData[idxFromXY(degX, degY)].second;
+}
+
+double Distortion::xParam(int idx) const
+{
+    ReadLock locker(rwLock);
+    return this->value._XYData[idx].first;
+}
+
+double Distortion::yParam(int idx) const
+{
+    ReadLock locker(rwLock);
+    return this->value._XYData[idx].second;
+}
+
+void Distortion::clear()
+{
+    this->setMaxOrder(-1);
+}
+
+DistortionValue::DistortionValue()
+{
+    this->setMaxOrder(-1);
+}
+
+void DistortionValue::setMaxOrder(int maxOrder)
+{
+    this->_XYData.clear();
+    if (maxOrder < 0) {
+        this->_maxOrder = -1;
+        this->_size = 0;
         return;
-
-    if(toIndex+count>=this->values.size()) {
-
-        size_t newSize = toIndex+count+1;
-        this->values.resize( newSize );
-        for(size_t i=0, t=toIndex, f=fromIndex; i<count; i++,t++,f++) this->values[t] = from.values[f];
-        lock.unlock();
-        srcLock.unlock();
-        this->_dataSizeChangedEvent.trigger( newSize );
-
-    } else {
-
-        for(size_t i=0, t=toIndex, f=fromIndex; i<count; i++,t++,f++) this->values[t] = from.values[f];
-        lock.unlock();
-        srcLock.unlock();
-        this->_dataChangedEvent.trigger( toIndex, toIndex+count-1 );
     }
+    this->_maxOrder = maxOrder;
+    this->_size = (2+maxOrder)*(1+maxOrder)/2;
+    for (int i = 0; i < this->_size; ++i) this->_XYData.push_back(std::make_pair(0.0, 0.0));
 }
 
-double Distortion::atomicAdd(size_t index, double addend)
+bool DistortionValue::isValid() const
 {
-    WriteLock lock( this->rwLock );
-
-    double result;
-    if(index>=this->values.size()) {
-        this->values.resize( index+1 );
-        this->values[index]=addend;
-        lock.unlock();
-        result = addend;
-        this->_dataSizeChangedEvent.trigger(index+1);
-    } else {
-        result = this->values[index] += addend;
-        lock.unlock();
-        this->_dataChangedEvent.trigger(index, index);
-    }
-    return result;
-}
-
-double Distortion::atomicAdd(size_t index, const Distortion& addend, size_t addendIndex)
-{
-    ReadLock srcLock( addend.rwLock );
-    return addend.values.size()>addendIndex ?
-                this->atomicAdd(index, addend.values[addendIndex]) :
-                this->value(index);
-}
-
-double Distortion::atomicSubstract(size_t index, const Distortion& subtrahend, size_t subtrahendIndex)
-{
-    ReadLock srcLock( subtrahend.rwLock );
-    return subtrahend.values.size()>subtrahendIndex ?
-                this->atomicAdd(index, -subtrahend.values[subtrahendIndex]) :
-                this->value(index);
-}
-
-
-int Distortion::atomicCompare(size_t index, const Distortion& other, size_t otherIndex) const
-{
-    ReadLock srcLock( other.rwLock );
-    ReadLock lock(this->rwLock);
-    double thisValue = values.size()>index ? values[index] : 0;
-    double otherValue = other.values.size()>otherIndex ? other.values[otherIndex] : 0;
-    return thisValue==otherValue ? 0 : thisValue>otherValue ? 1 : -1;
-}
-
-Distortion::ItemDelegate* Distortion::DelegateDealer::get(size_t index)
-{
-    auto it = this->find(index);
-    if(it != this->end())
-        return it->second;
-
-    WriteLock lock(this->parent.rwLock);
-    it = this->find(index);
-    if(it != this->end())
-         return it->second;
-
-    return (*this)[index] = new ItemDelegate(this->parent, index);
-}
-
-Distortion::DelegateDealer::~DelegateDealer()
-{
-    WriteLock lock(this->parent.rwLock);
-    for( auto it = this->begin(); it!=this->end(); ++it)
-        delete it->second;
-    this->clear();
+    return _size == this->sizeFromMaxOrder(_maxOrder) && _XYData.size() == _size;
 }

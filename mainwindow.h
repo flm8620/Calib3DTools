@@ -4,67 +4,67 @@
 #include "imagelistmodel.h"
 #include "imagelistwidget.h"
 #include "distortionmodel.h"
+#include "distortionwidget.h"
 #include "kmatrixmodel.h"
-#include "point2dwidget.h"
+#include "kmatrixwidget.h"
 #include "point2dmodel.h"
-#include "point3dwidget.h"
 #include "point3dmodel.h"
+#include "imageviewer.h"
+#include "tabwidget.h"
+#include "messager.h"
 #include "console.h"
+#include "consolewidget.h"
+#include "markerimageview.h"
 #include "solver.h"
 
 #include <QMainWindow>
 
-class MainWindow : public QMainWindow, public Messager
+class MainWindow : public QMainWindow, public libMsg::Messager
 {
     Q_OBJECT
 
 public:
     MainWindow(QWidget *parent = 0);
 
-    void message( const char *content, MessageType type );
+    void message(std::string content, libMsg::MessageType type);
 
 signals:
-    void message(QString s,bool warning=false);
+    void messageSignal(QString s, libMsg::MessageType type);
 
-private slots:
-    void startSolve();
 private:
-    void setupPhotoWidgets();
+    void setupPhotoModels();
+    void setupPointModels();
     void setupKMatrixWidget();
     void setupDistortionWidgets();
-    void setupPointWidgets();
 
 private:
-    Solver * solver;
-    ImageListWidget* photoWidget;
-    ImageListWidget* photoCircleWidget;
-    ImageListWidget* photoHarpWidget;
-    ImageListWidget* noDistortion_photoWidget;
-    ImageListWidget* noDistortion_photoCircleWidget;
-    ImageListWidget* noDistortion_photoHarpWidget;
+    Solver *solver;
+    TabWidget *tabWidget;
 
-    ImageListModel* photoModel;
-    ImageListModel* photoCircleModel;
-    ImageListModel* photoHarpModel;
-    ImageListModel* noDistortion_photoModel;
-    ImageListModel* noDistortion_photoCircleModel;
-    ImageListModel* noDistortion_photoHarpModel;
+    ImageListModel *photoModel;
+    ImageListModel *photoCircleModel;
+    ImageListModel *photoHarpModel;
+    ImageListModel *circleFeedbackModel;
+    ImageListModel *harpFeedbackModel;
+    ImageListModel *undistortedPhotoModel;
+    ImageListModel *undistortedCircleModel;
+    ImageListModel *undistortedHarpModel;
 
-    Console* console;
-    Console& con;
+    ImageListWithPoint2D *imagePoint2DCore;
 
-    DistortionModel* distModel;
-    QTableView* distView;
-    QWidget* distWidget;
+    MarkerImageView *markerViewer;
+    ImageViewer *imageViewer;
 
-    KMatrixModel* kModel;
-    QTableView* kView;
-    QWidget* kWidget;
+    ConsoleWidget *consoleWidget;
 
-    Point2DWidget* point2DWidget;
-    Point2DModel* point2DModel;
-    Point3DModel* point3DModel;
-    Point3DWidget* point3DWidget;
+    DistortionModel *distModel;
+    DistortionWidget *distWidget;
+
+    KMatrixModel *kModel;
+    KMatrixWidget *kWidget;
+
+    Point2DModel *point2DModel;
+    Point3DModel *point3DModel;
 };
 
 #endif // MAINWINDOW_H
