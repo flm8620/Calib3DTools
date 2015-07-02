@@ -389,6 +389,7 @@ bool Solver::correctPhoto()
 {
     if (this->undistortedPhotoPoint2DList->isEmpty()) {
         this->message("Correct distortion for photos...");
+        qint64 start = QDateTime::currentMSecsSinceEpoch();
         if (this->distortion->isEmpty()) {
             this->message("Didn't find distortion polynomial!");
             return false;
@@ -419,6 +420,7 @@ bool Solver::correctPhoto()
             ++k;
         }
         this->undistortedPhotoPoint2DList->setContent(resultList);
+        libMsg::cout << static_cast<double>(QDateTime::currentMSecsSinceEpoch()-start)/1000. <<"Seconds spent."<<libMsg::endl;
         this->message("Distortion correction of photo finished.");
     } else {
         this->message("Undistorted photos already exist, please remove them.");
@@ -434,6 +436,7 @@ bool Solver::correctCircle()
             this->message("No circle photo found !", M_WARN);
             return false;
         }
+        qint64 start = QDateTime::currentMSecsSinceEpoch();
         QList<QPair<QString, QImage> > correctionList;
         QList<QPair<QString, QImage> > resultList;
         this->circleList->getContent(correctionList);
@@ -452,6 +455,7 @@ bool Solver::correctCircle()
             ++k;
         }
         this->undistortedCircleList->setContent(resultList);
+        libMsg::cout << static_cast<double>(QDateTime::currentMSecsSinceEpoch()-start)/1000. <<"Seconds spent."<<libMsg::endl;
         this->message("Distortion correction of photo finished.");
     } else {
         this->message("Undistorted circle photos already exist, please remove them.");
@@ -463,6 +467,7 @@ bool Solver::correctCircle()
 bool Solver::calculateDistortion()
 {
     if (this->distortion->isEmpty()) {
+        qint64 start = QDateTime::currentMSecsSinceEpoch();
         this->message("Starting calculation of distortion polynomial...");
 
         if (this->harpList->isEmpty()) {
@@ -478,6 +483,7 @@ bool Solver::calculateDistortion()
             this->message("Distortion calculated by program turns out to be corrupted");
             return false;
         }
+        libMsg::cout << static_cast<double>(QDateTime::currentMSecsSinceEpoch()-start)/1000. <<"Seconds spent."<<libMsg::endl;
         this->message("Distortion calculated");
     } else {
         this->message(
@@ -490,6 +496,7 @@ bool Solver::calculateK()
 {
     if (this->kMatrix->isEmpty()) {
         this->message("Starting calculation of Matrix K");
+        qint64 start = QDateTime::currentMSecsSinceEpoch();
         if (this->undistortedCircleList->isEmpty()) {
             this->message(
                 "Didn't find undistorted circle photo. Please load them,"
@@ -502,6 +509,7 @@ bool Solver::calculateK()
         if (!calculateKFromImages(this->undistortedCircleList,this->circleFeedbackList, kValue))
             return false;
         this->kMatrix->setValue(kValue);
+        libMsg::cout << static_cast<double>(QDateTime::currentMSecsSinceEpoch()-start)/1000. <<"Seconds spent."<<libMsg::endl;
         this->message("Matrix K generated");
         return true;
     } else {

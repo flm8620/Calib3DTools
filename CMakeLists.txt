@@ -6,6 +6,7 @@ project(mainInterface)
 #Qt5
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
+#set(CMAKE_BUILD_TYPE Debug)
 find_package(Qt5Widgets)
 find_package(Qt5Concurrent)
 #Qt5

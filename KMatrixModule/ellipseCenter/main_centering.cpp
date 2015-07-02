@@ -304,7 +304,7 @@ bool keypnts_circle(const ImageGray<double> &img, vector<T> &x, vector<T> &y, ve
     libMsg::cout<<"finding connected components... "<<libMsg::endl;
     std::vector<CCStats> ccstats;
     CC(ccstats, imgbi);
-    libMsg::cout<<"number of connected components: [ "<<ccstats.size()<<" ]"<<libMsg::endl;
+    libMsg::cout<<"number of connected components: [ "<<static_cast<unsigned>(ccstats.size())<<" ]"<<libMsg::endl;
     libMsg::cout<<"centers initialization is done "<<libMsg::endl;
 
     int ntaches = ccstats.size();

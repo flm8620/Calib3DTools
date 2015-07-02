@@ -22,7 +22,7 @@ static double cross2D(vector<double> v1, vector<double> v2)
     return v1(0)*v2(1)-v2(0)*v1(1);
 }
 
-static convexHull(matrix<double>&circles,
+static void convexHull(matrix<double>&circles,
                   std::vector<vector<double> >&hullPoints, std::vector<int> &hullIndex){
     // convex hull
     // Gift wrapping algorithm with collinear case
