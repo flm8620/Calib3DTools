@@ -140,6 +140,7 @@ static bool distortionFromImages(ImageList *imageList, ImageList *feedbackList,
         return false;
     PolyOrderConvert_Lib2Qt(polynome, order);
     polynome2DistortionValue(out, polynome, order);
+
     QList<QPair<QString, QImage> > feedback;
     for (int i = 0; i < snapshot.size(); ++i) {
         QString name = snapshot[i].first+" Feedback";
@@ -206,17 +207,27 @@ static bool correctDistortion(const QImage &imageIn, QImage &out, Distortion *di
     return true;
 }
 
-static bool calculateKFromImages(ImageList *circlePhotoList, KValue &kValue)
+static bool calculateKFromImages(ImageList *circlePhotoList,ImageList *feedbackList, KValue &kValue)
 {
     QList<QPair<QString, QImage> > snapshot;
     circlePhotoList->getContent(snapshot);
     if (snapshot.size() == 0) return false;
     std::vector<QImage> stdImageList;
+    std::vector<QImage> feedback;
     for (int i = 0; i < snapshot.size(); ++i)
         stdImageList.push_back(snapshot[i].second);
     double alpha, beta, gamma, u0, v0;
-    if (!KMatrixSolve::KMatrixSolver(stdImageList, alpha, beta, gamma, u0, v0, 3.0, 1.0))
-        return false;
+
+    bool ok=KMatrixSolve::KMatrixSolver(stdImageList,feedback, alpha, beta, gamma, u0, v0, 3.0, 1.0);
+
+    QList<QPair<QString, QImage> > tempFeedback;
+    for(int i=0;i<feedback.size();++i){
+        tempFeedback.push_back(qMakePair(QString("Feedback_%1").arg(1+i),feedback[i]));
+    }
+    feedbackList->clear();
+    feedbackList->setContent(tempFeedback);
+
+    if(!ok)return false;
     kValue = {alpha, beta, gamma, u0, v0};
     return true;
 }
@@ -488,7 +499,7 @@ bool Solver::calculateK()
             this->message("Undistorted circle photo loaded.");
         }
         KValue kValue;
-        if (!calculateKFromImages(this->undistortedCircleList, kValue))
+        if (!calculateKFromImages(this->undistortedCircleList,this->circleFeedbackList, kValue))
             return false;
         this->kMatrix->setValue(kValue);
         this->message("Matrix K generated");
