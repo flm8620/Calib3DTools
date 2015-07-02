@@ -16,56 +16,49 @@ Solver::Solver(QObject *parent) : QObject(parent)
 {
 }
 
-/**
- * @brief PolyOrderConvert_Qt2Lib
- * @param poly
- * @param maxOrder
- * a : order in numeric lib
- * b : order in Qt
- * a0 * x^0*y^0    b0 * x^3*y^0
- * a1 * x^1*y^0    b1 * x^2*y^1
- * a2 * x^0*y^1    b2 * x^1*y^2
- * a3 * x^2*y^0    b3 * x^0*y^3
- * a4 * x^1*y^1    b4 * x^2*y^0
- * a5 * x^0*y^2    b5 * x^1*y^1
- * a6 * x^3*y^0    b6 * x^0*y^2
- * a7 * x^2*y^1    b7 * x^1*y^0
- * a8 * x^1*y^2    b8 * x^0*y^1
- * a9 * x^0*y^3    b9 * x^0*y^0
- */
-static bool PolyOrderConvert_Qt2Lib(std::vector<double> &poly, int maxOrder)
-{
-    if (poly.size() != (maxOrder+1)*(maxOrder+2)/2*2) return false;
-    std::vector<double> lib(poly.size());
-    int sizexy = poly.size()/2;
-    int qPos = 0, libPos = sizexy;
-    // Poly for X
-    for (int order = 0; order <= maxOrder; ++order) {
-        int numCoef = order+1;
-        libPos -= numCoef;
-        for (int j = 0; j < numCoef; ++j) {
-            lib[libPos] = poly[qPos];
-            libPos++;
-            qPos++;
-        }
-        libPos -= numCoef;
-    }
-    // Poly for Y
-    qPos = sizexy;
-    libPos = sizexy*2;
-    for (int order = 0; order <= maxOrder; ++order) {
-        int numCoef = order+1;
-        libPos -= numCoef;
-        for (int j = 0; j < numCoef; ++j) {
-            lib[libPos] = poly[qPos];
-            libPos++;
-            qPos++;
-        }
-        libPos -= numCoef;
-    }
-    poly = lib;
-    return true;
-}
+//deprecated
+///**
+// * @brief PolyOrderConvert_Qt2Lib
+// * @param poly
+// * @param maxOrder
+// * a : order in numeric lib
+// * b : order in Qt
+// * a0 * x^0*y^0    b0 * x^3*y^0
+// *                 b1 * x^2*y^1
+// * a1 * x^1*y^0    b2 * x^1*y^2
+// * a2 * x^0*y^1    b3 * x^0*y^3
+// *
+// * a3 * x^2*y^0    b4 * x^2*y^0
+// * a4 * x^1*y^1    b5 * x^1*y^1
+// * a5 * x^0*y^2    b6 * x^0*y^2
+// *
+// * a6 * x^3*y^0    b7 * x^1*y^0
+// * a7 * x^2*y^1    b8 * x^0*y^1
+// * a8 * x^1*y^2
+// * a9 * x^0*y^3    b9 * x^0*y^0
+// */
+//static bool PolyOrderConvert_Qt2Lib(Bi<std::vector<double> > &poly)
+//{
+//    size_t polysize =poly.x.size(), ysize =poly.y.size();
+//    int maxOrder = (isqrt(8*polysize+1) - 1)/2-1;
+//    if (polysize != (maxOrder+1)*(maxOrder+2)/2 || polysize!=ysize)
+//        return false;
+
+//    poly.x.reserve(polysize*2-maxOrder-1);
+//    poly.y.reserve(polysize*2-maxOrder-1);
+//    std::vector<double>::const_iterator xbegin = poly.x.cbegin(), ybegin = poly.y.cbegin();
+//    for(int order = maxOrder-1; order>=0; order--)
+//        for(int i=0, idx = (order*(order+1)/2); i<=order; i++, idx++) {
+//            poly.x.push_back(poly.x[idx]);
+//            poly.y.push_back(poly.y[idx]);
+//        }
+//    int newtop = maxOrder*(maxOrder+1)/2;
+//    poly.x.erase( xbegin, xbegin + newtop );
+//    poly.y.erase( ybegin, ybegin + newtop );
+//    poly.x.shrink_to_fit();
+//    poly.y.shrink_to_fit();
+//    return true;
+//}
 
 static bool PolyOrderConvert_Lib2Qt(std::vector<double> &poly, int maxOrder)
 {
@@ -101,15 +94,15 @@ static bool PolyOrderConvert_Lib2Qt(std::vector<double> &poly, int maxOrder)
     return true;
 }
 
-static void distortionValue2Polynome(const DistortionValue &distValue,
-                                     std::vector<double> &polynome)
+static void distortionValue2Polynome(const DistortionValue &distValue, Bi<std::vector<double> > &polynome)
 {
-    polynome.clear();
+    polynome.x.clear();
+    polynome.y.clear();
     Q_ASSERT(distValue.isValid());
-    for (int i = 0; i < distValue._size; ++i)
-        polynome.push_back(distValue._XYData[i].first);
-    for (int i = 0; i < distValue._size; ++i)
-        polynome.push_back(distValue._XYData[i].second);
+    for (int i = 0; i < distValue._size; ++i) {
+        polynome.x.push_back( distValue._XYData[i].first );
+        polynome.y.push_back( distValue._XYData[i].second );
+    }
 }
 
 static void polynome2DistortionValue(DistortionValue &distValue,
@@ -182,23 +175,24 @@ static bool correctDistortion(const QImage &imageIn, QImage &out, Distortion *di
         libMsg::cout<<"DistortionCorrection: distortion polynomail is empty!"<<libMsg::endl;
         return false;
     }
-    std::vector<double> polynome;
-    QImage result;
+    Bi<std::vector<double> > polynome;
     distortionValue2Polynome(distValue, polynome);
-    PolyOrderConvert_Qt2Lib(polynome, distValue._maxOrder);
+//    bool success = PolyOrderConvert_Qt2Lib(polynome);
+//    Q_ASSERT(success);
 
+    QImage result;
     if (imageIn.isGrayscale()) {
         libMsg::cout<<"Color type: Gray scale "<<libMsg::endl;
         ImageGray<double> in, out;
         QImage2ImageDouble(imageIn, in);
-        if (!DistortionModule::distortionCorrect(in, out, polynome, distortion->maxOrder()))
+        if (!DistortionModule::distortionCorrect(in, out, polynome))
             return false;
         ImageDouble2QImage(out, result);
     } else {
         libMsg::cout<<"Color type: RGB "<<libMsg::endl;
         ImageRGB<double> in, out;
         QColorImage2ImageDoubleRGB(imageIn, in);
-        if (!DistortionModule::distortionCorrect_RGB(in, out, polynome, distortion->maxOrder()))
+        if (!DistortionModule::distortionCorrect_RGB(in, out, polynome))
             return false;
         ImageDoubleRGB2QColorImage(out, result);
     }

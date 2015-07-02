@@ -22,15 +22,6 @@
 #include "image.h"
 //#include "libLWImage/LWImage.h"
 
-/* fast integral power function */
-inline double ipow(double x, int power)
-{
-    unsigned abs = power<0 ? -power:power;
-    double result;
-    for (result=1.0; abs!=0; abs>>=1, x*=x) if( abs&1 ) result *= x;
-    return power<0 ? 1.0/result : result;
-}
-
 bool prepare_spline(ImageGray<double>& image, int order);
 bool prepare_spline_RGB(ImageRGB<double> &image, int order);
 bool interpolate_spline(const ImageGray<double> &im, int order,

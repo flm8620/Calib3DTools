@@ -117,29 +117,25 @@ T image_RMSE(int length_thresh, double down_factor, ImageGray<double> &image)
 }
 
 /* Given an image and a correction polynomial. Apply it to every pixel and save result to output folder */
-void correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_order,
-                   const vector<double> &poly_params_inv, const int degX, const int degY)
+static void correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_order,
+                   const Bi<std::vector<double>> &poly_params_inv)
+
 {
-    /* read the data */
-    int sizex = (degX + 1) * (degX + 2) / 2;
-    int sizey = (degY + 1) * (degY + 2) / 2;
-    vector<double> paramsX = poly_params_inv.copyRef(0, sizex-1);
-    vector<double> paramsY = poly_params_inv.copyRef(sizex, sizex+sizey-1);
     libMsg::cout<<"\n Undistorted image is being calculated... \n"<<libMsg::endl;
-    int wi = in.xsize(), he = in.ysize();
-    double xp = (double)wi/2+0.2, yp = (double)he/2+0.2;
+    size_t wi = in.xsize(), he = in.ysize();
+    Vector2D origin = { static_cast<double>(wi)/2+0.2, static_cast<double>(he)/2+0.2 };
     out.resize(wi, he);
+
     libMsg::cout << "[" << libMsg::flush;
     clock_t start=clock();
     prepare_spline(in, spline_order);
-    double clrR;
     for (int y = 0; y < he; y++) {
         for (int x = 0; x < wi; x++) {
             /* do the correction for every pixel */
-            double p1 = 0, p2 = 0;
-            undistortPixel(p1, p2, paramsX, paramsY, x, y, xp, yp, degX, degY);
-            if (!interpolate_spline(in, spline_order, p1, p2, clrR))
-                clrR = 0;
+            Vector2D poisition = undistortPixel( poly_params_inv, {static_cast<double>(x)-origin.x, static_cast<double>(y)-origin.y});
+            double clrR;
+            if(!interpolate_spline(in, spline_order, poisition.x+origin.x, poisition.y+origin.y, clrR))
+                clrR = 0.;
             clrR = std::min(std::max(clrR, 0.), 255.);
             out.pixel(x, y) = clrR;
         }
@@ -155,26 +151,20 @@ void correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_ord
 }
 
 void correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int spline_order,
-                       const vector<double> &poly_params_inv, const int degX, const int degY)
+                       const Bi<std::vector<double> > &poly_params_inv)
 {
-    /* read the data */
-    int sizex = (degX + 1) * (degX + 2) / 2;
-    int sizey = (degY + 1) * (degY + 2) / 2;
-    vector<double> paramsX = poly_params_inv.copyRef(0, sizex-1);
-    vector<double> paramsY = poly_params_inv.copyRef(sizex, sizex+sizey-1);
     libMsg::cout<<"\n Undistorted image is being calculated... \n"<<libMsg::endl;
-    int wi = in.xsize(), he = in.ysize();
-    double xp = (double)wi/2+0.2, yp = (double)he/2+0.2;
+    size_t wi = in.xsize(), he = in.ysize();
+    Vector2D origin = { static_cast<double>(wi)/2+0.2, static_cast<double>(he)/2+0.2 };
     out.resize(wi, he);
     libMsg::cout << "[" << libMsg::flush;
     prepare_spline_RGB(in, spline_order);
     for (int y = 0; y < he; y++) {
         for (int x = 0; x < wi; x++) {
             /* do the correction for every pixel */
-            double p1 = 0, p2 = 0;
-            undistortPixel(p1, p2, paramsX, paramsY, x, y, xp, yp, degX, degY);
+            Vector2D poisition = undistortPixel( poly_params_inv, {static_cast<double>(x)-origin.x, static_cast<double>(y)-origin.y});
             double R, G, B;
-            interpolate_spline_RGB(in, spline_order, p1, p2, R, G, B);
+            interpolate_spline_RGB(in, spline_order, poisition.x+origin.x, poisition.y+origin.y, R,G,B);
             R = std::min(std::max(R, 0.), 255.);
             G = std::min(std::max(G, 0.), 255.);
             B = std::min(std::max(B, 0.), 255.);
@@ -234,29 +224,17 @@ int coefIdx(int degree, int x, int y)
 /*----------------------------------------------------------------------------*/
 
 bool DistortionModule::distortionCorrect_RGB(ImageRGB<double> &in, ImageRGB<double> &out,
-                                             std::vector<double> &polynome, int order)
+                                             const Bi<std::vector<double> > &polynome)
 {
-    if ((order+1)*(order+2)/2*2 != polynome.size()) return false;
-    vector<double> poly(polynome.size());
-    int size = poly.size();
-    for (int i = 0; i < size; ++i)
-        poly[i] = polynome[i];
-    int spline_order = 5;
-    correct_image_RGB(in, out, spline_order, poly, order, order);
+    correct_image_RGB(in, out, 5, polynome);
     return true;
 }
 
 bool DistortionModule::distortionCorrect(ImageGray<double> &in, ImageGray<double> &out,
-                                         std::vector<double> &polynome, int order)
+                                         const Bi<std::vector<double>> &polynome)
 {
-    if ((order+1)*(order+2)/2*2 != polynome.size()) return false;
-    vector<double> poly(polynome.size());
-    int size = poly.size();
-    for (int i = 0; i < size; ++i)
-        poly[i] = polynome[i];
-    int spline_order = 5;
     // need double
-    correct_image(in, out, spline_order, poly, order, order);
+    correct_image(in, out, 5, polynome);
     return true;
 }
 
