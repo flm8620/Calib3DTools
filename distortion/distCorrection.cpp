@@ -228,8 +228,8 @@ static void correctRGBSegment(const ImageRGB<double> *in, ImageRGB<double> *out,
             /* do the correction for every pixel */
             Vector2D poisition = undistortPixel( *poly_params_inv, {static_cast<double>(x)-origin.x, static_cast<double>(y)-origin.y});
             double R, G, B;
-            if(!interpolate_spline_RGB(*in, spline_order, poisition.x+origin.x, poisition.y+origin.y, clrR))
-                clrR = 0.;
+            if(!interpolate_spline_RGB(*in, spline_order, poisition.x+origin.x, poisition.y+origin.y, R, G, B))
+                R = G = B = 0.;
             R = std::min(std::max(R, 0.), 255.);
             G = std::min(std::max(G, 0.), 255.);
             B = std::min(std::max(B, 0.), 255.);
@@ -285,7 +285,7 @@ static void correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int s
 
     atomic_int progress;
     libMsg::cout << "[" << libMsg::flush;
-    size_t wi = in.xsize(), he = in.ysize();
+
     prepare_spline_RGB(in, spline_order);
 
     //divide image into 100row segments, and correct concurrentlly.
