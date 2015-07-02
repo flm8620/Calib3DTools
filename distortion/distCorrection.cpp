@@ -33,7 +33,10 @@
 // libLineDetection
 #include "gaussian_convol_on_curve.h"
 #include "straight_edge_points.h"
+#include "../Concurrent/simplethreadpool.h"
 
+#include <atomic>
+#include <thread>
 #include <iostream>
 #include <ctime>
 
@@ -116,69 +119,193 @@ T image_RMSE(int length_thresh, double down_factor, ImageGray<double> &image)
     return rmse;
 }
 
+
+using std::atomic_int;
+using std::memory_order_relaxed;
+using std::memory_order_acquire;
+
+static void correctSegment(const ImageGray<double> *in, ImageGray<double> *out,
+                      const Bi<std::vector<double>> *poly_params_inv,
+                      const int spline_order, const int startRow, const int rowCount,
+                      atomic_int *progress, const bool reportProgress = false)
+{
+    const size_t wi = in->xsize(), he = in->ysize();
+    const Vector2D origin = { static_cast<double>(wi)/2+0.2, static_cast<double>(he)/2+0.2 };
+    int lastPercentage = 0;
+    for (int y =startRow, i =rowCount; i>0; y++, i--) {
+        for (int x = 0; x < wi; x++) {
+            /* do the correction for every pixel */
+            Vector2D poisition = undistortPixel( *poly_params_inv, {static_cast<double>(x)-origin.x, static_cast<double>(y)-origin.y});
+            double clrR;
+            if(!interpolate_spline(*in, spline_order, poisition.x+origin.x, poisition.y+origin.y, clrR))
+                clrR = 0.;
+            clrR = std::min(std::max(clrR, 0.), 255.);
+            out->pixel(x, y) = clrR;
+        }
+        if(!reportProgress) {
+            progress->fetch_add(1, memory_order_relaxed);
+        } else {
+            /* output progress */
+            int percent = (progress->fetch_add(1) +1) *100 / he;
+            if(percent!=lastPercentage) {
+                if ((percent%20)==0)
+                    libMsg::cout << percent << "%" << libMsg::flush;
+                else if ((percent%4)==0)
+                    libMsg::cout << "." << libMsg::flush;
+                lastPercentage =percent;
+            }
+        }
+    }
+
+    if(reportProgress) {
+        int done, last=0;
+        while((done = progress->load(memory_order_acquire)) < he) {
+            if(last!=done) {
+                last = done;
+                int percent = done *100 / he;
+                if(percent!=lastPercentage) {
+                    if ((percent%20)==0)
+                        libMsg::cout << percent << "%" << libMsg::flush;
+                    else if ((percent%4)==0)
+                        libMsg::cout << "." << libMsg::flush;
+                    lastPercentage = percent;
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        libMsg::cout << "100%" << libMsg::flush;
+    }
+}
+
+const static int TASK_BATCH_SIZE = 100;
 /* Given an image and a correction polynomial. Apply it to every pixel and save result to output folder */
 static void correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_order,
                    const Bi<std::vector<double>> &poly_params_inv)
-
 {
+    auto startTime = std::chrono::high_resolution_clock::now();
+
     libMsg::cout<<"\n Undistorted image is being calculated... \n"<<libMsg::endl;
     size_t wi = in.xsize(), he = in.ysize();
-    Vector2D origin = { static_cast<double>(wi)/2+0.2, static_cast<double>(he)/2+0.2 };
     out.resize(wi, he);
 
+    atomic_int progress;
     libMsg::cout << "[" << libMsg::flush;
-    clock_t start=clock();
     prepare_spline(in, spline_order);
-    for (int y = 0; y < he; y++) {
-        for (int x = 0; x < wi; x++) {
-            /* do the correction for every pixel */
-            Vector2D poisition = undistortPixel( poly_params_inv, {static_cast<double>(x)-origin.x, static_cast<double>(y)-origin.y});
-            double clrR;
-            if(!interpolate_spline(in, spline_order, poisition.x+origin.x, poisition.y+origin.y, clrR))
-                clrR = 0.;
-            clrR = std::min(std::max(clrR, 0.), 255.);
-            out.pixel(x, y) = clrR;
-        }
-        /* output progress */
-        int percent = ((double)y / (double)he)*100;
-        if (!(y % (int)(0.2*he))) libMsg::cout << (int)percent+1 << "%" << libMsg::flush;
-        else if (!(y % (int)(0.04*he))) libMsg::cout << "." << libMsg::flush;
+
+    //divide image into 100row segments, and correct concurrentlly.
+    int row =0;
+    progress.store(0);
+
+    while(row + TASK_BATCH_SIZE<he) {
+        auto poly = poly_params_inv;
+        concurrent::SimpleThreadPool::DEFAULT
+                .start(&correctSegment, (const ImageGray<double>*)(&in), &out,
+                       &poly_params_inv,spline_order, row, TASK_BATCH_SIZE, &progress, false);
+        row += TASK_BATCH_SIZE;
     }
-    libMsg::cout << "] " << libMsg::flush;
-    libMsg::cout<<" Done, " <<
-                  static_cast<double>(clock()-start) / CLOCKS_PER_SEC <<
+
+//    correct the rest segment and report progress.
+    correctSegment(&in,&out, &poly_params_inv, spline_order, row, he - row, &progress, true);
+
+
+
+    libMsg::cout<<"] Done, " <<
+                  std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() -startTime).count() *1e-3 <<
                   " Seconds spent." << libMsg::endl;
 }
 
-void correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int spline_order,
-                       const Bi<std::vector<double> > &poly_params_inv)
+static void correctRGBSegment(const ImageRGB<double> *in, ImageRGB<double> *out,
+                      const Bi<std::vector<double>> *poly_params_inv,
+                      const int spline_order, const int startRow, const int rowCount,
+                      atomic_int *progress, const bool reportProgress = false)
 {
-    libMsg::cout<<"\n Undistorted image is being calculated... \n"<<libMsg::endl;
-    size_t wi = in.xsize(), he = in.ysize();
-    Vector2D origin = { static_cast<double>(wi)/2+0.2, static_cast<double>(he)/2+0.2 };
-    out.resize(wi, he);
-    libMsg::cout << "[" << libMsg::flush;
-    prepare_spline_RGB(in, spline_order);
-    for (int y = 0; y < he; y++) {
+    const size_t wi = in->xsize(), he = in->ysize();
+    const Vector2D origin = { static_cast<double>(wi)/2+0.2, static_cast<double>(he)/2+0.2 };
+    int lastPercentage = 0;
+    for (int y =startRow, i =rowCount; i>0; y++, i--) {
         for (int x = 0; x < wi; x++) {
             /* do the correction for every pixel */
-            Vector2D poisition = undistortPixel( poly_params_inv, {static_cast<double>(x)-origin.x, static_cast<double>(y)-origin.y});
+            Vector2D poisition = undistortPixel( *poly_params_inv, {static_cast<double>(x)-origin.x, static_cast<double>(y)-origin.y});
             double R, G, B;
-            interpolate_spline_RGB(in, spline_order, poisition.x+origin.x, poisition.y+origin.y, R,G,B);
+            if(!interpolate_spline_RGB(*in, spline_order, poisition.x+origin.x, poisition.y+origin.y, clrR))
+                clrR = 0.;
             R = std::min(std::max(R, 0.), 255.);
             G = std::min(std::max(G, 0.), 255.);
             B = std::min(std::max(B, 0.), 255.);
-            out.pixel_R(x, y) = R;
-            out.pixel_G(x, y) = G;
-            out.pixel_B(x, y) = B;
+            out->pixel_R(x, y) = R;
+            out->pixel_G(x, y) = G;
+            out->pixel_B(x, y) = B;
         }
-        /* output progress */
-        int percent = ((double)y / (double)he)*100;
-        if (!(y % (int)(0.2*he))) libMsg::cout << (int)percent+1 << "%" << libMsg::flush;
-        else if (!(y % (int)(0.04*he))) libMsg::cout << "." << libMsg::flush;
+        if(!reportProgress) {
+            progress->fetch_add(1, memory_order_relaxed);
+        } else {
+            /* output progress */
+            int percent = (progress->fetch_add(1) +1) *100 / he;
+            if(percent!=lastPercentage) {
+                if ((percent%20)==0)
+                    libMsg::cout << percent << "%" << libMsg::flush;
+                else if ((percent%4)==0)
+                    libMsg::cout << "." << libMsg::flush;
+                lastPercentage =percent;
+            }
+        }
     }
-    libMsg::cout << "] " << libMsg::flush;
-    libMsg::cout<<" done \n"<<libMsg::endl;
+
+    if(reportProgress) {
+        int done, last=0;
+        while((done = progress->load(memory_order_acquire)) < he) {
+            if(last!=done) {
+                last = done;
+                int percent = done *100 / he;
+                if(percent!=lastPercentage) {
+                    if ((percent%20)==0)
+                        libMsg::cout << percent << "%" << libMsg::flush;
+                    else if ((percent%4)==0)
+                        libMsg::cout << "." << libMsg::flush;
+                    lastPercentage = percent;
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        libMsg::cout << "100%" << libMsg::flush;
+    }
+}
+
+static void correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int spline_order,
+                       const Bi<std::vector<double> > &poly_params_inv)
+{
+    libMsg::cout<<"\n Undistorted image is being calculated... \n"<<libMsg::endl;
+    auto startTime = std::chrono::high_resolution_clock::now();
+
+    libMsg::cout<<"\n Undistorted image is being calculated... \n"<<libMsg::endl;
+    size_t wi = in.xsize(), he = in.ysize();
+    out.resize(wi, he);
+
+    atomic_int progress;
+    libMsg::cout << "[" << libMsg::flush;
+    size_t wi = in.xsize(), he = in.ysize();
+    prepare_spline_RGB(in, spline_order);
+
+    //divide image into 100row segments, and correct concurrentlly.
+    int row =0;
+    progress.store(0);
+
+    while(row + TASK_BATCH_SIZE<he) {
+        auto poly = poly_params_inv;
+        concurrent::SimpleThreadPool::DEFAULT
+                .start(&correctRGBSegment, (const ImageRGB<double>*)(&in), &out,
+                       &poly_params_inv,spline_order, row, TASK_BATCH_SIZE, &progress, false);
+        row += TASK_BATCH_SIZE;
+    }
+
+    //correct the rest segment and report progress.
+    correctRGBSegment(&in,&out, &poly_params_inv, spline_order, row, he - row, &progress, true);
+
+    libMsg::cout<<"] Done, " <<
+                  std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() -startTime).count() *1e-3 <<
+                  " Seconds spent." << libMsg::endl;
 }
 
 /* Pop out one character from char array */
