@@ -11,6 +11,7 @@
 #include "ellipse_operations.h"
 #include "qimageconvert.h"
 #include <QImage>
+#include <QPainter>
 #include <iostream>
 #include <sstream>
 #include <utility>
@@ -195,8 +196,8 @@ static bool sortCircles(matrix<double> &circles, int &nRow, int &nCol /*, QImage
     UV_corner(0, 3) = corner4[0];
     UV_corner(1, 3) = corner4[1];
 
-    matrix<double> H ;
-    if(!solveHomography(XY_corner, UV_corner,H))
+    matrix<double> H;
+    if (!solveHomography(XY_corner, UV_corner, H))
         return false;
     matrix<double> UV_1 = H * XY_1;
     matrix<double> UV(2, nCircle);
@@ -269,36 +270,74 @@ static void rotateGridRight(matrix<double> &grid, int nRow, int nCol)
     }
 }
 
-bool KMatrixSolve::KMatrixSolver(std::vector<QImage> imageList, double &alpha, double &beta,
-                                 double &gamma, double &u0, double &v0, double seperation,
-                                 double radius)
+bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QImage> &feedbackList,
+                                 double &alpha, double &beta, double &gamma, double &u0, double &v0,
+                                 double seperation, double radius)
 {
     int nImage = imageList.size();
     std::vector<matrix<double> > Ellipse_centers;
-    int nCircle;
+    int nCircleOf1stImage;
     int nRow, nCol;
+    feedbackList.clear();
     for (int i = 0; i < nImage; ++i) {
         vector<double> x, y, r;
+        std::vector<vector<double> > P;
         {
             ImageGray<double> imageDouble;
             QImage2ImageDouble(imageList[i], imageDouble);
-            detectEllipseCenters(imageDouble, x, y, r, 1.0);
+            if (!detectEllipseCenters(imageDouble, x, y, r, P, 1.0)) return false;
         }
+        /*P[0] = 1.0/rayon;                           /* lambda1      */
+        /*P[1] = (std::sqrt(lambda1/lambda2))/rayon;  /* lambda2		*/
+        /*P[2] = std::atan2(sx2/ss-lambda1, -sxy/ss);     /* alpha        */
+        /*P[3] = x;           /* tu           */
+        /*P[4] = y;           /* tv           */
+        /*P[5] = 0.25;        /* rayon cercle 1       */
+        /*P[6] = -2.0;        /* pente            */
+        /*P[7] = 0.25;        /* rayon cercle 2       */
+        /*P[8] = val_haut;    /* val_haut         */
+        /*P[9] = val_bas;     /* val_bas          */
+        /*P[10] = 1.0;    /* position step    */
+        Ellipse_centers.push_back(matrix<double>::zeros(2, x.size()));
+        matrix<double> &centers = Ellipse_centers.back();
+        for (int j = 0; j < x.size(); ++j) {
+            centers(0, j) = x(j);
+            centers(1, j) = y(j);
+        }
+        // draw feedback
+        QImage image;
+        image = imageList[i].convertToFormat(QImage::Format_RGB32);
+        QPainter painter(&image);
+        painter.setRenderHint(QPainter::Antialiasing);
+        for (int j = 0; j < x.size(); j++) {
+            double xx = x(j);
+            double yy = y(j);
+            double r1 = 1/P[j](0);
+            double r2 = 1/P[j](1);
+            double alpha = P[j](2);
+            painter.setPen(Qt::red);
+            painter.resetTransform();
+            painter.translate(xx, yy);
+            painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
+
+            painter.rotate(-alpha/3.14159265358979323*180);
+            painter.setPen(Qt::red);
+            painter.drawLine(QPointF(-r1, 0), QPointF(r1, 0));
+            painter.setPen(Qt::green);
+            painter.drawLine(QPointF(0, -r2), QPointF(0, r2));
+        }
+        feedbackList.push_back(image);
+        // end draw feedback
         if (i == 0) {
-            nCircle = x.size();
-        } else if (x.size() != nCircle) {
+            nCircleOf1stImage = x.size();
+        } else if (x.size() != nCircleOf1stImage) {
             libMsg::cout<<"The number of circles detected in Image_"<<i<<" is "<<x.size()
                         <<
                 " , which is different from last image! Please check. Algorithm terminates"
                         <<libMsg::endl;
             return false;
         }
-        Ellipse_centers.push_back(matrix<double>::zeros(2, nCircle));
-        matrix<double> &centers = Ellipse_centers.back();
-        for (int j = 0; j < nCircle; ++j) {
-            centers(0, j) = x(j);
-            centers(1, j) = y(j);
-        }
+
         int nRow_i, nCol_i;
         if (!sortCircles(centers, nRow_i, nCol_i)) return false;
         if (i == 0) {
@@ -317,7 +356,7 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> imageList, double &alpha, d
         }
     }
     libMsg::cout<<"nRow="<<nRow<<" nCol="<<nCol<<libMsg::endl;
-    std::vector<matrix<double> > S(nCircle);
+    std::vector<matrix<double> > S(nCircleOf1stImage);
     int cnt = 0;
     for (int i = 0; i < nRow; ++i) {
         for (int j = 0; j < nCol; ++j) {

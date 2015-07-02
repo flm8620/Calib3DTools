@@ -8,20 +8,13 @@
 ImageListView::ImageListView(QWidget *parent) :
     QListView(parent)
 {
+    connect(this,SIGNAL(clicked(QModelIndex)),this,SLOT(imageClicked(QModelIndex)));
 }
 
 void ImageListView::setModel(ImageListModel *model)
 {
     this->imageModel = model;
     QListView::setModel(model);
-}
-
-void ImageListView::currentChanged(const QModelIndex &current, const QModelIndex &previous)
-{
-    int row=current.row();
-    QImage image=this->imageModel->core()->getImage(row);
-    emit imageToDisplay(image);
-    QListView::currentChanged(current,previous);
 }
 
 void ImageListView::openImage()
@@ -109,4 +102,11 @@ void ImageListView::openInViewer()
 void ImageListView::clear()
 {
     this->imageModel->clear();
+}
+
+void ImageListView::imageClicked(QModelIndex index)
+{
+    int row=index.row();
+    QImage image=this->imageModel->core()->getImage(row);
+    emit imageToDisplay(image);
 }
