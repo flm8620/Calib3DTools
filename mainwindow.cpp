@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     setupPhotoModels();
     setupPointModels();
+    setupCamPosModel();
     setupKMatrixWidget();
     setupDistortionWidgets();
 
@@ -22,13 +23,13 @@ MainWindow::MainWindow(QWidget *parent) :
                                  undistortedCircleModel->core(), undistortedHarpModel->core(),
                                  harpFeedbackModel->core(),
                                  circleFeedbackModel->core(), distModel->core(),
-                                 kModel->core(), point3DModel->core(), this);
+                                 kModel->core(), point3DModel->core(),camPosModel->core(), this);
 
     tabWidget = new TabWidget;
     tabWidget->connectToSolver(this->solver);
     tabWidget->registerModel(photoHarpModel, harpFeedbackModel, photoCircleModel,
                              undistortedCircleModel, circleFeedbackModel, photoModel,
-                             undistortedPhotoModel, point2DModel, point3DModel);
+                             undistortedPhotoModel, point2DModel, point3DModel,camPosModel);
 
     this->markerViewer=new MarkerImageView(this);
     this->imageViewer = new ImageViewer(this);
@@ -91,12 +92,16 @@ void MainWindow::setupPointModels()
     point3DModel = new Point3DModel(this);
 }
 
+void MainWindow::setupCamPosModel()
+{
+    this->camPosModel=new CamPosModel(this);
+}
+
 void MainWindow::setupKMatrixWidget()
 {
     this->kModel = new KMatrixModel(this);
     this->kWidget=new KMatrixWidget(this);
     this->kWidget->setModel(this->kModel);
-    this->kWidget->getView()->setItemDelegate(new ScienceDoubleDelegate);
 }
 
 void MainWindow::setupDistortionWidgets()
@@ -104,5 +109,4 @@ void MainWindow::setupDistortionWidgets()
     distModel = new DistortionModel(this);
     distWidget = new DistortionWidget(this);
     distWidget->setModel(distModel);
-    distWidget->getView()->setItemDelegate(new ScienceDoubleDelegate);
 }

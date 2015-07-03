@@ -27,6 +27,11 @@ Point2DModel::Point2DModel(QObject *parent) :
     connect(this->coreData, SIGNAL(dataReset()), this, SLOT(onDataReset()));
 }
 
+void Point2DModel::clear()
+{
+    this->coreData->clearPoint();
+}
+
 void Point2DModel::setCoreData(ImageListWithPoint2D *core)
 {
     if (this->coreData) {

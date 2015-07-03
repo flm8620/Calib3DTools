@@ -22,6 +22,8 @@ public:
     QPointF getPoint(int indexImg,int indexPoint)const;
     void setPoint(int indexImg,int indexPoint,QPointF p);
     void getPointsInImage(int indexImg,QList<QPointF>& list);
+    void getAllPoints(QList<QList<QPointF> >& out);
+    void setAllPoints(QList<QList<QPointF> >& in);
     void appendPoint();
 signals:
     void pointChanged(int indexImg,int indexPoint);

@@ -59,7 +59,7 @@ class Distortion : public QObject
 public:
     Distortion(QObject *parent = 0);
 
-    bool isEmpty();
+    bool isEmpty() const;
 
     int maxOrder() const;
 

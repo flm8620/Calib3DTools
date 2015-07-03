@@ -18,7 +18,12 @@ public slots:
     void removePoint();
     void moveUp();
     void moveDown();
+    void saveFile();
+    void loadFile();
+    void clear();
 private:
+    bool savePoint2D(const QStringList &list);
+    bool loadPoint2D(const QStringList &list);
     QModelIndex getFirstSelectedItem();
     Point2DModel *model;
     Point2DView *view;

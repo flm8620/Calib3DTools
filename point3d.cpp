@@ -71,3 +71,18 @@ void Point3D::setPoint(int index, QVector3D point)
     }
     emit dataChanged();
 }
+
+void Point3D::getContent(QList<QVector3D> &out)
+{
+    QReadLocker locker(&this->rwLock);
+    out=this->_data;
+}
+
+void Point3D::setContent(QList<QVector3D> &in)
+{
+    {
+        QWriteLocker locker(&this->rwLock);
+        this->_data=in;
+    }
+    emit dataChanged();
+}
