@@ -1,5 +1,5 @@
 #include "qimageconvert.h"
-void ImageDouble2QImage(ImageGray<double> &in, QImage &out)
+void ImageDouble2QImage(const ImageGray<double> &in, QImage &out)
 {
     int w = in.xsize(), h = in.ysize();
     out = QImage(w, h, QImage::Format_RGB32);
