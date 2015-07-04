@@ -133,7 +133,7 @@ static void UniformSample(int sizeSample,
  *
  * @return (errorMax, minNFA)
  */
-static printError(const std::vector<ErrorIndex>& e){
+static void printError(const std::vector<ErrorIndex>& e){
     for(int i=0;i<e.size();++i){
         const ErrorIndex& error=e[i];
         std::cout<<error.first<<","<<error.second<<std::endl;

@@ -19,7 +19,7 @@ static const size_t ACRANSAC_ITER = 10;
 #include <vector>
 #include <iomanip>
 using namespace std;
-static printdouble(const char *s, double a){
+static void printdouble(const char *s, double a){
     std::cout<<s<<std::setprecision(16)<<a<<" "<<std::hex<<*reinterpret_cast<long long *>(&a)
              <<std::endl;
 }

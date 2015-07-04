@@ -33,12 +33,8 @@ class ostream
 {
 public:
     ostream(Messager * &msg);
-    ostream &operator<<(const char *value);
-    ostream &operator<<(std::string value);
-    ostream &operator<<(double value);
-    ostream &operator<<(int value);
-    ostream &operator<<(unsigned int value);
-    ostream &operator<<(char value);
+    template<typename T>
+    ostream& operator<<(const T& value) { ss<<value; return *this; }
     ostream &operator<<(ostream & (*manipFunc)(ostream &));
     ostream &flush();
     ostream &endl();

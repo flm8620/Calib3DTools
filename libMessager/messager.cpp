@@ -18,42 +18,6 @@ ostream::ostream(Messager * &msg) : receiverMsg(msg),
     ss.precision(doublePrecision);
 }
 
-ostream &ostream::operator<<(const char *value)
-{
-    ss<<value;
-    return *this;
-}
-
-ostream &ostream::operator<<(std::string value)
-{
-    ss<<value;
-    return *this;
-}
-
-ostream &ostream::operator<<(double value)
-{
-    ss<<value;
-    return *this;
-}
-
-ostream &ostream::operator<<(int value)
-{
-    ss<<value;
-    return *this;
-}
-
-ostream &ostream::operator<<(unsigned int value)
-{
-    ss<<value;
-    return *this;
-}
-
-ostream &ostream::operator<<(char value)
-{
-    ss<<value;
-    return *this;
-}
-
 ostream &ostream::operator<<(ostream & (*manipFunc)(ostream &))
 {
     return (*manipFunc)(*this);
