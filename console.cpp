@@ -25,23 +25,18 @@ void Console::messageReceiver(QString s, libMsg::MessageType msgType)
         break;
     case libMsg::M_INFO:
         this->setFontWeight(QFont::Bold);
-
+        this->setTextColor(Qt::black);
         this->insertPlainText(s+"\n");
-        this->setFontWeight(QFont::Normal);
         break;
     case libMsg::M_WARN:
         this->setFontWeight(QFont::Bold);
         this->setTextColor(Qt::darkYellow);
         this->insertPlainText(s+"\n");
-        this->setTextColor(Qt::black);
-        this->setFontWeight(QFont::Normal);
         break;
     case libMsg::M_ERROR:
         this->setFontWeight(QFont::Bold);
         this->setTextColor(Qt::red);
         this->insertPlainText(s+"\n");
-        this->setTextColor(Qt::black);
-        this->setFontWeight(QFont::Normal);
         break;
     }
 }

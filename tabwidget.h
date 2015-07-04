@@ -2,15 +2,18 @@
 #define TABWIDGET_H
 
 #include <QtWidgets>
+#include "imagelistmodel.h"
 #include "imagelistwidget.h"
+#include "point2dmodel.h"
+#include "point2dwidget.h"
+#include "point3dmodel.h"
+#include "point3dwidget.h"
+#include "camposmodel.h"
+#include "camposwidget.h"
 #include "imageviewer.h"
 #include "solver.h"
 #include "markerimageview.h"
-class ImageListModel;
-class Point3DWidget;
-class Point2DWidget;
-class Point2DModel;
-class Point3DModel;
+
 class DistortionTab : public QWidget
 {
     Q_OBJECT
@@ -74,6 +77,14 @@ private:
     QPushButton *solveStrecha;
     QPushButton *solveOpenMVG;
 };
+class CamPosTab :public QWidget
+{
+public:
+    CamPosTab(QWidget *parent = 0);
+    void registerModel(CamPosModel* camPosModel);
+private:
+    CamPosWidget *camPosWidget;
+};
 
 class TabWidget : public QTabWidget
 {
@@ -85,7 +96,7 @@ public:
                        ImageListModel *circlePhotoModel, ImageListModel *circleCorrectedModel,
                        ImageListModel *circleFeedbackModel, ImageListModel *photoModel,
                        ImageListModel *photoCorrectedModel,
-                       Point2DModel *point2DModel, Point3DModel *point3DModel);
+                       Point2DModel *point2DModel, Point3DModel *point3DModel, CamPosModel *camPosModel);
     void connectToImageViewer(ImageViewer* viewer);
     void connectToMarkerViewer(MarkerImageView* markerViewer);
 private:
@@ -93,6 +104,7 @@ private:
     KMatrixTab *kmatrixTab;
     PhotoTab *photoTab;
     Point2D3DTab *point2d3dTab;
+    CamPosTab *camPosTab;
 };
 
 #endif // TABWIDGET_H

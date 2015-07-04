@@ -1,5 +1,5 @@
 #include "kmatrixwidget.h"
-
+#include "sciencedoubledelegate.h"
 KMatrixWidget::KMatrixWidget(QWidget *parent) : QWidget(parent)
 {
     QVBoxLayout *layout = new QVBoxLayout;
@@ -11,6 +11,7 @@ KMatrixWidget::KMatrixWidget(QWidget *parent) : QWidget(parent)
     bLay->addWidget(saveButton);
     bLay->addWidget(clearButton);
     this->view = new QTableView;
+    this->view->setItemDelegate(new ScienceDoubleDelegate);
     layout->addLayout(bLay);
     layout->addWidget(this->view);
 

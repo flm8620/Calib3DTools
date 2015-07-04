@@ -2,6 +2,6 @@
 #define MAIN_CENTERING_H
 #include "image.h"
 #include "matrix.h"
-void detectEllipseCenters(const ImageGray<double> &img, libNumerics::vector<double> &x, libNumerics::vector<double> &y, libNumerics::vector<double> &r, double scale);
+bool detectEllipseCenters(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, libNumerics::vector<double> &x, libNumerics::vector<double> &y, libNumerics::vector<double> &r, std::vector<libNumerics::vector<double> > &P, double scale);
 #endif // MAIN_CENTERING_H
 

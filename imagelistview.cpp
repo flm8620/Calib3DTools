@@ -1,5 +1,6 @@
 #include "imagelistview.h"
 #include "imageviewer.h"
+#include "messager.h"
 #include <QMessageBox>
 #include <QImage>
 #include <QFileInfo>
@@ -8,6 +9,7 @@
 ImageListView::ImageListView(QWidget *parent) :
     QListView(parent)
 {
+    connect(this, SIGNAL(clicked(QModelIndex)), this, SLOT(imageClicked(QModelIndex)));
 }
 
 void ImageListView::setModel(ImageListModel *model)
@@ -16,15 +18,7 @@ void ImageListView::setModel(ImageListModel *model)
     QListView::setModel(model);
 }
 
-void ImageListView::currentChanged(const QModelIndex &current, const QModelIndex &previous)
-{
-    int row=current.row();
-    QImage image=this->imageModel->core()->getImage(row);
-    emit imageToDisplay(image);
-    QListView::currentChanged(current,previous);
-}
-
-void ImageListView::openImage()
+void ImageListView::onOpenImage()
 {
     QFileDialog dialog(this, tr("Open Image"), QDir::currentPath());
     // QStringList formatList;
@@ -37,10 +31,19 @@ void ImageListView::openImage()
     dialog.setNameFilters(filters);
     dialog.setFileMode(QFileDialog::ExistingFiles);
     while (dialog.exec() == QDialog::Accepted)
-        if (loadImage(dialog.selectedFiles())) break;
+        if (openImage(dialog.selectedFiles())) break;
 }
 
-bool ImageListView::loadImage(const QStringList &list)
+void ImageListView::onSaveImage()
+{
+    QFileDialog dialog(this, tr("Save Image"), QDir::currentPath());
+    dialog.setFileMode(QFileDialog::Directory);
+    dialog.setOption(QFileDialog::ShowDirsOnly, true);
+    while (dialog.exec() == QDialog::Accepted)
+        if (saveImage(dialog.selectedFiles())) break;
+}
+
+bool ImageListView::openImage(const QStringList &list)
 {
     QString filePath;
     foreach (filePath, list) {
@@ -60,12 +63,37 @@ bool ImageListView::loadImage(const QStringList &list)
     return true;
 }
 
+bool ImageListView::saveImage(const QStringList &list)
+{
+    if (list.size() != 1) return false;
+    QString path = list.first();
+
+    QList<QPair<QString, QImage> > imageList;
+    this->imageModel->core()->getContent(imageList);
+    for (int i = 0; i < imageList.size(); ++i) {
+        QString name = imageList[i].first;
+        QString filepath = QDir(path).filePath(name);
+        QString suffix = QFileInfo(filepath).suffix().toLower();
+        if (suffix != tr("jpg") && suffix != tr("jpeg") && suffix != tr("bmp")) {
+            name = name+tr(".bmp");
+        }
+        QImageWriter writer(QDir(path).filePath(name));
+        if (!writer.write(imageList[i].second)) {
+            libMsg::cout<<"failed to save image: "<<QDir(path).filePath(name).toStdString()
+                        <<libMsg::endl;
+            libMsg::cout<<writer.errorString().toStdString()<<libMsg::endl;
+        }
+    }
+    return true;
+}
+
 void ImageListView::deleteImage()
 {
     QModelIndexList idList = selectionModel()->selectedRows();
     if (idList.isEmpty()) return;
     int row = idList.first().row();
     this->imageModel->deleteImage(row);
+    this->selectionModel()->select(idList.first(),QItemSelectionModel::ClearAndSelect);
 }
 
 void ImageListView::moveUp()
@@ -92,21 +120,14 @@ void ImageListView::moveDown()
     selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
 }
 
-void ImageListView::openInViewer()
-{
-    QModelIndexList idList = selectionModel()->selectedRows();
-    if (idList.isEmpty()) return;
-    int row = idList.first().row();
-    QAbstractItemModel *m = model();
-    QModelIndex id = m->index(row, 0);
-    QImage image = qvariant_cast<QImage>(m->data(id, Qt::UserRole));
-    Q_ASSERT(!image.isNull());
-    ImageViewer *viewer = new ImageViewer(image, this);
-    viewer->setWindowFlags(Qt::Window);
-    viewer->show();
-}
-
 void ImageListView::clear()
 {
     this->imageModel->clear();
+}
+
+void ImageListView::imageClicked(QModelIndex index)
+{
+    int row = index.row();
+    QImage image = this->imageModel->core()->getImage(row);
+    emit imageToDisplay(image);
 }

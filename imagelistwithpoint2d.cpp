@@ -177,9 +177,36 @@ void ImageListWithPoint2D::setPoint(int indexImg, int indexPoint, QPointF p)
 void ImageListWithPoint2D::getPointsInImage(int indexImg, QList<QPointF> &list)
 {
     QReadLocker locker(&this->rwLock);
-    if(indexImg>=0&&indexImg<this->_pointData.size()){
-        list=this->_pointData[indexImg];
+    if (indexImg >= 0 && indexImg < this->_pointData.size())
+        list = this->_pointData[indexImg];
+}
+
+void ImageListWithPoint2D::getAllPoints(QList<QList<QPointF> > &out)
+{
+    QReadLocker locker(&this->rwLock);
+    out = this->_pointData;
+}
+
+void ImageListWithPoint2D::setAllPoints(QList<QList<QPointF> > &in)
+{
+    bool ok = true;
+    {
+        QWriteLocker locker(&this->rwLock);
+        if (in.size() == this->_pointData.size()){
+            int count;
+            for(int i=0;i<in.size();++i){
+                if(i==0)count=in[i].size();
+                else if(count!=in[i].size()){
+                    return;
+                }
+            }
+            this->_pointData=in;
+        }else{
+            ok=false;
+        }
     }
+    if (ok)
+        emit dataReset();
 }
 
 void ImageListWithPoint2D::appendPoint()

@@ -143,6 +143,7 @@ void correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_ord
             clrR = std::min(std::max(clrR, 0.), 255.);
             out.pixel(x, y) = clrR;
         }
+        libMsg::abortIfAsked();
         /* output progress */
         int percent = ((double)y / (double)he)*100;
         if (!(y % (int)(0.2*he))) libMsg::cout << (int)percent+1 << "%" << libMsg::flush;
@@ -182,6 +183,7 @@ void correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int spline_o
             out.pixel_G(x, y) = G;
             out.pixel_B(x, y) = B;
         }
+        libMsg::abortIfAsked();
         /* output progress */
         int percent = ((double)y / (double)he)*100;
         if (!(y % (int)(0.2*he))) libMsg::cout << (int)percent+1 << "%" << libMsg::flush;
@@ -320,6 +322,7 @@ static void read_images(DistortedLines<T> &distLines,
         total_nb_lines += p->size;
         total_threshed_nb_lines += threshed_nb_lines;
         free_ntuple_ll(p);
+        libMsg::abortIfAsked();
     }
     // distLines.pushMemGroup((int)point_set->size);
     int countL = 0;

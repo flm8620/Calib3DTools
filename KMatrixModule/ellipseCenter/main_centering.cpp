@@ -14,6 +14,7 @@
 #include "centers.h"
 #include "abberation.h"
 
+
 using namespace libNumerics;
 void average_image(const ImageGray<double> &img, ImageGray<double> &img_avg)
 {
@@ -31,7 +32,7 @@ void average_image(const ImageGray<double> &img, ImageGray<double> &img_avg)
 }
 
 template<typename T>
-int initial_tache(const ImageGray<double> &I, vector<T> &h, T &rayon, bool color, T x, T y)
+bool initial_tache(const ImageGray<double> &I, vector<T> &h, T &rayon, bool color, T x, T y)
 {
     int COL_IMA = I.xsize();
     int LIG_IMA = I.ysize();
@@ -127,8 +128,8 @@ int initial_tache(const ImageGray<double> &I, vector<T> &h, T &rayon, bool color
         }
     }
     if (labelmin == 0) {
-        std::cout<<"pb tache trop petite (<=25 pixels)\n"<<std::endl;
-        return 1;
+        libMsg::cout<<"region too small (<=25 pixels)\n"<<libMsg::endl;
+        return false;
     }
     x = bary(labelmin, 0)/bary(labelmin, 2);
     y = bary(labelmin, 1)/bary(labelmin, 2);
@@ -145,6 +146,7 @@ int initial_tache(const ImageGray<double> &I, vector<T> &h, T &rayon, bool color
     }
     T lambda1 = ((sx2+sy2)/ss + std::sqrt(((sx2+sy2)*(sx2+sy2)+4*(sxy*sxy-sx2*sy2)))/ss)/2.0;
     T lambda2 = ((sx2*sy2-sxy*sxy)/(ss*ss))/lambda1;
+
     rayon = std::sqrt(lambda1)*2;
     h[0] = 1.0/rayon;                           /* lambda1      */
     h[1] = (std::sqrt(lambda1/lambda2))/rayon;  /* lambda2		*/
@@ -157,7 +159,8 @@ int initial_tache(const ImageGray<double> &I, vector<T> &h, T &rayon, bool color
     h[8] = val_haut;    /* val_haut         */
     h[9] = val_bas;     /* val_bas          */
     h[10] = 1.0;    /* position step    */
-    return 0;
+
+    return true;
 }
 
 template<typename T>
@@ -175,7 +178,7 @@ vector<T> trgtDataCalc(ImageGray<double> &img_avg, T cx, T cy, T delta)
     for (int v = ybegin; v <= yend; v++) {
         for (int u = xbegin; u <= xend; u++) {
             if (u >= 1 && u <= wi-2 && v >= 1 && v <= he-2)
-                trgData[idx] = img_avg.pixel(u,v);
+                trgData[idx] = img_avg.pixel(u, v);
             else
                 trgData[idx] = 255; // for 'tache noire'
             idx++;
@@ -185,7 +188,7 @@ vector<T> trgtDataCalc(ImageGray<double> &img_avg, T cx, T cy, T delta)
 }
 
 template<typename T>
-T centerLMA(const ImageGray<double> &sub_img, bool clr, T &centerX, T &centerY)
+bool centerLMA(const ImageGray<double> &sub_img, bool clr, T &centerX, T &centerY, vector<T> &Pout)
 {
     ImageGray<double> img_avg;
     average_image(sub_img, img_avg);
@@ -193,7 +196,7 @@ T centerLMA(const ImageGray<double> &sub_img, bool clr, T &centerX, T &centerY)
     int h = sub_img.ysize();
     T cx = w/2, cy = h/2, radi = 0.4*w;
     vector<T> P(11);
-    initial_tache(sub_img, P, radi, clr, cx, cy);
+    if (!initial_tache(sub_img, P, radi, clr, cx, cy)) return false;
     vector<T> trgData = trgtDataCalc<T>(img_avg, P[3], P[4], radi*2);
     LMTacheC<T> ellipseLMA(img_avg, P[3], P[4], radi*2, clr, w, h);
     T rmse = ellipseLMA.minimize(P, trgData, 0.001);
@@ -202,7 +205,8 @@ T centerLMA(const ImageGray<double> &sub_img, bool clr, T &centerX, T &centerY)
     T theta = P[2];
     centerX = P[3];
     centerY = P[4];
-    return rmse;
+    Pout = P;
+    return true;
 }
 
 template<typename T>
@@ -255,23 +259,25 @@ void img_extremas(const ImageGray<double> &img, T &min, T &max)
 }
 
 template<typename T>
-void circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, const vector<T> &r,
-                     int scale, bool clr)
+bool circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, const vector<T> &r,
+                     int scale, bool clr, std::vector<vector<T> > &Pout)
 {
     libMsg::cout<<"\nLMA center redefinition ... \n"<<libMsg::endl;
     int ntaches = x.size();
     double nextPercent = 0;
+    Pout.clear();
     for (int i = 0; i < ntaches; i++) {
         int x0, y0;
         ImageGray<double> sub_img;
         takeSubImg(img, x[i], y[i], r[i], x0, y0, sub_img);
-
+        vector<T> P;
         T cx = 0, cy = 0;
-        centerLMA<T>(sub_img, clr, cx, cy);
+        if (!centerLMA<T>(sub_img, clr, cx, cy, P)) return false;
+        libMsg::abortIfAsked();
         // std::cout<<"correction: dx="<<scale*(x0 + cx)-x[i]<<" dy="<<scale*(y0 + cy)-y[i]<<std::endl;
         x[i] = scale*(x0 + cx);
         y[i] = scale*(y0 + cy);
-
+        Pout.push_back(P);
         double percent = ((double)i / (double)ntaches)*100;
         if (percent > nextPercent) {
             libMsg::cout<<(int)nextPercent<<'%'<<libMsg::flush;
@@ -279,10 +285,12 @@ void circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, c
         }
     }
     libMsg::cout<<libMsg::endl;
+    return true;
 }
 
 template<typename T>
-void keypnts_circle(const ImageGray<double> &img, vector<T> &x, vector<T> &y, vector<T> &r, T scale)
+bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, vector<T> &x,
+                    vector<T> &y, vector<T> &r, T scale, std::vector<vector<double> > &P)
 {
     int wi = img.xsize(), he = img.ysize();
 
@@ -290,15 +298,17 @@ void keypnts_circle(const ImageGray<double> &img, vector<T> &x, vector<T> &y, ve
     T minColor = 255;
     img_extremas(img, minColor, maxColor);
     BYTE thre = (BYTE)(0.5*(maxColor-minColor));
-
-    ImageGray<BYTE> imgbi(wi, he, 255);
-    binarization(imgbi, img, thre);
+    ImageGray<BYTE> imgBi;
+    imgBi.resize(wi, he, 255);
+    imgFeedback.resize(wi,he,255,255,255);
+    binarization(imgBi, img, thre);
     // write_pgm_image_double(imgbiB, "rawdata/b.pgm");
 
     libMsg::cout<<"finding connected components... "<<libMsg::endl;
     std::vector<CCStats> ccstats;
-    CC(ccstats, imgbi);
-    libMsg::cout<<"number of connected components: [ "<<static_cast<unsigned>(ccstats.size())<<" ]"<<libMsg::endl;
+    CC(ccstats, imgBi,imgFeedback);
+    libMsg::cout<<"number of connected components: [ "<<static_cast<unsigned>(ccstats.size())
+                <<" ]"<<libMsg::endl;
     libMsg::cout<<"centers initialization is done "<<libMsg::endl;
 
     int ntaches = ccstats.size();
@@ -311,12 +321,14 @@ void keypnts_circle(const ImageGray<double> &img, vector<T> &x, vector<T> &y, ve
         r[i] = (ccstats[i].radius1+ccstats[i].radius2)/2;
     }
     bool clr = 0;
-    circle_redefine(img, x, y, r, scale, clr);
+    if (!circle_redefine(img, x, y, r, scale, clr, P)) return false;
+    return true;
 }
 
-void detectEllipseCenters(const ImageGray<double> &img, libNumerics::vector<double> &x,
-                          libNumerics::vector<double> &y, libNumerics::vector<double> &r,
+bool detectEllipseCenters(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, vector<double> &x,
+                          vector<double> &y, vector<double> &r, std::vector<vector<double> > &P,
                           double scale)
 {
-    keypnts_circle<double>(img, x, y, r, scale);
+    if (!keypnts_circle<double>(img, imgFeedback, x, y, r, scale, P)) return false;
+    return true;
 }

@@ -124,7 +124,7 @@ Point2D3DTab::Point2D3DTab(QWidget *parent) : QWidget(parent)
 
 void Point2D3DTab::connectToSolver(Solver *solver)
 {
-    // TODO
+    connect(this->solveStrecha, SIGNAL(clicked(bool)), solver, SLOT(onSolveStrecha()));
 }
 
 void Point2D3DTab::registerModel(ImageListModel *correctedModel, Point2DModel *point2DModel,
@@ -146,17 +146,32 @@ void Point2D3DTab::connectToMarkerViewer(MarkerImageView *markerViewer)
     markerViewer->setPoint2DView(this->point2DWidget->getPoint2DView());
 }
 
+CamPosTab::CamPosTab(QWidget *parent)
+{
+    this->camPosWidget=new CamPosWidget;
+    QHBoxLayout *lay=new QHBoxLayout;
+    lay->addWidget(this->camPosWidget);
+    this->setLayout(lay);
+}
+
+void CamPosTab::registerModel(CamPosModel *camPosModel)
+{
+    this->camPosWidget->setModel(camPosModel);
+}
+
 TabWidget::TabWidget(QWidget *parent) : QTabWidget(parent)
 {
     this->distortionTab = new DistortionTab;
     this->kmatrixTab = new KMatrixTab;
     this->photoTab = new PhotoTab;
     this->point2d3dTab = new Point2D3DTab;
+    this->camPosTab = new CamPosTab;
 
     this->addTab(distortionTab, tr("Distortion"));
     this->addTab(kmatrixTab, tr("KMatrix"));
     this->addTab(photoTab, tr("Photo"));
     this->addTab(point2d3dTab, tr("Point2D-3D"));
+    this->addTab(camPosTab, tr("Camera"));
 }
 
 void TabWidget::connectToSolver(Solver *solver)
@@ -172,12 +187,13 @@ void TabWidget::registerModel(ImageListModel *harpPhotoModel, ImageListModel *ha
                               ImageListModel *circleCorrectedModel,
                               ImageListModel *circleFeedbackModel, ImageListModel *photoModel,
                               ImageListModel *photoCorrectedModel, Point2DModel *point2DModel,
-                              Point3DModel *point3DModel)
+                              Point3DModel *point3DModel, CamPosModel *camPosModel)
 {
     this->distortionTab->registerModel(harpPhotoModel, harpFeedbackModel);
     this->kmatrixTab->registerModel(circlePhotoModel, circleCorrectedModel, circleFeedbackModel);
     this->photoTab->registerModel(photoModel, photoCorrectedModel);
     this->point2d3dTab->registerModel(photoCorrectedModel, point2DModel, point3DModel);
+    this->camPosTab->registerModel(camPosModel);
 }
 
 void TabWidget::connectToImageViewer(ImageViewer *viewer)

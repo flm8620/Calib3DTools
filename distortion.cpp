@@ -4,7 +4,7 @@ Distortion::Distortion(QObject *parent) : QObject(parent)
 {
 }
 
-bool Distortion::isEmpty()
+bool Distortion::isEmpty() const
 {
     QReadLocker locker(&this->rwLock);
     return this->value._size == 0;
