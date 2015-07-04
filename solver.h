@@ -57,6 +57,8 @@ private:
     Point3D *point3D;
     CameraPos *camPos;
     libMsg::Messager *messager;
+
+    QMutex processLock;
 };
 
 #endif // SOLVER_H

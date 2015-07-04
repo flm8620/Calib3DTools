@@ -14,10 +14,14 @@ MainWindow::MainWindow(QWidget *parent) :
     setupKMatrixWidget();
     setupDistortionWidgets();
 
-    this->solver = new Solver(this);
+    //console
     this->consoleWidget = new ConsoleWidget;
     connect(this, SIGNAL(messageSignal(QString, libMsg::MessageType)), consoleWidget->getConsole(),
             SLOT(messageReceiver(QString, libMsg::MessageType)));
+    connect(this->consoleWidget->getAbortButton(),SIGNAL(clicked(bool)),this,SLOT(onAbortAsked()));
+
+    //solver
+    this->solver = new Solver(this);
     this->solver->registerModels(photoModel->core(), photoCircleModel->core(),
                                  photoHarpModel->core(), this->imagePoint2DCore,
                                  undistortedCircleModel->core(), undistortedHarpModel->core(),
@@ -25,20 +29,24 @@ MainWindow::MainWindow(QWidget *parent) :
                                  circleFeedbackModel->core(), distModel->core(),
                                  kModel->core(), point3DModel->core(),camPosModel->core(), this);
 
-    tabWidget = new TabWidget;
-    tabWidget->connectToSolver(this->solver);
-    tabWidget->registerModel(photoHarpModel, harpFeedbackModel, photoCircleModel,
-                             undistortedCircleModel, circleFeedbackModel, photoModel,
-                             undistortedPhotoModel, point2DModel, point3DModel,camPosModel);
 
+    //two viewer
     this->markerViewer=new MarkerImageView(this);
     this->imageViewer = new ImageViewer(this);
     QTabWidget *centerTab=new QTabWidget;
     centerTab->addTab(this->imageViewer,"ImageViewer");
     centerTab->addTab(this->markerViewer,"Point2DViewer");
 
-    tabWidget->connectToImageViewer(this->imageViewer);
-    tabWidget->connectToMarkerViewer(this->markerViewer);
+    //tabWidget
+    this->tabWidget = new TabWidget;
+    this->tabWidget->connectToSolver(this->solver);
+    this->tabWidget->registerModel(photoHarpModel, harpFeedbackModel, photoCircleModel,
+                             undistortedCircleModel, circleFeedbackModel, photoModel,
+                             undistortedPhotoModel, point2DModel, point3DModel,camPosModel);
+    this->tabWidget->connectToImageViewer(this->imageViewer);
+    this->tabWidget->connectToMarkerViewer(this->markerViewer);
+
+
     // layout
 
     QList<int> sizes;
@@ -61,12 +69,18 @@ MainWindow::MainWindow(QWidget *parent) :
 
     this->setCentralWidget(splitter);
 
-    this->resize(1000, 800);
+    this->resize(800, 600);
+    qDebug()<<this->size();
 }
 
 void MainWindow::message(std::string content, libMsg::MessageType type)
 {
     emit this->messageSignal(QString::fromStdString(content), type);
+}
+
+void MainWindow::onAbortAsked()
+{
+    libMsg::abortFlag.requestAbort();
 }
 
 void MainWindow::setupPhotoModels()

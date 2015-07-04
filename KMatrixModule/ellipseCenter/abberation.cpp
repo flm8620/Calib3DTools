@@ -91,8 +91,7 @@ int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img)
     return cc.size();
 }
 
-
-void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi)
+void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE> &imgFeedback)
 {
     ImageGray<BYTE> img_copy(imgbi);
     double meansize = 0;
@@ -102,7 +101,6 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi)
             CCStats stats;
             int npix = extract_cc_(Pixel(i, j), ccC, img_copy);
             if (npix > 180) {
-                // showImageDouble(imgbi);
                 extract_CCStats(ccC, stats, imgbi);
                 double compactness = 4*PI*stats.nPoints / (stats.perimeter*stats.perimeter);
                 // !!compactness < 1.3 is not a good limit! I changed to 1.5 -Leman
@@ -110,6 +108,30 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi)
                              stats.radius2) > 8 && compactness < 1.5 && compactness > 0.7) {
                     ccstats.push_back(stats);
                     meansize += stats.nPoints;
+                    //draw Feedback
+                    for(int k=0;k<ccC.size();++k){
+                        Pixel p=ccC[k];
+                        imgFeedback.pixel_R(p.x,p.y)=0;
+                        imgFeedback.pixel_G(p.x,p.y)=0;
+                        imgFeedback.pixel_B(p.x,p.y)=0;
+                    }
+                }
+                else{
+                    //draw Feedback
+                    for(int k=0;k<ccC.size();++k){
+                        Pixel p=ccC[k];
+                        imgFeedback.pixel_R(p.x,p.y)=100;
+                        imgFeedback.pixel_G(p.x,p.y)=0;
+                        imgFeedback.pixel_B(p.x,p.y)=0;
+                    }
+                }
+            }else{
+                //draw Feedback
+                for(int k=0;k<ccC.size();++k){
+                    Pixel p=ccC[k];
+                    imgFeedback.pixel_R(p.x,p.y)=0;
+                    imgFeedback.pixel_G(p.x,p.y)=100;
+                    imgFeedback.pixel_B(p.x,p.y)=0;
                 }
             }
         }
@@ -120,6 +142,7 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi)
             libMsg::cout<<'.'<<libMsg::flush;
     }
     libMsg::cout<<libMsg::endl;
+    libMsg::cout<<"Region found before filter: [ "<<ccstats.size()<<" ]"<<libMsg::endl;
     // retrieve min_size and max_size to build a size histogram
     int max_val = 0;
     int rad_thre = 7;
@@ -133,30 +156,34 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi)
     // run through all the sizes and build frequency histogram
     for (int i = 0; i < ccstats.size(); i++) {
         int val = ccstats[i].nPoints-1;
-        // double compactness = 4*PI*ccstats[i].nPoints / (ccstats[i].perimeter*ccstats[i].perimeter);
-        // double r1 = ccstats[i].radius1;
-        // double r2 = ccstats[i].radius2;
-        // if (std::min(r1, r2) >= rad_thre && compactness < 1.4 && compactness > 0.6)
-        // {
         hist[val]++;
         hist_stack[val].push(i);
-        // }
     }
-// int pick = 0, commonsize = 0;
-// for (int i = 0; i < hist.size(); i++) {
-// if (pick < hist[i]) {
-// pick = hist[i];
-// commonsize = i;
-// }
-// }
-    double averageSize = 0;
-    for (int i = 0; i < ccstats.size(); ++i)
-        averageSize += ccstats[i].nPoints;
-    averageSize /= ccstats.size();
-    int commonsize = averageSize;
 
+    meansize /= ccstats.size();
+    int commonsize = meansize;
+    libMsg::cout<<"Average area of region: "<<meansize<<" pixels"<<libMsg::endl;
+    libMsg::cout<<"Max area of region: "<<max_val<<" pixels"<<libMsg::endl;
+    /*
+     *  frequency
+     *   ^
+     *   |
+     *   |
+     *   |               |
+     *   |               | |           larger than zerogap
+     *   |               | |           so we ignore A and B
+     *   |   <--->  | ||||| |   |    <--------------->
+     *   |  A     | | ||||| ||  |   |                 B
+     *   ----------------------------------------------------> size
+     *   0               ^                                10000
+     *                   |
+     *              average size
+     *   negative   <---- ---->  positive
+     *   direction               direction
+     */
     // collect the inliers in positive direction from commonsize idx
-    int zerosgap = 1700;
+
+    int zerosgap = meansize/5;
     int count = 0;
     int flag = zerosgap;
     std::vector<int> inliers(ccstats.size());
@@ -171,9 +198,11 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi)
                 // inliers.push(hist_stack[hist_idx].top());
                 hist_stack[hist_idx].pop();
             }
+            flag = zerosgap;
         }
         count++;
     }
+
     // collect the inliers in negative direction from commonsize idx
     count = -1;
     flag = zerosgap;
@@ -187,25 +216,14 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi)
                 inliers[hist_stack[hist_idx].top()] = 1;
                 hist_stack[hist_idx].pop();
             }
+            flag = zerosgap;
         }
         count--;
     }
 
-    // meansize /= ccstats.size();
+
     int idx = 0;
     while (idx < ccstats.size()) {
-        // double p = ccstats[idx].perimeter;
-        // double r1 = ccstats[idx].radius1;
-        // double r2 = ccstats[idx].radius2;
-        // double q = std::max(r1,r2) / std::min(r1,r2);
-        // double area = PI*r1*r2;
-        // double area_ = ccstats[idx].nPoints;
-        // double compactness = 4*PI*ccstats[idx].nPoints / (ccstats[idx].perimeter*ccstats[idx].perimeter);
-        // double length = 2*PI* ccstats[idx].radius;
-        // if (length >= ccstats[idx].perimeter-3 && length <= ccstats[idx].perimeter+3)
-        // if (compactness > 1.01 && compactness < 0.99 || std::min(r1,r2) <= 8)
-        // if (ccstats[idx].nPoints < 0.7*meansize || ccstats[idx].nPoints > 2.5*meansize)
-        // if ((ccstats[idx].nPoints > commonsize + 150 || ccstats[idx].nPoints < commonsize - 150) && (compactness > 1.4 || compactness < 0.6) || std::min(r1, r2) < rad_thre)
         if (inliers[idx] == 0) {
             ccstats.erase(ccstats.begin() + idx);
             inliers.erase(inliers.begin() + idx);
@@ -213,4 +231,5 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi)
             idx++;
         }
     }
+    libMsg::cout<<"Region found after filter: [ "<<ccstats.size()<<" ]"<<libMsg::endl;
 }

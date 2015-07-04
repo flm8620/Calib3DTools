@@ -22,8 +22,9 @@ static double cross2D(vector<double> v1, vector<double> v2)
     return v1(0)*v2(1)-v2(0)*v1(1);
 }
 
-static void convexHull(matrix<double>&circles,
-                  std::vector<vector<double> >&hullPoints, std::vector<int> &hullIndex){
+static void convexHull(matrix<double> &circles, std::vector<vector<double> > &hullPoints,
+                       std::vector<int> &hullIndex)
+{
     // convex hull
     // Gift wrapping algorithm with collinear case
     hullPoints.clear();
@@ -281,11 +282,12 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
     feedbackList.clear();
     for (int i = 0; i < nImage; ++i) {
         vector<double> x, y, r;
+        ImageRGB<BYTE> imgFeedback;
         std::vector<vector<double> > P;
         {
             ImageGray<double> imageDouble;
             QImage2ImageDouble(imageList[i], imageDouble);
-            if (!detectEllipseCenters(imageDouble, x, y, r, P, 1.0)) return false;
+            if (!detectEllipseCenters(imageDouble, imgFeedback, x, y, r, P, 1.0)) return false;
         }
         /*P[0] = 1.0/rayon;                           /* lambda1      */
         /*P[1] = (std::sqrt(lambda1/lambda2))/rayon;  /* lambda2		*/
@@ -306,7 +308,7 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
         }
         // draw feedback
         QImage image;
-        image = imageList[i].convertToFormat(QImage::Format_RGB32);
+        ImageByteRGB2QColorImage(imgFeedback,image);
         QPainter painter(&image);
         painter.setRenderHint(QPainter::Antialiasing);
         for (int j = 0; j < x.size(); j++) {
@@ -353,6 +355,19 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
                     rotateGridLeft(centers, nRow_i, nCol_i);
                 }
             }
+        }
+    }
+    //draw feedback for sorted index
+    for(int i=0;i<nImage;++i){
+        QPainter painter(&feedbackList[i]);
+        painter.setRenderHint(QPainter::Antialiasing);
+        for (int j = 0; j < Ellipse_centers[i].ncol(); j++) {
+            double xx = Ellipse_centers[i](0,j);
+            double yy = Ellipse_centers[i](1,j);
+            painter.setPen(Qt::green);
+            painter.resetTransform();
+            painter.translate(xx, yy+15);
+            painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
         }
     }
     libMsg::cout<<"nRow="<<nRow<<" nCol="<<nCol<<libMsg::endl;

@@ -1,7 +1,7 @@
 #ifndef CONSOLEWIDGET_H
 #define CONSOLEWIDGET_H
 
-#include <QWidget>
+#include <QtWidgets>
 #include "console.h"
 class ConsoleWidget : public QWidget
 {
@@ -9,10 +9,12 @@ class ConsoleWidget : public QWidget
 public:
     explicit ConsoleWidget(QWidget *parent = 0);
     Console* getConsole();
+    QPushButton *getAbortButton();
 signals:
 
 public slots:
 private:
+    QPushButton *abortButton;
     Console* console;
 };
 

@@ -133,6 +133,7 @@ static bool distortionFromImages(ImageList *imageList, ImageList *feedbackList,
     for (int i = 0; i < snapshot.size(); ++i)
         QImage2ImageByte(snapshot[i].second, byteImageList[i]);
 
+    libMsg::abortIfAsked();
     std::vector<double> polynome;
     int order = 11;
     std::vector<std::vector<std::vector<std::pair<double, double> > > > detectedLines;
@@ -140,11 +141,11 @@ static bool distortionFromImages(ImageList *imageList, ImageList *feedbackList,
         return false;
     PolyOrderConvert_Lib2Qt(polynome, order);
     polynome2DistortionValue(out, polynome, order);
-
     QList<QPair<QString, QImage> > feedback;
     for (int i = 0; i < snapshot.size(); ++i) {
         QString name = snapshot[i].first+" Feedback";
         QImage image = snapshot[i].second.convertToFormat(QImage::Format_RGB32);
+        checkQImageMemory(image);
         QPainter painter(&image);
         painter.setRenderHint(QPainter::Antialiasing);
         std::vector<std::vector<std::pair<double, double> > > &lines = detectedLines[i];
@@ -179,7 +180,7 @@ static bool correctDistortion(const QImage &imageIn, QImage &out, Distortion *di
         return false;
     }
     DistortionValue distValue = distortion->getValue();
-    if (!distValue.isValid() && distValue._size == 0) {
+    if (!distValue.isValid() || distValue._size == 0) {
         libMsg::cout<<"DistortionCorrection: distortion polynomail is empty!"<<libMsg::endl;
         return false;
     }
@@ -237,8 +238,8 @@ void Solver::registerModels(ImageList *photoList, ImageList *circleList, ImageLi
                             ImageListWithPoint2D *undistortedPhotoPoint2DList,
                             ImageList *undistortedCircleList, ImageList *undistortedHarpList,
                             ImageList *harpFeedbackList, ImageList *circleFeedbackList,
-                            Distortion *distortion, KMatrix *kMatrix, Point3D *point3D, CameraPos *camPos,
-                            libMsg::Messager *messager)
+                            Distortion *distortion, KMatrix *kMatrix, Point3D *point3D,
+                            CameraPos *camPos, libMsg::Messager *messager)
 {
     this->photoList = photoList;
     this->circleList = circleList;
@@ -251,7 +252,7 @@ void Solver::registerModels(ImageList *photoList, ImageList *circleList, ImageLi
     this->kMatrix = kMatrix;
     this->distortion = distortion;
     this->point3D = point3D;
-    this->camPos=camPos;
+    this->camPos = camPos;
     this->messager = messager;
 }
 
@@ -319,9 +320,9 @@ bool Solver::solveCamPos()
             pt2D.push_back(qpt2D[i].y());
         if (!Strecha::findCameraPosition(K, pt2D, pt3D, matrixR, vectorT, center))
             return false;
-        camPosValue.data.append(qMakePair(matrixR,center));
+        camPosValue.data.append(qMakePair(matrixR, center));
     }
-    if(!this->camPos->setValue(camPosValue))
+    if (!this->camPos->setValue(camPosValue))
         return false;
     return true;
 }
@@ -329,11 +330,19 @@ bool Solver::solveCamPos()
 bool Solver::calculateDistortionThread()
 {
     bool ok;
-    try{
-        ok = this->calculateDistortion();
-    }catch (MyException &bad) {
-        this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-        return false;
+    if (this->processLock.tryLock()) {
+        libMsg::abortFlag.resetFlag();
+        try{
+            ok = this->calculateDistortion();
+        }catch (MyException &bad) {
+            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
+            ok = false;
+        }
+        libMsg::abortFlag.resetFlag();
+        this->processLock.unlock();
+    } else {
+        ok = false;
+        this->message("Please wait for current job to finish", M_WARN);
     }
     return ok;
 }
@@ -341,11 +350,19 @@ bool Solver::calculateDistortionThread()
 bool Solver::calculateKThread()
 {
     bool ok;
-    try{
-        ok = this->calculateK();
-    }catch (MyException &bad) {
-        this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-        return false;
+    if (this->processLock.tryLock()) {
+        libMsg::abortFlag.resetFlag();
+        try{
+            ok = this->calculateK();
+        }catch (MyException &bad) {
+            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
+            ok = false;
+        }
+        libMsg::abortFlag.resetFlag();
+        this->processLock.unlock();
+    } else {
+        ok = false;
+        this->message("Please wait for current job to finish", M_WARN);
     }
     return ok;
 }
@@ -353,11 +370,19 @@ bool Solver::calculateKThread()
 bool Solver::correctPhotoThread()
 {
     bool ok;
-    try{
-        ok = this->correctPhoto();
-    }catch (MyException &bad) {
-        this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-        return false;
+    if (this->processLock.tryLock()) {
+        libMsg::abortFlag.resetFlag();
+        try{
+            ok = this->correctPhoto();
+        }catch (MyException &bad) {
+            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
+            ok = false;
+        }
+        libMsg::abortFlag.resetFlag();
+        this->processLock.unlock();
+    } else {
+        ok = false;
+        this->message("Please wait for current job to finish", M_WARN);
     }
     return ok;
 }
@@ -365,11 +390,19 @@ bool Solver::correctPhotoThread()
 bool Solver::correctCircleThread()
 {
     bool ok;
-    try{
-        ok = this->correctCircle();
-    }catch (MyException &bad) {
-        this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-        return false;
+    if (this->processLock.tryLock()) {
+        libMsg::abortFlag.resetFlag();
+        try{
+            ok = this->correctCircle();
+        }catch (MyException &bad) {
+            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
+            ok = false;
+        }
+        libMsg::abortFlag.resetFlag();
+        this->processLock.unlock();
+    } else {
+        ok = false;
+        this->message("Please wait for current job to finish", M_WARN);
     }
     return ok;
 }
@@ -377,11 +410,19 @@ bool Solver::correctCircleThread()
 bool Solver::solveCamPosThread()
 {
     bool ok;
-    try{
-        ok = this->solveCamPos();
-    }catch (MyException &bad) {
-        this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-        return false;
+    if (this->processLock.tryLock()) {
+        libMsg::abortFlag.resetFlag();
+        try{
+            ok = this->solveCamPos();
+        }catch (MyException &bad) {
+            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
+            ok = false;
+        }
+        libMsg::abortFlag.resetFlag();
+        this->processLock.unlock();
+    } else {
+        ok = false;
+        this->message("Please wait for current job to finish", M_WARN);
     }
     return ok;
 }
@@ -442,7 +483,7 @@ bool Solver::correctPhoto()
                     M_WARN);
                 return false;
             }
-            resultList.append(qMakePair(QString("Image_corrected_%1").arg(k+1), result));
+            resultList.append(qMakePair(QString("Photo_corrected_%1").arg(k+1), result));
             ++k;
         }
         this->undistortedPhotoPoint2DList->setContent(resultList);
@@ -478,7 +519,7 @@ bool Solver::correctCircle()
                     M_WARN);
                 return false;
             }
-            resultList.append(qMakePair(QString("ImageCircle_corrected_%1").arg(k+1), result));
+            resultList.append(qMakePair(QString("Circle_corrected_%1").arg(k+1), result));
             ++k;
         }
         this->undistortedCircleList->setContent(resultList);

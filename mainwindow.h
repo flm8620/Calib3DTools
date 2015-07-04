@@ -32,6 +32,9 @@ public:
 signals:
     void messageSignal(QString s, libMsg::MessageType type);
 
+private slots:
+    void onAbortAsked();
+
 private:
     void setupPhotoModels();
     void setupPointModels();
