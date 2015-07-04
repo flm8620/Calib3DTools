@@ -41,6 +41,12 @@
 const static unsigned UINT_MAX = std::numeric_limits<unsigned>::max();
 #endif
 
+/**
+ * @brief Compute Gaussian function value where a=c=1 and b=0
+ * @param x
+ * @return
+ */
+static inline double gaussian(double x) { return exp(-.5*x*x);}
 
 /*----------------------------------------------------------------------------*/
 /** Compute a Gaussian kernel of length 'kernel->dim',
@@ -50,94 +56,103 @@ const static unsigned UINT_MAX = std::numeric_limits<unsigned>::max();
     in the middle point between values 'kernel->values[0]'
     and 'kernel->values[1]'.
  */
-void gaussian_kernel(ntuple_list kernel, double sigma, double mean)
+void gaussian_kernel(ntuple_list kernel, const double sigma, const double mean)
 {
-    double sum = 0.0;
-    double val;
-    unsigned int i;
 
     /* check parameters */
     if (kernel == NULL || kernel->values == NULL)
         libMsg::error("gaussian_kernel: invalid n-tuple 'kernel'.");
     if (sigma <= 0.0) libMsg::error("gaussian_kernel: 'sigma' must be positive.");
 
-    /* compute Gaussian kernel */
     if (kernel->max_size < 1) enlarge_ntuple_list(kernel);
     kernel->size = 1;
-    for (i = 0; i < kernel->dim; i++) {
-        val = ((double)i - mean) / sigma;
-        kernel->values[i] = exp(-0.5 * val * val);
-        sum += kernel->values[i];
-    }
+
+    /* compute Gaussian kernel */
+    unsigned int i;
+    const double inv_sigma = 1./sigma;
+    double x, sum;
+    for (i =0, sum =0., x = -mean*inv_sigma; i < kernel->dim; i++, x+=inv_sigma)
+        sum += kernel->values[i] =  gaussian(x);
 
     /* normalization */
-    if (sum >= 0.0) for (i = 0; i < kernel->dim; i++) kernel->values[i] /= sum;
+    if (sum >= 0.0) {
+        const double inv_sum = 1./sum;
+        for (i = 0; i < kernel->dim; i++) kernel->values[i] *= inv_sum;
+    }
 }
 
+
+/*
+   The size of the kernel is selected to guarantee that the
+   the first discarted term is at least 10^PREC times smaller
+   than the central value. For that, h should be larger than x, with
+     e^(-x^2/2sigma^2) = 1/10^PREC.
+   Then,
+     OFFSET = sqrt( 2 * prec * ln(10) )
+     x = sigma * OFFSET.
+ */
+const static double PREC = 3.;
+const static double OFFSET = sqrt(2.0 * PREC * log(10.0));
+
 /*----------------------------------------------------------------------------*/
-void gaussian_filter(ImageGray<double> &image, double sigma)
+void gaussian_filter(ImageGray<double> &out, double sigma, const ImageGray<double> &in)
 {
+    const int width = in.xsize(), height = in.ysize(), double_width =2*width, double_height = 2*height;
     unsigned int x, y;
-    int offset, i, j, nx2, ny2, n;
+    int offset, i, j, kernelSize;
     ntuple_list kernel;
-    double val, prec;
 
-    if (sigma <= 0.0) libMsg::error("gaussian_filter: 'sigma; must be positive.");
-    if (!image.isValid())
+    /* check parameters */
+    if (sigma <= 0.0)
+        libMsg::error("gaussian_filter: 'sigma; must be positive.");
+    if (!in.isValid())
         libMsg::error("gaussian_filter: invalid image.");
+    if (out.xsize()!=width || out.ysize()!=height)
+        out.resize( width, height );
 
-    /* create temporary image */
-    ImageGray<double> tmp(image.xsize(), image.ysize());
+    /* create temporary pixel buffer */
+    double * const tmp = (double*)malloc(width*height*sizeof(double)), *ptmp;
+
     /* compute gaussian kernel */
-    /*
-       The size of the kernel is selected to guarantee that the
-       the first discarted term is at least 10^prec times smaller
-       than the central value. For that, h should be larger than x, with
-         e^(-x^2/2sigma^2) = 1/10^prec.
-       Then,
-         x = sigma * sqrt( 2 * prec * ln(10) ).
-     */
-    prec = 3.0;
-    offset = ceil(sigma * sqrt(2.0 * prec * log(10.0)));
-    n = 1 + 2 * offset; /* kernel size */
-    kernel = new_ntuple_list(n);
+    offset = ceil(sigma * OFFSET);
+    kernelSize = 2*offset + 1;
+    kernel = new_ntuple_list(kernelSize);
     gaussian_kernel(kernel, sigma, (double)offset);
-    /* auxiliary double image size variables */
-    nx2 = 2*image.xsize();
-    ny2 = 2*image.ysize();
+
     /* x axis convolution */
-    for (x = 0; x < image.xsize(); x++)
-        for (y = 0; y < image.ysize(); y++) {
-            val = 0.0;
-            for (i = 0; i < n; i++) {
+    for (x = 0; x < width; x++)
+        for (y = 0, ptmp = tmp+x; y < height; y++, ptmp+=width) {
+            *ptmp = 0.;
+            for (i = 0; i < kernelSize; i++) {
                 j = x - offset + i;
 
                 /* symmetry boundary condition */
-                while (j < 0) j += nx2;
-                while (j >= nx2) j -= nx2;
-                if (j >= (int)image.xsize()) j = nx2-1-j;
+                while (j < 0) j += double_width;
+                while (j >= double_width) j -= double_width;
+                if (j >= (int)width) j = double_width-1-j;
 
-                val += image.pixel(j, y) * kernel->values[i];
+                *ptmp += in.pixel(j, y) * kernel->values[i];
             }
-            tmp.pixel(x, y) = val;
         }
+
     /* y axis convolution */
-    for (x = 0; x < image.xsize(); x++)
-        for (y = 0; y < image.ysize(); y++) {
-            val = 0.0;
-            for (i = 0; i < n; i++) {
+    for (x = 0; x < width; x++)
+        for (y = 0; y < height; y++) {
+            double &pixel = out.pixel(x, y) = 0.;
+            for (i = 0; i < kernelSize; i++) {
                 j = y - offset + i;
 
                 /* symmetry boundary condition */
-                while (j < 0) j += ny2;
-                while (j >= ny2) j -= ny2;
-                if (j >= (int)image.ysize()) j = ny2-1-j;
+                while (j < 0) j += double_height;
+                while (j >= double_height) j -= double_height;
+                if (j >= (int)height) j = double_height-1-j;
 
-                val += tmp.pixel(x, j) * kernel->values[i];
+                pixel += tmp[x + j*width] * kernel->values[i];
             }
-            image.pixel(x, y) = val;
         }
+
     /* free memory */
+    free(tmp);
     free_ntuple_list(kernel);
 }
 
@@ -179,52 +194,40 @@ void gaussian_filter(ImageGray<double> &image, double sigma)
     in the x axis, and then the combined Gaussian kernel and sampling
     in the y axis.
  */
-void gaussian_sampler(const ImageGray<double> &in, double scale, double sigma_scale,
-                      ImageGray<double> &out)
+void gaussian_sampler(ImageGray<double> &out, const double scale,
+                      const double sigma_scale, const ImageGray<double> &in)
 {
-    ImageGray<double> aux;
+    const int width = in.xsize(), height = in.ysize(),
+            double_width =2*width, double_height = 2*height,
+            zoomed_width = (int)floor(width * scale),
+            zoomed_height = (int)floor(height * scale);
+    /* sigma, kernel size and memory for the kernel */
+    const double sigma = scale < 1.0 ? sigma_scale / scale : sigma_scale;
+    const unsigned int offset = (unsigned int)ceil(sigma * OFFSET);
+
     ntuple_list kernel;
-    unsigned int N, M, h, n, x, y, i;
-    int xc, yc, j, double_x_size, double_y_size;
-    double sigma, xx, yy, sum, prec;
+    int  x, y, i, j, xc, yc;
+    double xx, yy, sum;
 
     /* check parameters */
     if (!in.isValid())
         libMsg::error("gaussian_sampler: invalid image.");
-    if (scale <= 0.0) libMsg::error("gaussian_sampler: 'scale' must be positive.");
+    if (scale <= 0.0)
+        libMsg::error("gaussian_sampler: 'scale' must be positive.");
     if (sigma_scale <= 0.0)
         libMsg::error("gaussian_sampler: 'sigma_scale' must be positive.");
 
     /* get memory for images */
-    if (in.xsize() * scale > (double)UINT_MAX
-        || in.ysize() * scale > (double)UINT_MAX)
+    if (width * scale > (double)UINT_MAX
+        || height * scale > (double)UINT_MAX)
         libMsg::error("gaussian_sampler: the output image size exceeds the handled size.");
-    N = (unsigned int)floor(in.xsize() * scale);
-    M = (unsigned int)floor(in.ysize() * scale);
-    aux.resize(N, in.ysize());
-    out.resize(N, M);
 
-    /* sigma, kernel size and memory for the kernel */
-    sigma = scale < 1.0 ? sigma_scale / scale : sigma_scale;
-    /*
-       The size of the kernel is selected to guarantee that the
-       the first discarded term is at least 10^prec times smaller
-       than the central value. For that, h should be larger than x, with
-         e^(-x^2/2sigma^2) = 1/10^prec.
-       Then,
-         x = sigma * sqrt( 2 * prec * ln(10) ).
-     */
-    prec = 3.0;
-    h = (unsigned int)ceil(sigma * sqrt(2.0 * prec * log(10.0)));
-    n = 1+2*h; /* kernel size */
-    kernel = new_ntuple_list(n);
+    double * const tmp =(double*)malloc(zoomed_width * height * sizeof(double)), *ptmp;
 
-    /* auxiliary double image size variables */
-    double_x_size = (int)(2 * in.xsize());
-    double_y_size = (int)(2 * in.ysize());
+    kernel = new_ntuple_list( 2*offset + 1 );
 
     /* First subsampling: x axis */
-    for (x = 0; x < aux.xsize(); x++) {
+    for (x = 0; x < zoomed_width; x++) {
         /*
            x   is the coordinate in the new image.
            xx  is the corresponding x-value in the original size image.
@@ -234,28 +237,28 @@ void gaussian_sampler(const ImageGray<double> &in, double scale, double sigma_sc
            because the pixel goes from 0.0 to 1.0 */
         xx = ((double)x + 0.5) / scale;
         xc = (int)floor(xx);
-        gaussian_kernel(kernel, sigma, (double)h + xx - (double)xc - 0.5);
+        gaussian_kernel(kernel, sigma, (double)offset + xx - (double)xc - 0.5);
         /* the kernel must be computed for each x because the fine
            offset xx-xc is different in each case */
 
-        for (y = 0; y < aux.ysize(); y++) {
-            sum = 0.0;
+        for (y =0, ptmp =tmp+x; y < height; y++, ptmp+=zoomed_width) {
+            *ptmp = 0.0;
             for (i = 0; i < kernel->dim; i++) {
-                j = xc - h + i;
+                j = xc - offset + i;
 
                 /* symmetry boundary condition */
-                while (j < 0) j += double_x_size;
-                while (j >= double_x_size) j -= double_x_size;
-                if (j >= (int)in.xsize()) j = double_x_size-1-j;
+                while (j < 0) j += double_width;
+                while (j >= double_width) j -= double_width;
+                if (j >= (int)width) j = double_width-1-j;
 
-                sum += in.pixel(j, y) * kernel->values[i];
+                *ptmp += in.pixel(j, y) * kernel->values[i];
             }
-            aux.pixel(x, y) = sum;
         }
     }
 
     /* Second subsampling: y axis */
-    for (y = 0; y < out.ysize(); y++) {
+    out.resize(zoomed_width, zoomed_height);
+    for (y = 0; y < zoomed_height; y++) {
         /*
            y   is the coordinate in the new image.
            yy  is the corresponding x-value in the original size image.
@@ -265,27 +268,27 @@ void gaussian_sampler(const ImageGray<double> &in, double scale, double sigma_sc
            because the pixel goes from 0.0 to 1.0 */
         yy = ((double)y + 0.5) / scale;
         yc = (int)floor(yy);
-        gaussian_kernel(kernel, sigma, (double)h + yy - (double)yc - 0.5);
+        gaussian_kernel(kernel, sigma, (double)offset + yy - (double)yc - 0.5);
         /* the kernel must be computed for each y because the fine
            offset yy-yc is different in each case */
 
-        for (x = 0; x < out.xsize(); x++) {
-            sum = 0.0;
+        for (x = 0; x < zoomed_width; x++) {
+            double &pixel = out.pixel(x, y) = 0.;
             for (i = 0; i < kernel->dim; i++) {
-                j = yc - h + i;
+                j = yc - offset + i;
 
                 /* symmetry boundary condition */
-                while (j < 0) j += double_y_size;
-                while (j >= double_y_size) j -= double_y_size;
-                if (j >= (int)in.ysize()) j = double_y_size-1-j;
+                while (j < 0) j += double_height;
+                while (j >= double_height) j -= double_height;
+                if (j >= (int)height) j = double_height-1-j;
 
-                sum += aux.pixel(x, j) * kernel->values[i];
+                pixel += tmp[x + j * zoomed_width] * kernel->values[i];
             }
-            out.pixel(x, y) = sum;
         }
     }
 
     /* free memory */
+    free(tmp);
     free_ntuple_list(kernel);
 }
 

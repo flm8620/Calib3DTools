@@ -61,7 +61,7 @@ static void add_2tuple(ntuple_list out, double v1, double v2)
 /*----------------------------------------------------------------------------*/
 /** Devernay sub-pixel edge detector.
  */
-ntuple_list devernay(ImageGray<double> &image, double sigma, double th_low, double th_hi)
+ntuple_list devernay(const ImageGray<double> &image, double sigma, double th_low, double th_hi)
 {
     ntuple_list out = new_ntuple_list(2);
 
@@ -83,15 +83,12 @@ ntuple_list devernay(ImageGray<double> &image, double sigma, double th_low, doub
     offset(xsize, ysize, -1000.0);
     ImageGray<BYTE> canny(xsize, ysize, 0);
 
-    /* Gaussian filter */
-    gaussian_filter(image, sigma);
     /* compute gradient */
     for (x = 1; x < (xsize-1); x++)
         for (y = 1; y < (ysize-1); y++) {
-            gradx.pixel(x, y) = 0.5*(image.pixel(x+1, y)-image.pixel(x-1, y));
-            grady.pixel(x, y) = 0.5*(image.pixel(x, y+1)-image.pixel(x, y-1));
-            modgrad.pixel(x, y) = sqrt(gradx.pixel(x, y)*gradx.pixel(x, y)
-                                       +grady.pixel(x, y)*grady.pixel(x, y));
+            double gx = gradx.pixel(x, y) = 0.5*(image.pixel(x+1, y)-image.pixel(x-1, y));
+            double gy = grady.pixel(x, y) = 0.5*(image.pixel(x, y+1)-image.pixel(x, y-1));
+            modgrad.pixel(x, y) = sqrt(gx*gx + gy*gy);
         }
 
     /* select local maxima */

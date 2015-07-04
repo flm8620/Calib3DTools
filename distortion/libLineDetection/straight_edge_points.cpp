@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "image.h"
+#include "gauss.h"
 #include "messager.h"
 
 #include "misc.h"
@@ -174,7 +175,7 @@ static void add_2tuple(ntuple_list out, double v1, double v2)
 }
 
 /*----------------------------------------------------------------------------*/
-ntuple_ll straight_edge_points(ImageGray<double> &image, double sigma, double th_low, double th_hi,
+ntuple_ll straight_edge_points(ImageGray<double> &original, double sigma, double th_low, double th_hi,
                                double min_length)
 {
     ntuple_list edges; /* edge points */
@@ -184,6 +185,9 @@ ntuple_ll straight_edge_points(ImageGray<double> &image, double sigma, double th
     unsigned int i, x, y, seg;
     double xx, yy;
 
+    ImageGray<double> image;
+    /* Gaussian filter */
+    gaussian_filter(image, sigma, original);
     /* call Devernay sub-pixel edge detector */
     edges = devernay(image, sigma, th_low, th_hi);
     /* call LSD line segment detector */

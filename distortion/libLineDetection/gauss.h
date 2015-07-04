@@ -34,8 +34,16 @@
 #include "ntuple.h"
 
 void gaussian_kernel(ntuple_list kernel, double sigma, double mean);
-void gaussian_filter(ImageGray<double> &image, double sigma);
-void gaussian_sampler(const ImageGray<double>& in, double scale, double sigma_scale, ImageGray<double> &out);
+void gaussian_filter(ImageGray<double> &out, double sigma, const ImageGray<double> &in);
+void gaussian_sampler(ImageGray<double> &out, double scale, double sigma_scale, const ImageGray<double>& in);
+
+inline void gaussian_filter(ImageGray<double> &only, double sigma) {
+    gaussian_filter(only, sigma, only);
+}
+
+inline void gaussian_sampler(ImageGray<double> &only, double scale, double sigma_scale) {
+    gaussian_sampler(only, scale, sigma_scale, only);
+}
 
 #endif /* !GAUSS_HEADER */
 /*----------------------------------------------------------------------------*/
