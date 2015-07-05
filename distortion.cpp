@@ -1,37 +1,33 @@
 #include "distortion.h"
 #include <cmath>
-using concurrent::ReadLock;
-using concurrent::WriteLock;
-
-
-Distortion::Distortion()
+Distortion::Distortion(QObject *parent) : QObject(parent)
 {
 }
 
 bool Distortion::isEmpty() const
 {
-    ReadLock locker(this->rwLock);
+    QReadLocker locker(&this->rwLock);
     return this->value._size == 0;
 }
 
 int Distortion::maxOrder() const
 {
-    ReadLock locker(this->rwLock);
+    QReadLocker locker(&this->rwLock);
     return this->value._maxOrder;
 }
 
 void Distortion::setMaxOrder(int maxOrder)
 {
     {
-        WriteLock locker(this->rwLock);
+        QWriteLocker locker(&this->rwLock);
         this->value.setMaxOrder(maxOrder);
     }
-    this->_dataChangedEvent.trigger();
+    emit dataChanged();
 }
 
 int Distortion::size() const
 {
-    ReadLock locker(this->rwLock);
+    QReadLocker locker(&this->rwLock);
     return this->value._size;
 }
 
@@ -49,109 +45,110 @@ int Distortion::idxFromXY(int degX, int degY)
 
 DistortionValue Distortion::getValue() const
 {
-    ReadLock locker(this->rwLock);
+    QReadLocker locker(&this->rwLock);
     return this->value;
 }
 
 bool Distortion::setValue(const DistortionValue &value)
 {
-    {
-        WriteLock locker(this->rwLock);
-        if (!value.isValid())
-            return false;
+    if (value.isValid()) {
+        this->rwLock.lockForWrite();
         this->value = value;
+        this->rwLock.unlock();
+        emit dataChanged();
+        return true;
     }
-    this->_dataChangedEvent.trigger();
-    return true;
+    return false;
 }
 
 bool Distortion::setXParamVector(const std::vector<double> &xVector)
 {
     {
-        WriteLock locker(this->rwLock);
+        QWriteLocker locker(&this->rwLock);
         if (xVector.size() != this->value._size) return false;
         for (int i = 0; i < value._size; ++i)
             this->value._XYData.at(i).first = xVector[i];
     }
-    this->_dataChangedEvent.trigger();
+    emit dataChanged();
     return true;
 }
 
 bool Distortion::setYParamVector(const std::vector<double> &yVector)
 {
     {
-        WriteLock locker(rwLock);
+        QWriteLocker locker(&rwLock);
         if (yVector.size() != this->value._size) return false;
         for (int i = 0; i < value._size; ++i)
             this->value._XYData.at(i).second = yVector[i];
     }
-    this->_dataChangedEvent.trigger();
+    emit dataChanged();
     return true;
 }
 
 void Distortion::setXParam(double value, int degX, int degY)
 {
     {
-        WriteLock locker(rwLock);
+        QWriteLocker locker(&rwLock);
         this->value._XYData[idxFromXY(degX, degY)].first = value;
     }
-    this->_dataChangedEvent.trigger();
+    emit dataChanged();
 }
 
 void Distortion::setYParam(double value, int degX, int degY)
 {
     {
-        WriteLock locker(rwLock);
+        QWriteLocker locker(&rwLock);
         this->value._XYData[idxFromXY(degX, degY)].second = value;
     }
-    this->_dataChangedEvent.trigger();
+    emit dataChanged();
 }
 
 void Distortion::setXParam(double value, int idx)
 {
     {
-        WriteLock locker(rwLock);
+        QWriteLocker locker(&rwLock);
         this->value._XYData[idx].first = value;
     }
-    this->_dataChangedEvent.trigger();
+    emit dataChanged();
 }
 
 void Distortion::setYParam(double value, int idx)
 {
     {
-        WriteLock locker(rwLock);
+        QWriteLocker locker(&rwLock);
         this->value._XYData[idx].second = value;
     }
-    this->_dataChangedEvent.trigger();
+    emit dataChanged();
 }
 
 int Distortion::xParam(int degX, int degY) const
 {
-    ReadLock locker(rwLock);
+    QReadLocker locker(&rwLock);
     return this->value._XYData[idxFromXY(degX, degY)].first;
 }
 
 int Distortion::yParam(int degX, int degY) const
 {
-    ReadLock locker(rwLock);
+    QReadLocker locker(&rwLock);
     return this->value._XYData[idxFromXY(degX, degY)].second;
 }
 
 double Distortion::xParam(int idx) const
 {
-    ReadLock locker(rwLock);
+    QReadLocker locker(&rwLock);
     return this->value._XYData[idx].first;
 }
 
 double Distortion::yParam(int idx) const
 {
-    ReadLock locker(rwLock);
+    QReadLocker locker(&rwLock);
     return this->value._XYData[idx].second;
 }
 
 void Distortion::clear()
 {
     this->setMaxOrder(-1);
+    emit dataChanged();
 }
 
 DistortionValue::DistortionValue()

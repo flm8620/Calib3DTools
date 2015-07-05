@@ -14,7 +14,6 @@ find_package(Qt5Concurrent)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 add_subdirectory(libNumerics)
 add_subdirectory(Concurrent)
-add_subdirectory(Event)
 add_subdirectory(libImage)
 add_subdirectory(libMessager)
 add_subdirectory(QImageConvert)
@@ -40,8 +39,7 @@ add_executable(mainInterface ${SOURCE_FILES})
 
 target_link_libraries(mainInterface
 Concurrent
-Event
-pthread
+#pthread
 ClickImage
 libMessager
 libImage

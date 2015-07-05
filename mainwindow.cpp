@@ -26,8 +26,8 @@ MainWindow::MainWindow(QWidget *parent) :
                                  photoHarpModel->core(), this->imagePoint2DCore,
                                  undistortedCircleModel->core(), undistortedHarpModel->core(),
                                  harpFeedbackModel->core(),
-                                 circleFeedbackModel->core(), &distModel->core(),
-                                 &kModel->core(), point3DModel->core(),camPosModel->core(), this);
+                                 circleFeedbackModel->core(), distModel->core(),
+                                 kModel->core(), point3DModel->core(),camPosModel->core(), this);
 
 
     //two viewer

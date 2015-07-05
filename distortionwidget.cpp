@@ -69,8 +69,7 @@ bool DistortionWidget::saveDistortion(const QStringList &list)
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
         return false;
     QTextStream st(&file);
-    DistortionValue value = this->model->core().getValue();
-    Q_ASSERT(value.isValid());
+    DistortionValue value = this->model->core()->getValue();
 
     int size = value._size;
 
@@ -119,6 +118,6 @@ bool DistortionWidget::loadDistortion(const QStringList &list)
         st>>value._XYData[i].second;
     if (st.status() != QTextStream::Ok) return false;
     // end reading
-    this->model->core().setValue(value);
+    this->model->core()->setValue(value);
     return true;
 }
