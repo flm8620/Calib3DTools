@@ -27,14 +27,22 @@ private:
     public:
         RunnableFunction(R(*f)(ARGS...), ARGS... args) : func(std::bind(f, args...)) {}
         std::future<R> getFuture() { return this->result.get_future();}
-        void run() { run(result); }
+        void run() {
+            try {
+                run(result);
+            }
+            catch(...) {
+                result.set_exception(std::current_exception());
+            }
+        }
+
         void done() { delete this; }
     };
 
 public:
     SimpleThreadPool(int threads=5);
     ~SimpleThreadPool();
-    void start( Runnable* task ) const;
+    inline void start( Runnable* task ) const { this->tasks.Push(task); }
     template<typename R, typename ... ARGS >
     std::future<R> start( R(*f)(ARGS...), ARGS... args) {
         auto fn = new RunnableFunction<R,ARGS...>(f, args...);
@@ -60,7 +68,6 @@ private:
         bool closed = false;
     };
     mutable TaskQueue tasks;
-    static void threadMain(TaskQueue* tasks);
 };
 
 } //namespace concurrent
