@@ -39,7 +39,7 @@ add_executable(mainInterface ${SOURCE_FILES})
 
 target_link_libraries(mainInterface
 Concurrent
-#pthread
+pthread
 ClickImage
 libMessager
 libImage

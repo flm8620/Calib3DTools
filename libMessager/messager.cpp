@@ -58,7 +58,7 @@ ostream &endl(ostream &os)
 void abortIfAsked()
 {
     if(abortFlag.abortRequested()){
-        abortFlag.resetFlag();
+        //abortFlag.resetFlag();
         error("Aborted by user.");
     }
 }

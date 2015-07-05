@@ -70,7 +70,6 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setCentralWidget(splitter);
 
     this->resize(800, 600);
-    qDebug()<<this->size();
 }
 
 void MainWindow::message(std::string content, libMsg::MessageType type)

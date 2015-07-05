@@ -14,6 +14,7 @@ include_directories(${CMAKE_SOURCE_DIR}/libNumerics)
 include_directories(${CMAKE_SOURCE_DIR}/QImageConvert)
 include_directories(${CMAKE_SOURCE_DIR}/libImage)
 include_directories(${CMAKE_SOURCE_DIR}/libMessager)
+include_directories(${CMAKE_SOURCE_DIR}/Concurrent)
 
 include_directories(Kmatrix)
 add_subdirectory(Kmatrix)
@@ -23,4 +24,4 @@ add_subdirectory(ellipseCenter)
 add_library(KMatrixModule kmatrixsolve.h kmatrixsolve.cpp)
 
 target_link_libraries(KMatrixModule kmatrixLib circleDetect)
-target_link_libraries(KMatrixModule Qt5::Gui QImageConvert libImage libNumerics libMessager)
+target_link_libraries(KMatrixModule Qt5::Gui QImageConvert libImage libNumerics libMessager Concurrent)

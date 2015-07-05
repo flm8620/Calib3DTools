@@ -572,8 +572,10 @@ bool Solver::calculateK()
             this->message("Undistorted circle photo loaded.");
         }
         KValue kValue;
-        if (!calculateKFromImages(this->undistortedCircleList, this->circleFeedbackList, kValue))
+        if (!calculateKFromImages(this->undistortedCircleList, this->circleFeedbackList, kValue)){
+            this->message("Failed to calculate K Matrix",M_WARN);
             return false;
+        }
         this->kMatrix->setValue(kValue);
         libMsg::cout << static_cast<double>(QDateTime::currentMSecsSinceEpoch()-start)/1000.
                      <<"Seconds spent."<<libMsg::endl;

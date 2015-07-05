@@ -5,6 +5,7 @@ INCLUDE_DIRECTORIES(
 ${CMAKE_SOURCE_DIR}/libMessager
 ${CMAKE_SOURCE_DIR}/libImage
 ${CMAKE_SOURCE_DIR}/libNumerics
+${CMAKE_SOURCE_DIR}/Concurrent
 libDistortion
 libLineDetection
 libMisc
@@ -18,9 +19,10 @@ target_include_directories(DistortionPoly PUBLIC
 ${CMAKE_SOURCE_DIR}/libMessager
 ${CMAKE_SOURCE_DIR}/libImage
 ${CMAKE_SOURCE_DIR}/libNumerics
-${CMAKE_CURRENT_SOURCE_DIR}/libDistortion
-${CMAKE_CURRENT_SOURCE_DIR}/libLineDetection
-${CMAKE_CURRENT_SOURCE_DIR}/libMisc
+${CMAKE_SOURCE_DIR}/Concurrent
+libDistortion
+libLineDetection
+libMisc
 )
 target_link_libraries(DistortionPoly linedetect distortion misc
 libImage libNumerics libMessager Concurrent)
