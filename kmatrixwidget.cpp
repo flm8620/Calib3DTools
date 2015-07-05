@@ -67,7 +67,7 @@ bool KMatrixWidget::saveKMatrix(const QStringList &list)
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
         return false;
     QTextStream st(&file);
-    KValue value = this->model->core()->getValue();
+    KValue value = this->model->core().getValue();
 
 
     // writing:
@@ -117,6 +117,6 @@ bool KMatrixWidget::loadKMatrix(const QStringList &list)
 
     if (st.status() != QTextStream::Ok) return false;
     // end reading
-    this->model->core()->setValue(value);
+    this->model->core().setValue(value);
     return true;
 }

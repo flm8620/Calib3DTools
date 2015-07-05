@@ -17,6 +17,7 @@
 */
 
 #include "spline.h"
+#include "../commondefs.h"
 // #include "libIO/nan.h"
 #include <cmath>
 #include <cfloat>

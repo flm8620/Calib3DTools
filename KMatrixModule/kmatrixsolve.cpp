@@ -328,6 +328,7 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
             painter.setPen(Qt::green);
             painter.drawLine(QPointF(0, -r2), QPointF(0, r2));
         }
+
         feedbackList.push_back(image);
         // end draw feedback
         if (i == 0) {

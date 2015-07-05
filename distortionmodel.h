@@ -11,8 +11,8 @@ class DistortionModel : public QAbstractItemModel
 
 public:
     DistortionModel(QObject *parent = 0);
-
-    Distortion *core();
+    ~DistortionModel();
+    Distortion &core();
     void clear();
     int rowCount(const QModelIndex &) const;
     int columnCount(const QModelIndex &) const;
@@ -23,11 +23,16 @@ public:
     QModelIndex index(int row, int column, const QModelIndex &parent=QModelIndex()) const;
     QModelIndex parent(const QModelIndex &child) const;
 
-private slots:
-    void onCoreDataChanged();
-
 private:
-    Distortion *coreData;
+    Distortion coreData;
+
+
+//    void onCoreDataChanged(int fromIndex, int toIndex);
+//    void onCoreSizeChanged(int newSize);
+//    QVarLengthArray<event::EventConnection*> subscriptions;
+    void onCoreDataChanged();
+    event::EventConnection* subscriptions;
+
 };
 
 #endif // DISTORTIONMODEL_H

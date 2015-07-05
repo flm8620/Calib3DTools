@@ -12,6 +12,7 @@ const static KMemberGetter ITEM_GETTERS[]
 const static KMemberSetter ITEM_SETTERS[]
     = { &KMatrix::setFx, &KMatrix::setFy, &KMatrix::setX0, &KMatrix::setY0, &KMatrix::setS };
 const static Qt::ItemFlags ITEM_FLAGS = Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsEditable;
+const static Qt::ItemFlags INVALID_ITEM_FLAGS = Qt::ItemFlags(0);
 const static QVariant INVALID_VARIANT;
 
 static inline bool inDataRange(int index)
@@ -19,31 +20,35 @@ static inline bool inDataRange(int index)
     return index >= 0 && index < ITEM_COUNT;
 }
 
-KMatrixModel::KMatrixModel(QObject *parent, KMatrix *core) :
+KMatrixModel::KMatrixModel(QObject *parent) :
     QAbstractListModel(parent)
 {
-    if (core != NULL) {
-        this->coreData = core;
-        core->setParent(this);
-    } else {
-        this->coreData = new KMatrix(this);
-    }
-    connect(this->coreData, SIGNAL(dataChanged()), this, SLOT(onCoreDataChanged()));
+    //subscribe the data changed event of coreData
+    this->subscription =
+            this->coreData.dataChangedEvent.subscribe(this, &KMatrixModel::onCoreDataChanged);
 }
 
-void KMatrixModel::onCoreDataChanged()
+KMatrixModel::~KMatrixModel() {
+    //close the event subscription.
+    if(this->subscription!=NULL) {
+        this->subscription->close();
+        this->subscription = NULL;
+    }
+}
+
+void KMatrixModel::onCoreDataChanged( )
 {
     emit this->dataChanged(this->index(0), this->index(ITEM_COUNT-1));
 }
 
-KMatrix *KMatrixModel::core()
+KMatrix &KMatrixModel::core()
 {
     return this->coreData;
 }
 
 void KMatrixModel::clear()
 {
-    this->coreData->clear();
+    this->coreData.clear();
 }
 
 int KMatrixModel::rowCount(const QModelIndex &) const
@@ -56,13 +61,14 @@ QVariant KMatrixModel::data(const QModelIndex &index, int role) const
     return
         index.isValid() && inDataRange(index.row())
         && (role == Qt::DisplayRole || role == Qt::EditRole)
-        ? QVariant((this->coreData->*(ITEM_GETTERS[index.row()]))())
+        ? QVariant((this->coreData.*(ITEM_GETTERS[index.row()]))())
+                // effect as: row==0 ? this->coreData.fx() : ==1 ? this->coreData.fy() : ==2 ....
         : INVALID_VARIANT;
 }
 
 Qt::ItemFlags KMatrixModel::flags(const QModelIndex &index) const
 {
-    return index.isValid() ? ITEM_FLAGS : Qt::ItemFlags(0);
+    return index.isValid() ? ITEM_FLAGS : INVALID_ITEM_FLAGS;
 }
 
 bool KMatrixModel::setData(const QModelIndex &index, const QVariant &value, int role)
@@ -81,7 +87,8 @@ bool KMatrixModel::setData(const QModelIndex &index, const QVariant &value, int 
     if (!inDataRange(row))
         return false;
 
-    (this->coreData->*(ITEM_SETTERS[row]))(dValue);
+    (this->coreData.*(ITEM_SETTERS[row]))(dValue);
+    //effect as: row==0 ? coreData.setFx(dValue) : ==1 ? coreData.setFy(dValue) : ==2? ......
 
     return true;
 }
