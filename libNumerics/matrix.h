@@ -141,7 +141,7 @@ public:
 	T  operator[] (int i) const;
     T& operator[] (int i);
     //    void operator=(T a);
-	int size() const { return this->nrow(); };
+    int size() const { return this->nrow(); }
 
     vector<T> operator*(T a) const;
     vector<T> operator/(T a) const;

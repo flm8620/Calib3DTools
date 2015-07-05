@@ -23,4 +23,4 @@ ${CMAKE_CURRENT_SOURCE_DIR}/libLineDetection
 ${CMAKE_CURRENT_SOURCE_DIR}/libMisc
 )
 target_link_libraries(DistortionPoly linedetect distortion misc
-libImage libNumerics libMessager)
+libImage libNumerics libMessager Concurrent)

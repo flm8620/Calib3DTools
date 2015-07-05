@@ -124,3 +124,4 @@ void MainWindow::setupDistortionWidgets()
     distWidget = new DistortionWidget(this);
     distWidget->setModel(distModel);
 }
+

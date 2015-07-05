@@ -3,7 +3,6 @@
 
 #include <QtCore>
 typedef struct { double fx, fy, x0, y0, s; } KValue;
-typedef struct { double x, y; } Vector2D;
 inline bool operator ==(const KValue& l, const KValue& r)
 {
     return l.fx==r.fx && l.fy==r.fy && l.x0==r.x0 && l.y0==r.y0 && l.s==r.s ;
