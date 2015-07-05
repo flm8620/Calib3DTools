@@ -16,6 +16,7 @@
 #include "consolewidget.h"
 #include "markerimageview.h"
 #include "solver.h"
+#include "camposmodel.h"
 
 #include <QMainWindow>
 
@@ -31,9 +32,13 @@ public:
 signals:
     void messageSignal(QString s, libMsg::MessageType type);
 
+private slots:
+    void onAbortAsked();
+
 private:
     void setupPhotoModels();
     void setupPointModels();
+    void setupCamPosModel();
     void setupKMatrixWidget();
     void setupDistortionWidgets();
 
@@ -65,6 +70,8 @@ private:
 
     Point2DModel *point2DModel;
     Point3DModel *point3DModel;
+
+    CamPosModel *camPosModel;
 };
 
 #endif // MAINWINDOW_H

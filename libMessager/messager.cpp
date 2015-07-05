@@ -2,7 +2,8 @@
 
 namespace libMsg {
 Messager *globalMessager = 0;
-ostream cout(globalMessager);
+ostream cout(globalMessager);//Use globalMessage as standard output
+AbortFlag abortFlag;
 
 void error(const char *msg)
 {
@@ -15,36 +16,6 @@ ostream::ostream(Messager * &msg) : receiverMsg(msg),
     doublePrecision(6)
 {
     ss.precision(doublePrecision);
-}
-
-ostream &ostream::operator<<(const char *value)
-{
-    ss<<value;
-    return *this;
-}
-
-ostream &ostream::operator<<(double value)
-{
-    ss<<value;
-    return *this;
-}
-
-ostream &ostream::operator<<(int value)
-{
-    ss<<value;
-    return *this;
-}
-
-ostream &ostream::operator<<(unsigned int value)
-{
-    ss<<value;
-    return *this;
-}
-
-ostream &ostream::operator<<(char value)
-{
-    ss<<value;
-    return *this;
 }
 
 ostream &ostream::operator<<(ostream & (*manipFunc)(ostream &))
@@ -83,6 +54,38 @@ ostream &endl(ostream &os)
 {
     return os.endl();
 }
+
+void abortIfAsked()
+{
+    if(abortFlag.abortRequested()){
+        abortFlag.resetFlag();
+        error("Aborted by user.");
+    }
+}
+
+AbortFlag::AbortFlag()
+{
+    this->needToAbort=false;
+}
+
+void AbortFlag::requestAbort()
+{
+    std::lock_guard<std::mutex> locker(this->lock);
+    this->needToAbort=true;
+}
+
+void AbortFlag::resetFlag()
+{
+    std::lock_guard<std::mutex> locker(this->lock);
+    this->needToAbort=false;
+}
+
+bool AbortFlag::abortRequested()
+{
+    std::lock_guard<std::mutex> locker(this->lock);
+    return this->needToAbort;
+}
+
 }
 
 MyException::MyException(const std::string &msg) : std::runtime_error(msg)

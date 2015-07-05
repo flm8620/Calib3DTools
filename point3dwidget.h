@@ -16,8 +16,12 @@ public slots:
     void removePoint();
     void moveUp();
     void moveDown();
-
+    void saveFile();
+    void loadFile();
+    void clear();
 private:
+    bool savePoint3D(const QStringList &list);
+    bool loadPoint3D(const QStringList &list);
     QModelIndex getFirstSelectedItem();
     Point3DModel* model;
     QTableView* view;

@@ -1,21 +1,8 @@
 #ifndef DISTRORTION_H
 #define DISTRORTION_H
-
-#include "Concurrent/readwritelock.h"
-#include "Event/eventhandler.h"
+#include <QtCore>
 #include <vector>
 #include <utility>
-#include <functional>
-#include <vector>
-#include <map>
-
-using concurrent::ReadWriteLock;
-using event::EventConnection;
-using event::NotifyEventHandler;
-//using event::IntegerNotifyEventHandler;
-
-//typedef event::EventHandler<void, int, int> IntRangeNotifyEventHandler;
-//typedef IntRangeNotifyEventHandler::Listener IntRangeNotifyEventListener;
 
 /**
  * @brief Distortion of image
@@ -61,31 +48,19 @@ struct DistortionValue
         return maxOrder >= 0 ? (2+maxOrder)*(1+maxOrder)/2 : 0;
     }
 };
-
-
 /**
  * @brief The Distortion class
  *
  * @note All public functions of this class are thread-safe
  */
-class Distortion
+class Distortion : public QObject
 {
-private:
-    DistortionValue value;
-//    IntegerNotifyEventHandler _dataSizeChangedEvent;
-//    IntRangeNotifyEventHandler _dataChangedEvent;
-    NotifyEventHandler _dataChangedEvent;
 
-protected:
-    mutable ReadWriteLock rwLock;
-
+    Q_OBJECT
 public:
-    Distortion();
+    Distortion(QObject *parent = 0);
 
-//    const IntegerNotifyEventHandler& dataSizeChangedEvent = this->_dataSizeChangedEvent;
-//    const IntRangeNotifyEventHandler& dataChangedEvent = this->_dataChangedEvent;
-    const NotifyEventHandler& dataChangedEvent = this->_dataChangedEvent;
-    bool isEmpty();
+    bool isEmpty() const;
 
     int maxOrder() const;
 
@@ -130,6 +105,14 @@ public:
 
     void clear();
 
+signals:
+    void dataChanged();
+
+protected:
+    mutable QReadWriteLock rwLock;
+
+private:
+    DistortionValue value;
 };
 
 #endif // DISTRORTION_H

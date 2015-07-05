@@ -80,6 +80,7 @@ bool extractK_real(std::vector<matrix<T> > &S, std::vector<matrix<T> > &Ellipse_
         CHS.push_back( matrix<T>::zeros(2, ncircle));
         matrix<T> HCS = matrix<T>::zeros(2, ncircle);
         rotateVirtualImg(S, H_ellip[i], CHS[i], HCS);
+        libMsg::abortIfAsked();
     }
     matrix<T> K_ellip;
     matrix<T> K_point;

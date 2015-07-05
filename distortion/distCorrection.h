@@ -4,6 +4,7 @@
 #include "../commondefs.h"
 // libImage
 #include "image.h"
+
 #include <vector>
 #include <utility>
 namespace DistortionModule {

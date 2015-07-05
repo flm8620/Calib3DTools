@@ -155,11 +155,13 @@ static void correctSegment(const ImageGray<double> *in, ImageGray<double> *out,
                 lastPercentage =percent;
             }
         }
+        libMsg::abortIfAsked();
     }
 
     if(reportProgress) {
         int done, last=0;
         while((done = progress->load(memory_order_acquire)) < he) {
+            libMsg::abortIfAsked();
             if(last!=done) {
                 last = done;
                 int percent = done *100 / he;
@@ -250,11 +252,13 @@ static void correctRGBSegment(const ImageRGB<double> *in, ImageRGB<double> *out,
                 lastPercentage =percent;
             }
         }
+        libMsg::abortIfAsked();
     }
 
     if(reportProgress) {
         int done, last=0;
         while((done = progress->load(memory_order_acquire)) < he) {
+            libMsg::abortIfAsked();
             if(last!=done) {
                 last = done;
                 int percent = done *100 / he;
@@ -425,6 +429,7 @@ static void read_images(DistortedLines<T> &distLines,
         total_nb_lines += p->size;
         total_threshed_nb_lines += threshed_nb_lines;
         free_ntuple_ll(p);
+        libMsg::abortIfAsked();
     }
     // distLines.pushMemGroup((int)point_set->size);
     int countL = 0;

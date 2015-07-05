@@ -10,6 +10,7 @@ class Point2DModel : public QAbstractItemModel
     Q_OBJECT
 public:
     Point2DModel(QObject* parent=0);
+    void clear();
     void setCoreData(ImageListWithPoint2D* core);
     ImageListWithPoint2D *core();
     int pointCount()const;

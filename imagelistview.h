@@ -12,19 +12,19 @@ public:
     ImageListView(QWidget* parent=0);
     void setModel(ImageListModel *model);
 public slots:
-    void openImage();
+    void onOpenImage();
+    void onSaveImage();
     void deleteImage();
     void moveUp();
     void moveDown();
-    void openInViewer();
     void clear();
 private slots:
     void imageClicked(QModelIndex index);
 signals:
     void imageToDisplay(QImage image);
 private:
-
-    bool loadImage(const QStringList &list);
+    bool openImage(const QStringList &list);
+    bool saveImage(const QStringList &list);
     ImageListModel *imageModel;
 };
 

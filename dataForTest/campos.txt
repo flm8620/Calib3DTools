@@ -1,0 +1,14 @@
+Camera 1
+Matrix R:
+1 2 3
+4 5 6
+7 8 9.999
+center:
+1 2 3
+Camera 2
+Matrix R:
+1 2 3
+4 5 6
+7 8 9.999
+center:
+1 2 3

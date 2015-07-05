@@ -1,5 +1,6 @@
 #include "distortionwidget.h"
 #include "distortionmodel.h"
+#include "sciencedoubledelegate.h"
 #include <QtWidgets>
 DistortionWidget::DistortionWidget(QWidget *parent) : QWidget(parent)
 {
@@ -23,6 +24,7 @@ DistortionWidget::DistortionWidget(QWidget *parent) : QWidget(parent)
     connect(loadButton, SIGNAL(clicked(bool)), this, SLOT(loadFile()));
     connect(saveButton, SIGNAL(clicked(bool)), this, SLOT(saveFile()));
     connect(clearButton, SIGNAL(clicked(bool)), this, SLOT(clear()));
+    this->tableView->setItemDelegate(new ScienceDoubleDelegate);
 }
 
 void DistortionWidget::setModel(DistortionModel *model)
@@ -67,8 +69,7 @@ bool DistortionWidget::saveDistortion(const QStringList &list)
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
         return false;
     QTextStream st(&file);
-    DistortionValue value = this->model->core().getValue();
-    Q_ASSERT(value.isValid());
+    DistortionValue value = this->model->core()->getValue();
 
     int size = value._size;
 
@@ -117,6 +118,6 @@ bool DistortionWidget::loadDistortion(const QStringList &list)
         st>>value._XYData[i].second;
     if (st.status() != QTextStream::Ok) return false;
     // end reading
-    this->model->core().setValue(value);
+    this->model->core()->setValue(value);
     return true;
 }

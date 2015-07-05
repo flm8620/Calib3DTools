@@ -14,6 +14,7 @@
 #include "centers.h"
 #include "abberation.h"
 
+
 using namespace libNumerics;
 void average_image(const ImageGray<double> &img, ImageGray<double> &img_avg)
 {
@@ -272,6 +273,7 @@ bool circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, c
         vector<T> P;
         T cx = 0, cy = 0;
         if (!centerLMA<T>(sub_img, clr, cx, cy, P)) return false;
+        libMsg::abortIfAsked();
         // std::cout<<"correction: dx="<<scale*(x0 + cx)-x[i]<<" dy="<<scale*(y0 + cy)-y[i]<<std::endl;
         x[i] = scale*(x0 + cx);
         y[i] = scale*(y0 + cy);
@@ -287,8 +289,8 @@ bool circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, c
 }
 
 template<typename T>
-bool keypnts_circle(const ImageGray<double> &img, vector<T> &x, vector<T> &y, vector<T> &r, T scale,
-                    std::vector<vector<double> > &P)
+bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, vector<T> &x,
+                    vector<T> &y, vector<T> &r, T scale, std::vector<vector<double> > &P)
 {
     int wi = img.xsize(), he = img.ysize();
 
@@ -296,15 +298,17 @@ bool keypnts_circle(const ImageGray<double> &img, vector<T> &x, vector<T> &y, ve
     T minColor = 255;
     img_extremas(img, minColor, maxColor);
     BYTE thre = (BYTE)(0.5*(maxColor-minColor));
-
-    ImageGray<BYTE> imgbi(wi, he, 255);
-    binarization(imgbi, img, thre);
+    ImageGray<BYTE> imgBi;
+    imgBi.resize(wi, he, 255);
+    imgFeedback.resize(wi,he,255,255,255);
+    binarization(imgBi, img, thre);
     // write_pgm_image_double(imgbiB, "rawdata/b.pgm");
 
     libMsg::cout<<"finding connected components... "<<libMsg::endl;
     std::vector<CCStats> ccstats;
-    CC(ccstats, imgbi);
-    libMsg::cout<<"number of connected components: [ "<<static_cast<unsigned>(ccstats.size())<<" ]"<<libMsg::endl;
+    CC(ccstats, imgBi,imgFeedback);
+    libMsg::cout<<"number of connected components: [ "<<static_cast<unsigned>(ccstats.size())
+                <<" ]"<<libMsg::endl;
     libMsg::cout<<"centers initialization is done "<<libMsg::endl;
 
     int ntaches = ccstats.size();
@@ -321,9 +325,10 @@ bool keypnts_circle(const ImageGray<double> &img, vector<T> &x, vector<T> &y, ve
     return true;
 }
 
-bool detectEllipseCenters(const ImageGray<double> &img, vector<double> &x, vector<double> &y,
-                          vector<double> &r, std::vector<vector<double> > &P, double scale)
+bool detectEllipseCenters(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, vector<double> &x,
+                          vector<double> &y, vector<double> &r, std::vector<vector<double> > &P,
+                          double scale)
 {
-    if (!keypnts_circle<double>(img, x, y, r, scale, P)) return false;
+    if (!keypnts_circle<double>(img, imgFeedback, x, y, r, scale, P)) return false;
     return true;
 }

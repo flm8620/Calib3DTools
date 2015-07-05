@@ -6,7 +6,7 @@
 #include "distortion.h"
 #include "kmatrix.h"
 #include "point3d.h"
-#include "cameraposition.h"
+#include "camerapos.h"
 #include "messager.h"
 #include <QtCore>
 #include <QtGui>
@@ -19,7 +19,8 @@ public:
     void registerModels(ImageList *photoList, ImageList *circleList, ImageList *harpList,
                         ImageListWithPoint2D *undistortedPhotoPoint2DList, ImageList *undistortedCircleList,
                         ImageList *undistortedHarpList, ImageList *harpFeedbackList,
-                        ImageList *circleFeedbackList, Distortion *distortion, KMatrix *kMatrix, Point3D *point3D,
+                        ImageList *circleFeedbackList, Distortion *distortion,
+                        KMatrix *kMatrix, Point3D *point3D,CameraPos *camPos,
                         libMsg::Messager *messager = 0);
 
 public slots:
@@ -27,6 +28,7 @@ public slots:
     bool onCalculateK();
     bool onCorrectPhoto();
     bool onCorrectCircle();
+    bool onSolveStrecha();
 
 private:
     bool calculateDistortion();
@@ -53,7 +55,10 @@ private:
     Distortion *distortion;
     KMatrix *kMatrix;
     Point3D *point3D;
+    CameraPos *camPos;
     libMsg::Messager *messager;
+
+    QMutex processLock;
 };
 
 #endif // SOLVER_H

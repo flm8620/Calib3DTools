@@ -9,7 +9,7 @@ myScene::myScene(QObject *parent) :
     pointView(0)
 {
     myMode = MoveItem;
-    this->mapper=new QSignalMapper(this);
+    this->mapper = new QSignalMapper(this);
     this->coreData = 0;
     this->currentZoomScale = 1;
     connect(this->mapper, SIGNAL(mapped(int)), this, SLOT(onMarkerMoved(int)));
@@ -51,8 +51,8 @@ void myScene::setPoint2DView(Point2DView *pointView)
     this->pointView = pointView;
     connect(this->pointView, SIGNAL(currentPointChanged(int, int)), this,
             SLOT(onCurrentPointChanged(int, int)));
-    Point2DModel* model=this->pointView->getPoint2DModel();
-    ImageListWithPoint2D* coredata=model->core();
+    Point2DModel *model = this->pointView->getPoint2DModel();
+    ImageListWithPoint2D *coredata = model->core();
     this->setCoreData(coredata);
 }
 
@@ -157,7 +157,8 @@ void myScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 
 void myScene::loadImage(const QImage &image)
 {
-    this->addPixmap(QPixmap::fromImage(image));
+    if (!image.isNull())
+        this->addPixmap(QPixmap::fromImage(image));
 }
 
 void myScene::needScrollToMarker(int id)

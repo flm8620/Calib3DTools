@@ -18,7 +18,8 @@ MarkerImageView::MarkerImageView(QWidget *parent) :
 
 void MarkerImageView::loadImage(const QImage &image)
 {
-    scene->addPixmap(QPixmap::fromImage(image));
+    if (!image.isNull())
+        scene->addPixmap(QPixmap::fromImage(image));
 }
 
 void MarkerImageView::wheelEvent(QWheelEvent *event)
