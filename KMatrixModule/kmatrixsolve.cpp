@@ -272,7 +272,7 @@ static void rotateGridRight(matrix<double> &grid, int nRow, int nCol)
 }
 
 bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QImage> &feedbackList,
-                                 double &alpha, double &beta, double &gamma, double &u0, double &v0,
+                                 double &alpha, double &beta, double &u0, double &v0, double &gamma,
                                  double seperation, double radius)
 {
     int nImage = imageList.size();
@@ -308,7 +308,7 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
         }
         // draw feedback
         QImage image;
-        ImageByteRGB2QColorImage(imgFeedback,image);
+        ImageByteRGB2QColorImage(imgFeedback, image);
         QPainter painter(&image);
         painter.setRenderHint(QPainter::Antialiasing);
         for (int j = 0; j < x.size(); j++) {
@@ -357,13 +357,13 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
             }
         }
     }
-    //draw feedback for sorted index
-    for(int i=0;i<nImage;++i){
+    // draw feedback for sorted index
+    for (int i = 0; i < nImage; ++i) {
         QPainter painter(&feedbackList[i]);
         painter.setRenderHint(QPainter::Antialiasing);
         for (int j = 0; j < Ellipse_centers[i].ncol(); j++) {
-            double xx = Ellipse_centers[i](0,j);
-            double yy = Ellipse_centers[i](1,j);
+            double xx = Ellipse_centers[i](0, j);
+            double yy = Ellipse_centers[i](1, j);
             painter.setPen(Qt::green);
             painter.resetTransform();
             painter.translate(xx, yy+15);
@@ -388,9 +388,9 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
 
     alpha = K(0, 0);
     beta = K(1, 1);
-    gamma = K(0, 1);
     u0 = K(0, 2);
     v0 = K(1, 2);
+    gamma = K(0, 1);
     return true;
 }
 
