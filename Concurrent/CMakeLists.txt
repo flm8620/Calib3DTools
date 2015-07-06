@@ -3,5 +3,9 @@ cmake_minimum_required(VERSION 3.2.3)
 project(Concurrent)
 file(GLOB SOURCE_FILES "*.cpp" "*.h")
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/libMessager)
+find_package( Threads )
 add_library(Concurrent ${SOURCE_FILES})
-target_link_libraries(Concurrent libMessager)
+target_link_libraries(
+Concurrent libMessager
+${CMAKE_THREAD_LIBS_INIT}
+)
