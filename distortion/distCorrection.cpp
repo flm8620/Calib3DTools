@@ -354,7 +354,7 @@ bool DistortionModule::distortionCorrect(ImageGray<double> &in, ImageGray<double
 }
 
 template<typename T>
-static void read_images(DistortedLines<T> &distLines,
+static bool read_images(DistortedLines<T> &distLines,
                         const std::vector<ImageGray<BYTE> > &imageList, int length_thresh,
                         int down_factor)
 {
@@ -415,7 +415,10 @@ static void read_images(DistortedLines<T> &distLines,
         free_ntuple_ll(p);
         libMsg::abortIfAsked();
     }
-    // distLines.pushMemGroup((int)point_set->size);
+    if(distLines.nLines<=0){
+        libMsg::cout<<"Nothing detected in any image. Please check"<<libMsg::endl;
+        return false;
+    }
     int countL = 0;
     for (unsigned int i = 0; i < point_set->size; i++) {
         /* Gaussian convolution and sub-sampling */
@@ -435,6 +438,7 @@ static void read_images(DistortedLines<T> &distLines,
     /* free memory */
     free_ntuple_ll(point_set);
     free_ntuple_list(convolved_pts);
+    return true;
 }
 
 template<typename T>
@@ -540,7 +544,8 @@ bool DistortionModule::polyEstime(const std::vector<ImageGray<BYTE> > &list,
     }
     int min_length = std::min(w, h)*0.3;
     DistortedLines<double> distLines;
-    read_images<double>(distLines, list, min_length, 60);
+    if(!read_images<double>(distLines, list, min_length, 60))
+        return false;
 
     // store lines detected in detectedLines
     int count = 0;
