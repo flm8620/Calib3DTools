@@ -106,52 +106,60 @@ void PhotoTab::connectToImageViewer(ImageViewer *viewer)
     connect(view, SIGNAL(imageToDisplay(QImage)), viewer, SLOT(setImage(QImage)));
 }
 
-Point2D3DTab::Point2D3DTab(QWidget *parent) : QWidget(parent)
+Point2DTab::Point2DTab(QWidget *parent) : QWidget(parent)
 {
     this->correctedWidget = new ImageListWidget(tr("Corrected Photo"));
     this->point2DWidget = new Point2DWidget;
-    this->point3DWidget = new Point3DWidget;
-    this->solveStrecha = new QPushButton(tr("Solve by Strecha's' Method"));
-    this->solveOpenMVG = new QPushButton(tr("Solve by OpenMVG"));
+
     QVBoxLayout *lay = new QVBoxLayout;
     lay->addWidget(this->correctedWidget);
     lay->addWidget(this->point2DWidget);
-    lay->addWidget(this->point3DWidget);
-    lay->addWidget(this->solveStrecha);
-    lay->addWidget(this->solveOpenMVG);
     this->setLayout(lay);
 }
 
-void Point2D3DTab::connectToSolver(Solver *solver)
-{
-    connect(this->solveStrecha, SIGNAL(clicked(bool)), solver, SLOT(onSolveStrecha()));
-}
-
-void Point2D3DTab::registerModel(ImageListModel *correctedModel, Point2DModel *point2DModel,
-                                 Point3DModel *point3DModel)
+void Point2DTab::registerModel(ImageListModel *correctedModel, Point2DModel *point2DModel)
 {
     this->correctedWidget->setModel(correctedModel);
     this->point2DWidget->setModel(point2DModel);
-    this->point3DWidget->setModel(point3DModel);
+
 }
 
-void Point2D3DTab::connectToImageViewer(ImageViewer *viewer)
+void Point2DTab::connectToImageViewer(ImageViewer *viewer)
 {
     ImageListView *view = this->correctedWidget->getView();
     connect(view, SIGNAL(imageToDisplay(QImage)), viewer, SLOT(setImage(QImage)));
 }
 
-void Point2D3DTab::connectToMarkerViewer(MarkerImageView *markerViewer)
+void Point2DTab::connectToMarkerViewer(MarkerImageView *markerViewer)
 {
     markerViewer->setPoint2DView(this->point2DWidget->getPoint2DView());
 }
 
-CamPosTab::CamPosTab(QWidget *parent)
+Point3DTab::Point3DTab(QWidget *parent)
 {
-    this->camPosWidget=new CamPosWidget;
-    QHBoxLayout *lay=new QHBoxLayout;
+    this->point3DWidget = new Point3DWidget;
+    QVBoxLayout *lay = new QVBoxLayout;
+    lay->addWidget(this->point3DWidget);
+}
+
+void Point3DTab::registerModel(Point3DModel *point3DModel)
+{
+    this->point3DWidget->setModel(point3DModel);
+}
+
+CamPosTab::CamPosTab(QWidget *parent) : QWidget(parent)
+{
+    this->camPosWidget = new CamPosWidget;
+    this->solveStrecha = new QPushButton(tr("Solve by Strecha's' Method"));
+    QVBoxLayout *lay = new QVBoxLayout;
     lay->addWidget(this->camPosWidget);
+    lay->addWidget(this->solveStrecha);
     this->setLayout(lay);
+}
+
+void CamPosTab::connectToSolver(Solver *solver)
+{
+    connect(this->solveStrecha, SIGNAL(clicked(bool)), solver, SLOT(onSolveStrecha()));
 }
 
 void CamPosTab::registerModel(CamPosModel *camPosModel)
@@ -164,14 +172,17 @@ TabWidget::TabWidget(QWidget *parent) : QTabWidget(parent)
     this->distortionTab = new DistortionTab;
     this->kmatrixTab = new KMatrixTab;
     this->photoTab = new PhotoTab;
-    this->point2d3dTab = new Point2D3DTab;
+    this->point2dTab = new Point2DTab;
+    this->point3dTab = new Point3DTab;
     this->camPosTab = new CamPosTab;
 
     this->addTab(distortionTab, tr("Distortion"));
     this->addTab(kmatrixTab, tr("KMatrix"));
     this->addTab(photoTab, tr("Photo"));
-    this->addTab(point2d3dTab, tr("Point2D-3D"));
+    this->addTab(point2dTab, tr("Point2D"));
+    this->addTab(point3dTab, tr("Point3D"));
     this->addTab(camPosTab, tr("Camera"));
+    this->setTabPosition(QTabWidget::East);
 }
 
 void TabWidget::connectToSolver(Solver *solver)
@@ -179,7 +190,7 @@ void TabWidget::connectToSolver(Solver *solver)
     this->distortionTab->connectToSolver(solver);
     this->kmatrixTab->connectToSolver(solver);
     this->photoTab->connectToSolver(solver);
-    this->point2d3dTab->connectToSolver(solver);
+    this->camPosTab->connectToSolver(solver);
 }
 
 void TabWidget::registerModel(ImageListModel *harpPhotoModel, ImageListModel *harpFeedbackModel,
@@ -192,7 +203,8 @@ void TabWidget::registerModel(ImageListModel *harpPhotoModel, ImageListModel *ha
     this->distortionTab->registerModel(harpPhotoModel, harpFeedbackModel);
     this->kmatrixTab->registerModel(circlePhotoModel, circleCorrectedModel, circleFeedbackModel);
     this->photoTab->registerModel(photoModel, photoCorrectedModel);
-    this->point2d3dTab->registerModel(photoCorrectedModel, point2DModel, point3DModel);
+    this->point2dTab->registerModel(photoCorrectedModel, point2DModel);
+    this->point3dTab->registerModel(point3DModel);
     this->camPosTab->registerModel(camPosModel);
 }
 
@@ -201,10 +213,10 @@ void TabWidget::connectToImageViewer(ImageViewer *viewer)
     this->distortionTab->connectToImageViewer(viewer);
     this->kmatrixTab->connectToImageViewer(viewer);
     this->photoTab->connectToImageViewer(viewer);
-    this->point2d3dTab->connectToImageViewer(viewer);
+    this->point2dTab->connectToImageViewer(viewer);
 }
 
 void TabWidget::connectToMarkerViewer(MarkerImageView *markerViewer)
 {
-    this->point2d3dTab->connectToMarkerViewer(markerViewer);
+    this->point2dTab->connectToMarkerViewer(markerViewer);
 }

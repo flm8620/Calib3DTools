@@ -21,7 +21,7 @@ public:
     DistortionTab(QWidget *parent = 0);
     void connectToSolver(Solver *solver);
     void registerModel(ImageListModel *harpPhotoModel, ImageListModel *harpFeedbackModel);
-    void connectToImageViewer(ImageViewer* viewer);
+    void connectToImageViewer(ImageViewer *viewer);
 private:
     ImageListWidget *harpPhotoWidget;
     ImageListWidget *harpFeedbackWidget;
@@ -36,7 +36,7 @@ public:
     void connectToSolver(Solver *solver);
     void registerModel(ImageListModel *circlePhotoModel, ImageListModel *circleCorrectedModel,
                        ImageListModel *circleFeedbackModel);
-    void connectToImageViewer(ImageViewer* viewer);
+    void connectToImageViewer(ImageViewer *viewer);
 private:
     ImageListWidget *circlePhotoWidget;
     ImageListWidget *circleCorrectedWidget;
@@ -52,7 +52,7 @@ public:
     PhotoTab(QWidget *parent = 0);
     void connectToSolver(Solver *solver);
     void registerModel(ImageListModel *photoModel, ImageListModel *correctedModel);
-    void connectToImageViewer(ImageViewer* viewer);
+    void connectToImageViewer(ImageViewer *viewer);
 private:
     ImageListWidget *photoWidget;
     ImageListWidget *correctedWidget;
@@ -60,30 +60,40 @@ private:
     QPushButton *correctDistButton;
 };
 
-class Point2D3DTab : public QWidget
+class Point2DTab : public QWidget
 {
     Q_OBJECT
 public:
-    Point2D3DTab(QWidget *parent = 0);
-    void connectToSolver(Solver *solver);
-    void registerModel(ImageListModel *correctedModel, Point2DModel *point2DModel,
-                       Point3DModel *point3DModel);
-    void connectToImageViewer(ImageViewer* viewer);
+    Point2DTab(QWidget *parent = 0);
+    void registerModel(ImageListModel *correctedModel, Point2DModel *point2DModel);
+    void connectToImageViewer(ImageViewer *viewer);
     void connectToMarkerViewer(MarkerImageView *markerViewer);
 private:
     ImageListWidget *correctedWidget;
     Point2DWidget *point2DWidget;
-    Point3DWidget *point3DWidget;
-    QPushButton *solveStrecha;
-    QPushButton *solveOpenMVG;
+
 };
-class CamPosTab :public QWidget
+
+class Point3DTab : public QWidget
+{
+    Q_OBJECT
+public:
+    Point3DTab(QWidget *parent = 0);
+    void registerModel(Point3DModel *point3DModel);
+private:
+    Point3DWidget *point3DWidget;
+
+};
+
+class CamPosTab : public QWidget
 {
 public:
     CamPosTab(QWidget *parent = 0);
-    void registerModel(CamPosModel* camPosModel);
+    void connectToSolver(Solver *solver);
+    void registerModel(CamPosModel *camPosModel);
 private:
     CamPosWidget *camPosWidget;
+    QPushButton *solveStrecha;
 };
 
 class TabWidget : public QTabWidget
@@ -95,15 +105,16 @@ public:
     void registerModel(ImageListModel *harpPhotoModel, ImageListModel *harpFeedbackModel,
                        ImageListModel *circlePhotoModel, ImageListModel *circleCorrectedModel,
                        ImageListModel *circleFeedbackModel, ImageListModel *photoModel,
-                       ImageListModel *photoCorrectedModel,
-                       Point2DModel *point2DModel, Point3DModel *point3DModel, CamPosModel *camPosModel);
-    void connectToImageViewer(ImageViewer* viewer);
-    void connectToMarkerViewer(MarkerImageView* markerViewer);
+                       ImageListModel *photoCorrectedModel, Point2DModel *point2DModel,
+                       Point3DModel *point3DModel, CamPosModel *camPosModel);
+    void connectToImageViewer(ImageViewer *viewer);
+    void connectToMarkerViewer(MarkerImageView *markerViewer);
 private:
     DistortionTab *distortionTab;
     KMatrixTab *kmatrixTab;
     PhotoTab *photoTab;
-    Point2D3DTab *point2d3dTab;
+    Point2DTab *point2dTab;
+    Point3DTab *point3dTab;
     CamPosTab *camPosTab;
 };
 
