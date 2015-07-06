@@ -22,7 +22,7 @@ static double cross2D(vector<double> v1, vector<double> v2)
     return v1(0)*v2(1)-v2(0)*v1(1);
 }
 
-static void convexHull(matrix<double> &circles, std::vector<vector<double> > &hullPoints,
+static bool convexHull(matrix<double> &circles, std::vector<vector<double> > &hullPoints,
                        std::vector<int> &hullIndex)
 {
     // convex hull
@@ -30,6 +30,7 @@ static void convexHull(matrix<double> &circles, std::vector<vector<double> > &hu
     hullPoints.clear();
     hullIndex.clear();
     int nCircle = circles.ncol();
+    if (nCircle <= 0) return false;
     double minX = 1e15;
     int minIdx = -1;
     // find the most left point
@@ -56,9 +57,6 @@ static void convexHull(matrix<double> &circles, std::vector<vector<double> > &hu
     }
     p2 = circles.col(idxP2);
 
-    int endIndex;
-
-    vector<double> endPoint;
     do {
         hullPoints.push_back(p2);
         hullIndex.push_back(idxP2);
@@ -78,15 +76,16 @@ static void convexHull(matrix<double> &circles, std::vector<vector<double> > &hu
         idxP2 = idxNext;
         p2 = circles.col(idxNext);
     } while (idxP2 != minIdx);
+    return true;
 }
 
 static bool findCorner(matrix<double> &circles, int &idx1, int &idx2, int &idx3, int &idx4)
 {
     std::vector<vector<double> > hullPoints;
     std::vector<int> hullIndex;
-    convexHull(circles, hullPoints, hullIndex);
+    if(!convexHull(circles, hullPoints, hullIndex))return false;
     if (hullPoints.size() < 4) {
-        std::cout<<"hullPoint < 4. Something is wrong."<<std::endl;
+        libMsg::cout<<"hullPoint < 4. Something is wrong."<<libMsg::endl;
         return false;
     }
     vector<double> p0, p1, p2, v1, v2;

@@ -12,6 +12,7 @@
 #include <future>
 #include <exception>
 #include <list>
+#include <iostream>
 namespace concurrent {
 class SimpleThreadPool : public AbstractThreadPool
 {
@@ -59,6 +60,7 @@ private:
 
         void done()
         {
+            //BE CAREFUL
             delete this;
         }
     };
@@ -71,8 +73,10 @@ public:
     std::future<R> start(R (*f)(ARGS ...), ARGS ... args)
     {
         auto fn = new RunnableFunction<R, ARGS ...>(f, args ...);
+        std::future<R> ftr=fn->getFuture();
         this->start(fn);
-        return fn->getFuture();
+        //this may delete him self first, pay attention.
+        return ftr;
     }
 
     static SimpleThreadPool DEFAULT;

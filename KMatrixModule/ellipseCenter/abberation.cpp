@@ -91,7 +91,7 @@ int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img)
     return cc.size();
 }
 
-void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE> &imgFeedback)
+bool CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE> &imgFeedback)
 {
     ImageGray<BYTE> img_copy(imgbi);
     double meansize = 0;
@@ -143,6 +143,10 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE
     }
     libMsg::cout<<libMsg::endl;
     libMsg::cout<<"Region found before filter: [ "<<ccstats.size()<<" ]"<<libMsg::endl;
+    if(ccstats.size()==0){
+        libMsg::cout<<"Nothing interesting found in this image. Please check.";
+        return false;
+    }
     // retrieve min_size and max_size to build a size histogram
     int max_val = 0;
     int rad_thre = 7;
@@ -232,4 +236,5 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE
         }
     }
     libMsg::cout<<"Region found after filter: [ "<<ccstats.size()<<" ]"<<libMsg::endl;
+    return true;
 }
