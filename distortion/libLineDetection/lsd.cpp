@@ -74,6 +74,7 @@
 // #include <limits.h>
 #include <float.h>
 #include "messager.h"
+#include "gauss.h"
 #include "ntuple.h"
 #include "image.h"
 #include "lsd.h"
@@ -133,190 +134,6 @@ struct coorlist
 struct point {
     int x, y;
 };
-
-/*----------------------------------------------------------------------------*/
-/*----------------------------- Gaussian filter ------------------------------*/
-/*----------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------*/
-/** Compute a Gaussian kernel of length 'kernel->dim',
-    standard deviation 'sigma', and centered at value 'mean'.
-
-    For example, if mean=0.5, the Gaussian will be centered
-    in the middle point between values 'kernel->values[0]'
-    and 'kernel->values[1]'.
- */
-static void gaussian_kernel(ntuple_list kernel, double sigma, double mean)
-{
-    double sum = 0.0;
-    double val;
-    unsigned int i;
-
-    /* check parameters */
-    if (kernel == NULL || kernel->values == NULL)
-        libMsg::error("gaussian_kernel: invalid n-tuple 'kernel'.");
-    if (sigma <= 0.0) libMsg::error("gaussian_kernel: 'sigma' must be positive.");
-
-    /* compute Gaussian kernel */
-    if (kernel->max_size < 1) enlarge_ntuple_list(kernel);
-    kernel->size = 1;
-    for (i = 0; i < kernel->dim; i++) {
-        val = ((double)i - mean) / sigma;
-        kernel->values[i] = exp(-0.5 * val * val);
-        sum += kernel->values[i];
-    }
-
-    /* normalization */
-    if (sum >= 0.0) for (i = 0; i < kernel->dim; i++) kernel->values[i] /= sum;
-}
-
-/*----------------------------------------------------------------------------*/
-/** Scale the input image 'in' by a factor 'scale' by Gaussian sub-sampling.
-
-    For example, scale=0.8 will give a result at 80% of the original size.
-
-    The image is convolved with a Gaussian kernel
-    @f[
-        G(x,y) = \frac{1}{2\pi\sigma^2} e^{-\frac{x^2+y^2}{2\sigma^2}}
-    @f]
-    before the sub-sampling to prevent aliasing.
-
-    The standard deviation sigma given by:
-    -  sigma = sigma_scale / scale,   if scale <  1.0
-    -  sigma = sigma_scale,           if scale >= 1.0
-
-    To be able to sub-sample at non-integer steps, some interpolation
-    is needed. In this implementation, the interpolation is done by
-    the Gaussian kernel, so both operations (filtering and sampling)
-    are done at the same time. The Gaussian kernel is computed
-    centered on the coordinates of the required sample. In this way,
-    when applied, it gives directly the result of convolving the image
-    with the kernel and interpolated to that particular position.
-
-    A fast algorithm is done using the separability of the Gaussian
-    kernel. Applying the 2D Gaussian kernel is equivalent to applying
-    first a horizontal 1D Gaussian kernel and then a vertical 1D
-    Gaussian kernel (or the other way round). The reason is that
-    @f[
-        G(x,y) = G(x) * G(y)
-    @f]
-    where
-    @f[
-        G(x) = \frac{1}{\sqrt{2\pi}\sigma} e^{-\frac{x^2}{2\sigma^2}}.
-    @f]
-    The algorithm first apply a combined Gaussian kernel and sampling
-    in the x axis, and then the combined Gaussian kernel and sampling
-    in the y axis.
- */
-static void gaussian_sampler(const ImageGray<double> &in, double scale, double sigma_scale,
-                             ImageGray<double> &out)
-{
-    ImageGray<double> aux;
-    ntuple_list kernel;
-    unsigned int N, M, h, n, x, y, i;
-    int xc, yc, j, double_x_size, double_y_size;
-    double sigma, xx, yy, sum, prec;
-
-    /* check parameters */
-    if (!in.isValid())
-        libMsg::error("gaussian_sampler: invalid image.");
-    if (scale <= 0.0) libMsg::error("gaussian_sampler: 'scale' must be positive.");
-    if (sigma_scale <= 0.0)
-        libMsg::error("gaussian_sampler: 'sigma_scale' must be positive.");
-
-    /* get memory for images */
-    if (in.xsize() * scale > (double)UINT_MAX
-        || in.ysize() * scale > (double)UINT_MAX)
-        libMsg::error("gaussian_sampler: the output image size exceeds the handled size.");
-    N = (unsigned int)floor(in.xsize() * scale);
-    M = (unsigned int)floor(in.ysize() * scale);
-    aux.resize(M, in.ysize());
-    out.resize(N, M);
-
-    /* sigma, kernel size and memory for the kernel */
-    sigma = scale < 1.0 ? sigma_scale / scale : sigma_scale;
-    /*
-       The size of the kernel is selected to guarantee that the
-       the first discarded term is at least 10^prec times smaller
-       than the central value. For that, h should be larger than x, with
-         e^(-x^2/2sigma^2) = 1/10^prec.
-       Then,
-         x = sigma * sqrt( 2 * prec * ln(10) ).
-     */
-    prec = 3.0;
-    h = (unsigned int)ceil(sigma * sqrt(2.0 * prec * log(10.0)));
-    n = 1+2*h; /* kernel size */
-    kernel = new_ntuple_list(n);
-
-    /* auxiliary double image size variables */
-    double_x_size = (int)(2 * in.xsize());
-    double_y_size = (int)(2 * in.ysize());
-
-    /* First subsampling: x axis */
-    for (x = 0; x < aux.xsize(); x++) {
-        /*
-           x   is the coordinate in the new image.
-           xx  is the corresponding x-value in the original size image.
-           xc  is the integer value, the pixel coordinate of xx.
-         */
-        xx = (double)x / scale;
-        /* coordinate (0.0,0.0) is in the center of pixel (0,0),
-           so the pixel with xc=0 get the values of xx from -0.5 to 0.5 */
-        xc = (int)floor(xx + 0.5);
-        gaussian_kernel(kernel, sigma, (double)h + xx - (double)xc);
-        /* the kernel must be computed for each x because the fine
-           offset xx-xc is different in each case */
-
-        for (y = 0; y < aux.ysize(); y++) {
-            sum = 0.0;
-            for (i = 0; i < kernel->dim; i++) {
-                j = xc - h + i;
-
-                /* symmetry boundary condition */
-                while (j < 0) j += double_x_size;
-                while (j >= double_x_size) j -= double_x_size;
-                if (j >= (int)in.xsize()) j = double_x_size-1-j;
-
-                sum += in.pixel(j, y) * kernel->values[i];
-            }
-            aux.pixel(x, y) = sum;
-        }
-    }
-
-    /* Second subsampling: y axis */
-    for (y = 0; y < out.ysize(); y++) {
-        /*
-           y   is the coordinate in the new image.
-           yy  is the corresponding x-value in the original size image.
-           yc  is the integer value, the pixel coordinate of xx.
-         */
-        yy = (double)y / scale;
-        /* coordinate (0.0,0.0) is in the center of pixel (0,0),
-           so the pixel with yc=0 get the values of yy from -0.5 to 0.5 */
-        yc = (int)floor(yy + 0.5);
-        gaussian_kernel(kernel, sigma, (double)h + yy - (double)yc);
-        /* the kernel must be computed for each y because the fine
-           offset yy-yc is different in each case */
-
-        for (x = 0; x < out.xsize(); x++) {
-            sum = 0.0;
-            for (i = 0; i < kernel->dim; i++) {
-                j = yc - h + i;
-
-                /* symmetry boundary condition */
-                while (j < 0) j += double_y_size;
-                while (j >= double_y_size) j -= double_y_size;
-                if (j >= (int)in.ysize()) j = double_y_size-1-j;
-
-                sum += aux.pixel(x, j) * kernel->values[i];
-            }
-            out.pixel(x, y) = sum;
-        }
-    }
-
-    /* free memory */
-    free_ntuple_list(kernel);
-}
 
 /*----------------------------------------------------------------------------*/
 /*--------------------------------- Gradient ---------------------------------*/
@@ -1594,7 +1411,7 @@ ntuple_list LineSegmentDetection(const ImageGray<double> &image, double scale, d
     /* scale image (if necessary) and compute angle at each pixel */
     if (scale != 1.0) {
         ImageGray<double> scaled_image;
-        gaussian_sampler(image, scale, sigma_scale, scaled_image);
+        gaussian_sampler(scaled_image, scale, sigma_scale, image);
         ll_angle(scaled_image, rho, &list_p, &mem_p,
                  modgrad, (unsigned int)n_bins, max_grad, angles);
     } else {

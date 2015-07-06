@@ -85,7 +85,8 @@ void enlarge_ntuple_list(ntuple_list n_tuple)
   /* realloc memory */
   n_tuple->values = (double *) realloc( (void *) n_tuple->values,
                       n_tuple->dim * n_tuple->max_size * sizeof(double) );
-  if( n_tuple->values == NULL ) libMsg::error("not enough memory.");
+  if( n_tuple->values == NULL )
+      libMsg::error("not enough memory.");
 }
 
 /*----------------------------------------------------------------------------*/

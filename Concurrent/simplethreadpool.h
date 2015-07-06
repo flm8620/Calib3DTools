@@ -25,25 +25,18 @@ private:
         template<typename T>
         void run(std::promise<T> &result)
         {
-            try{
-                result.set_value(func());
-            }catch (...) {
-                result.set_exception(std::current_exception());
-            }
+            result.set_value(func());
         }
 
         void run(std::promise<void> &result)
         {
-            try{
-                func();
-                result.set_value();
-            }catch (...) {
-                result.set_exception(std::current_exception());
-            }
+            func();
+            result.set_value();
         }
 
     public:
-        RunnableFunction(R(*f)(ARGS ...), ARGS ... args) : func(std::bind(f, args ...))
+        RunnableFunction(R(*f)(ARGS ...), ARGS ... args)
+            : func(std::bind(f, args ...))
         {
         }
 
@@ -52,9 +45,13 @@ private:
             return this->result.get_future();
         }
 
-        void run()
-        {
-            run(result);
+        void run() {
+            try {
+                run(result);
+            }
+            catch(...) {
+                result.set_exception(std::current_exception());
+            }
         }
 
         void done()
@@ -66,7 +63,7 @@ private:
 public:
     SimpleThreadPool(int threads = 5);
     ~SimpleThreadPool();
-    void start(Runnable *task) const;
+    inline void start( Runnable* task ) const { this->tasks.Push(task); }
     template<typename R, typename ... ARGS >
     std::future<R> start(R (*f)(ARGS ...), ARGS ... args)
     {
@@ -93,7 +90,6 @@ private:
         bool closed = false;
     };
     mutable TaskQueue tasks;
-    static void threadMain(TaskQueue *tasks);
 };
 
 template<typename T>

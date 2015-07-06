@@ -24,6 +24,7 @@ public:
     QModelIndex parent(const QModelIndex &child) const;
 
 private slots:
+
     void onCoreDataChanged();
 
 private:

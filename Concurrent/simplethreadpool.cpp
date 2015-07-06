@@ -1,41 +1,38 @@
 #include "simplethreadpool.h"
 #include <thread>
 #include <functional>
+#include <algorithm>
+
 using std::thread;
+using std::for_each;
 namespace concurrent {
 SimpleThreadPool SimpleThreadPool::DEFAULT;
 
 SimpleThreadPool::SimpleThreadPool(int threads) : pool(threads)
 {
-    for (int i = 0; i < threads; i++)
-        this->pool[i] = new thread(&threadMain, &this->tasks);
-}
-
-void SimpleThreadPool::threadMain(TaskQueue *tasks)
-{
-    Runnable *task;
-    while (NULL != (task = tasks->Pop())) {
-        task->run();
-        task->done();
-    }
-}
-
-void SimpleThreadPool::start(Runnable *task) const
-{
-    this->tasks.Push(task);
+    for_each(this->pool.begin(), this->pool.end(), [this](thread*& th){
+        th = new thread([this]{
+                        for(auto task=this->tasks.Pop();
+                            task!=nullptr;
+                            task=this->tasks.Pop()) {
+                            task->run();
+                            task->done();
+                        }
+                    });
+    });
 }
 
 SimpleThreadPool::~SimpleThreadPool()
 {
     this->tasks.close();
-    for (unsigned i = 0; i < this->pool.size(); i++) {
-        thread * &th = this->pool[i];
-        if (th != NULL) {
-            th->join();
-            delete th;
-            th = NULL;
-        }
-    }
+    for_each(this->pool.begin(), this->pool.end(),
+             [this](thread*& th){
+                if(th!=NULL) {
+                    th->join();
+                    delete th;
+                    th = NULL;
+                }
+             });
 }
 
 typedef std::unique_lock<std::mutex> UniqueLock;
