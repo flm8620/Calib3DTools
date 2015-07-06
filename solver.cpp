@@ -16,7 +16,7 @@ Solver::Solver(QObject *parent) : QObject(parent)
 {
 }
 
-//deprecated
+// deprecated
 ///**
 // * @brief PolyOrderConvert_Qt2Lib
 // * @param poly
@@ -37,28 +37,28 @@ Solver::Solver(QObject *parent) : QObject(parent)
 // * a8 * x^1*y^2
 // * a9 * x^0*y^3    b9 * x^0*y^0
 // */
-//static bool PolyOrderConvert_Qt2Lib(Bi<std::vector<double> > &poly)
-//{
-//    size_t polysize =poly.x.size(), ysize =poly.y.size();
-//    int maxOrder = (isqrt(8*polysize+1) - 1)/2-1;
-//    if (polysize != (maxOrder+1)*(maxOrder+2)/2 || polysize!=ysize)
-//        return false;
+// static bool PolyOrderConvert_Qt2Lib(Bi<std::vector<double> > &poly)
+// {
+// size_t polysize =poly.x.size(), ysize =poly.y.size();
+// int maxOrder = (isqrt(8*polysize+1) - 1)/2-1;
+// if (polysize != (maxOrder+1)*(maxOrder+2)/2 || polysize!=ysize)
+// return false;
 
-//    poly.x.reserve(polysize*2-maxOrder-1);
-//    poly.y.reserve(polysize*2-maxOrder-1);
-//    std::vector<double>::const_iterator xbegin = poly.x.cbegin(), ybegin = poly.y.cbegin();
-//    for(int order = maxOrder-1; order>=0; order--)
-//        for(int i=0, idx = (order*(order+1)/2); i<=order; i++, idx++) {
-//            poly.x.push_back(poly.x[idx]);
-//            poly.y.push_back(poly.y[idx]);
-//        }
-//    int newtop = maxOrder*(maxOrder+1)/2;
-//    poly.x.erase( xbegin, xbegin + newtop );
-//    poly.y.erase( ybegin, ybegin + newtop );
-//    poly.x.shrink_to_fit();
-//    poly.y.shrink_to_fit();
-//    return true;
-//}
+// poly.x.reserve(polysize*2-maxOrder-1);
+// poly.y.reserve(polysize*2-maxOrder-1);
+// std::vector<double>::const_iterator xbegin = poly.x.cbegin(), ybegin = poly.y.cbegin();
+// for(int order = maxOrder-1; order>=0; order--)
+// for(int i=0, idx = (order*(order+1)/2); i<=order; i++, idx++) {
+// poly.x.push_back(poly.x[idx]);
+// poly.y.push_back(poly.y[idx]);
+// }
+// int newtop = maxOrder*(maxOrder+1)/2;
+// poly.x.erase( xbegin, xbegin + newtop );
+// poly.y.erase( ybegin, ybegin + newtop );
+// poly.x.shrink_to_fit();
+// poly.y.shrink_to_fit();
+// return true;
+// }
 
 static bool PolyOrderConvert_Lib2Qt(std::vector<double> &poly, int maxOrder)
 {
@@ -94,14 +94,15 @@ static bool PolyOrderConvert_Lib2Qt(std::vector<double> &poly, int maxOrder)
     return true;
 }
 
-static void distortionValue2Polynome(const DistortionValue &distValue, Bi<std::vector<double> > &polynome)
+static void distortionValue2Polynome(const DistortionValue &distValue,
+                                     Bi<std::vector<double> > &polynome)
 {
     polynome.x.clear();
     polynome.y.clear();
     Q_ASSERT(distValue.isValid());
     for (int i = 0; i < distValue._size; ++i) {
-        polynome.x.push_back( distValue._XYData[i].first );
-        polynome.y.push_back( distValue._XYData[i].second );
+        polynome.x.push_back(distValue._XYData[i].first);
+        polynome.y.push_back(distValue._XYData[i].second);
     }
 }
 
@@ -180,8 +181,8 @@ static bool correctDistortion(const QImage &imageIn, QImage &out, Distortion *di
     }
     Bi<std::vector<double> > polynome;
     distortionValue2Polynome(distValue, polynome);
-//    bool success = PolyOrderConvert_Qt2Lib(polynome);
-//    Q_ASSERT(success);
+// bool success = PolyOrderConvert_Qt2Lib(polynome);
+// Q_ASSERT(success);
 
     QImage result;
     if (imageIn.isGrayscale()) {
@@ -213,9 +214,9 @@ static bool calculateKFromImages(ImageList *circlePhotoList, ImageList *feedback
     std::vector<QImage> feedback;
     for (int i = 0; i < snapshot.size(); ++i)
         stdImageList.push_back(snapshot[i].second);
-    double alpha, beta, gamma, u0, v0;
+    double alpha, beta, u0, v0, gamma;
 
-    bool ok = KMatrixSolve::KMatrixSolver(stdImageList, feedback, alpha, beta, gamma, u0, v0, 3.0,
+    bool ok = KMatrixSolve::KMatrixSolver(stdImageList, feedback, alpha, beta, u0, v0, gamma, 3.0,
                                           1.0);
 
     QList<QPair<QString, QImage> > tempFeedback;
@@ -225,7 +226,7 @@ static bool calculateKFromImages(ImageList *circlePhotoList, ImageList *feedback
     feedbackList->setContent(tempFeedback);
 
     if (!ok) return false;
-    kValue = {alpha, beta, gamma, u0, v0};
+    kValue = {alpha, beta, u0, v0, gamma };
     return true;
 }
 
@@ -572,8 +573,8 @@ bool Solver::calculateK()
             this->message("Undistorted circle photo loaded.");
         }
         KValue kValue;
-        if (!calculateKFromImages(this->undistortedCircleList, this->circleFeedbackList, kValue)){
-            this->message("Failed to calculate K Matrix",M_WARN);
+        if (!calculateKFromImages(this->undistortedCircleList, this->circleFeedbackList, kValue)) {
+            this->message("Failed to calculate K Matrix", M_WARN);
             return false;
         }
         this->kMatrix->setValue(kValue);

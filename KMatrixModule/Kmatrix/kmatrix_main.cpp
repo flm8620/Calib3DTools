@@ -90,11 +90,11 @@ bool extractK_real(std::vector<matrix<T> > &S, std::vector<matrix<T> > &Ellipse_
     errorKparams(K_point, K_ellip, ea, eb, eu, ev, eg);
     libMsg::cout<<"Compare K_point and K_ellip:"<<libMsg::endl;
     libMsg::cout<<"( K_point - K_ellip ) / K_point"<<libMsg::endl;
-    libMsg::cout<<"alpha:\t"<<ea<<libMsg::endl;
-    libMsg::cout<<"beta:\t"<<eb<<libMsg::endl;
-    libMsg::cout<<"gamme:\t"<<eg<<libMsg::endl;
-    libMsg::cout<<"u0:\t"<<eu<<libMsg::endl;
-    libMsg::cout<<"v0:\t"<<ev<<libMsg::endl;
+    libMsg::cout<<"alpha:\t"<<ea<<" %"<<libMsg::endl;
+    libMsg::cout<<"beta:\t"<<eb<<" %"<<libMsg::endl;
+    libMsg::cout<<"gamme:\t"<<eg<<" absolution difference."<<libMsg::endl;
+    libMsg::cout<<"u0:\t"<<eu<<" pixel"<<libMsg::endl;
+    libMsg::cout<<"v0:\t"<<ev<<" pixel"<<libMsg::endl;
     Kout = K_ellip;
     return true;
 }
