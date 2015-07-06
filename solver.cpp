@@ -176,7 +176,7 @@ static bool correctDistortion(const QImage &imageIn, QImage &out, Distortion *di
     }
     DistortionValue distValue = distortion->getValue();
     if (!distValue.isValid() || distValue._size == 0) {
-        libMsg::cout<<"DistortionCorrection: distortion polynomail is empty!"<<libMsg::endl;
+        libMsg::cout<<"DistortionCorrection: distortion polynomial is empty!"<<libMsg::endl;
         return false;
     }
     Bi<std::vector<double> > polynome;

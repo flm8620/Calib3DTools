@@ -8,6 +8,7 @@ myScene::myScene(QObject *parent) :
     QGraphicsScene(parent),
     pointView(0)
 {
+    this->currentImageId=-1;
     myMode = MoveItem;
     this->mapper = new QSignalMapper(this);
     this->coreData = 0;
@@ -111,7 +112,7 @@ void myScene::onDataReset()
 {
     this->clear();
     this->markerList.clear();
-    if (this->currentImageId < this->coreData->size()) {
+    if (this->currentImageId>=0 && this->currentImageId < this->coreData->size()) {
         this->loadImage(this->coreData->getImage(this->currentImageId));
         QList<QPointF> list;
         this->coreData->getPointsInImage(this->currentImageId, list);
@@ -119,6 +120,8 @@ void myScene::onDataReset()
             Marker *marker = this->appendMarker();
             marker->setPos(list[i]);
         }
+    }else{
+        this->currentImageId=-1;
     }
     this->setSceneRect(this->itemsBoundingRect());
 }

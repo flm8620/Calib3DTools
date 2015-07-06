@@ -6,18 +6,32 @@
 Point2DWidget::Point2DWidget(QWidget *parent) : QWidget(parent)
 {
     view = new Point2DView(this);
-    this->view->setItemDelegate(new ScienceDoubleDelegate);
+    ScienceDoubleDelegate *delegate=new ScienceDoubleDelegate(this);
+    delegate->setPrecision(6);
+    this->view->setItemDelegate(delegate);
     QPushButton *addPointButton = new QPushButton(tr("+"));
     QPushButton *removePointButton = new QPushButton(tr("-"));
-    QPushButton *moveUpButton = new QPushButton(tr("Up"));
-    QPushButton *moveDownButton = new QPushButton(tr("Down"));
+    QPushButton *moveUpButton = new QPushButton(tr("^"));
+    QPushButton *moveDownButton = new QPushButton(tr("v"));
     QPushButton *loadButton = new QPushButton(tr("Load"));
     QPushButton *saveButton = new QPushButton(tr("Save"));
     QPushButton *clearButton = new QPushButton(tr("Clear"));
-    addPointButton->setMaximumWidth(40);
-    removePointButton->setMaximumWidth(40);
-    moveUpButton->setMaximumWidth(40);
-    moveDownButton->setMaximumWidth(40);
+
+    addPointButton->setMaximumWidth(20);
+    removePointButton->setMaximumWidth(20);
+    moveUpButton->setMaximumWidth(20);
+    moveDownButton->setMaximumWidth(20);
+    loadButton->setMaximumWidth(40);
+    saveButton->setMaximumWidth(40);
+    clearButton->setMaximumWidth(40);
+
+    addPointButton->setMaximumHeight(20);
+    removePointButton->setMaximumHeight(20);
+    moveUpButton->setMaximumHeight(20);
+    moveDownButton->setMaximumHeight(20);
+    loadButton->setMaximumHeight(20);
+    saveButton->setMaximumHeight(20);
+    clearButton->setMaximumHeight(20);
 
     QHBoxLayout *bLay1 = new QHBoxLayout;
     QHBoxLayout *bLay2 = new QHBoxLayout;

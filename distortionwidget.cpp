@@ -13,10 +13,11 @@ DistortionWidget::DistortionWidget(QWidget *parent) : QWidget(parent)
     bLay->addWidget(saveButton);
     bLay->addWidget(clearButton);
     this->tableView = new QTableView;
+    this->tableView->horizontalHeader()->setStretchLastSection(true);
     layout->addLayout(bLay);
     layout->addWidget(this->tableView);
 
-    QGroupBox *groupBox = new QGroupBox(tr("Distortion"));
+    QGroupBox *groupBox = new QGroupBox(tr("Distortion Polynomial"));
     groupBox->setLayout(layout);
     QHBoxLayout *boxLayout = new QHBoxLayout;
     boxLayout->addWidget(groupBox);
@@ -24,7 +25,7 @@ DistortionWidget::DistortionWidget(QWidget *parent) : QWidget(parent)
     connect(loadButton, SIGNAL(clicked(bool)), this, SLOT(loadFile()));
     connect(saveButton, SIGNAL(clicked(bool)), this, SLOT(saveFile()));
     connect(clearButton, SIGNAL(clicked(bool)), this, SLOT(clear()));
-    this->tableView->setItemDelegate(new ScienceDoubleDelegate);
+    this->tableView->setItemDelegate(new ScienceDoubleDelegate(this));
 }
 
 void DistortionWidget::setModel(DistortionModel *model)

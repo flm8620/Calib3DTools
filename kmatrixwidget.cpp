@@ -11,7 +11,8 @@ KMatrixWidget::KMatrixWidget(QWidget *parent) : QWidget(parent)
     bLay->addWidget(saveButton);
     bLay->addWidget(clearButton);
     this->view = new QTableView;
-    this->view->setItemDelegate(new ScienceDoubleDelegate);
+    this->view->setItemDelegate(new ScienceDoubleDelegate(this));
+    this->view->horizontalHeader()->setStretchLastSection(true);
     layout->addLayout(bLay);
     layout->addWidget(this->view);
 

@@ -4,7 +4,6 @@ Point2DView::Point2DView(QWidget *parent) :
     QTreeView(parent)
 {
     setHeaderHidden(false);
-
 }
 
 void Point2DView::setPoint2DModel(Point2DModel *point2DModel)
@@ -12,10 +11,11 @@ void Point2DView::setPoint2DModel(Point2DModel *point2DModel)
     this->point2DModel=point2DModel;
     QTreeView::setModel(point2DModel);
     connect(this->selectionModel(), SIGNAL(currentChanged(QModelIndex, QModelIndex)), this,
-            SLOT(onCurrentChanged(QModelIndex, QModelIndex)));
+            SLOT(onCurrentChanged(QModelIndex)));
+    connect(this,SIGNAL(clicked(QModelIndex)),this,SLOT(onCurrentChanged(QModelIndex)));
 }
 
-void Point2DView::onCurrentChanged(const QModelIndex &current, const QModelIndex &previous)
+void Point2DView::onCurrentChanged(const QModelIndex &current)
 {
     if(this->point2DModel->indexMeansImage(current)){
         emit currentPointChanged(current.row(),0);

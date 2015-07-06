@@ -26,7 +26,9 @@ CamPosWidget::CamPosWidget(QWidget *parent) : QWidget(parent)
     connect(loadButton, SIGNAL(clicked(bool)), this, SLOT(loadFile()));
     connect(saveButton, SIGNAL(clicked(bool)), this, SLOT(saveFile()));
     connect(clearButton, SIGNAL(clicked(bool)), this, SLOT(clear()));
-    this->tableView->setItemDelegate(new ScienceDoubleDelegate);
+    ScienceDoubleDelegate *delegate=new ScienceDoubleDelegate(this);
+    delegate->setPrecision(6);
+    this->tableView->setItemDelegate(delegate);
 }
 
 void CamPosWidget::setModel(CamPosModel *model)

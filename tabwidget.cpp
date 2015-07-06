@@ -140,6 +140,7 @@ Point3DTab::Point3DTab(QWidget *parent)
     this->point3DWidget = new Point3DWidget;
     QVBoxLayout *lay = new QVBoxLayout;
     lay->addWidget(this->point3DWidget);
+    this->setLayout(lay);
 }
 
 void Point3DTab::registerModel(Point3DModel *point3DModel)

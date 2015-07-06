@@ -1,11 +1,23 @@
 #include "sciencedoubledelegate.h"
 #include <QDebug>
-QString ScienceDoubleDelegate::displayText(const QVariant &value, const QLocale &locale) const
+void ScienceDoubleDelegate::setPrecision(int precision)
 {
-    return QString::number(value.toDouble(),'g',15);
+    precision=std::max(std::min(precision,15),3);
+    this->precision=precision;
 }
 
-QWidget *ScienceDoubleDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &, const QModelIndex &index) const
+QString ScienceDoubleDelegate::displayText(const QVariant &value, const QLocale &locale) const
+{
+    bool isDouble=false;
+    value.toDouble(&isDouble);
+    if(isDouble)
+        return QString::number(value.toDouble(), 'g', this->precision);
+    else
+        return value.toString();
+}
+
+QWidget *ScienceDoubleDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &,
+                                             const QModelIndex &index) const
 {
     QScienceSpinBox *editor = new QScienceSpinBox(parent);
     editor->setFrame(false);
@@ -17,20 +29,23 @@ void ScienceDoubleDelegate::setEditorData(QWidget *editor, const QModelIndex &in
 {
     bool ok;
     double value = index.model()->data(index, Qt::EditRole).toDouble(&ok);
-    QScienceSpinBox *spinBox = static_cast<QScienceSpinBox*>(editor);
+    QScienceSpinBox *spinBox = static_cast<QScienceSpinBox *>(editor);
     spinBox->setDecimals(15);
     spinBox->setValue(value);
 }
 
-void ScienceDoubleDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
+void ScienceDoubleDelegate::setModelData(QWidget *editor, QAbstractItemModel *model,
+                                         const QModelIndex &index) const
 {
-    QScienceSpinBox *spinBox = static_cast<QScienceSpinBox*>(editor);
+    QScienceSpinBox *spinBox = static_cast<QScienceSpinBox *>(editor);
     spinBox->interpretText();
     double value = spinBox->value();
     model->setData(index, value, Qt::EditRole);
 }
 
-void ScienceDoubleDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const
+void ScienceDoubleDelegate::updateEditorGeometry(QWidget *editor,
+                                                 const QStyleOptionViewItem &option,
+                                                 const QModelIndex &index) const
 {
     editor->setGeometry(option.rect);
 }
