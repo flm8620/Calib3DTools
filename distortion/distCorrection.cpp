@@ -29,7 +29,7 @@
 #include "correction.h"
 #include "spline.h"
 // libDistortion
-#include "distortion.h"
+#include "distortionline.h"
 // libLineDetection
 #include "gaussian_convol_on_curve.h"
 #include "straight_edge_points.h"
