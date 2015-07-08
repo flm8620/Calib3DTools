@@ -17,8 +17,9 @@ public slots:
 protected:
     void wheelEvent(QWheelEvent *event);
 private:
-    void zoomIn();
-    void zoomOut();
+    void scrollWithPixels(const QPoint& pixel);
+    void scrollWithDegrees(const QPoint& step);
+    void zoom(double z);
     QImage myImage;
     QGraphicsScene *scene;
 };
