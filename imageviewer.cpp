@@ -26,6 +26,7 @@ void ImageViewer::setImage(QImage image)
     QPixmap pix = QPixmap::fromImage(myImage);
     scene->clear();
     scene->addPixmap(pix);
+    scene->setSceneRect(scene->itemsBoundingRect());
 }
 
 void ImageViewer::wheelEvent(QWheelEvent *event)

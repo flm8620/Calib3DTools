@@ -19,7 +19,8 @@ public slots:
     void moveDown();
     void clear();
 private slots:
-    void imageClicked(QModelIndex index);
+    void onSelectionChanged(const QItemSelection &selected);
+    void onCurrentChanged(QModelIndex index);
 signals:
     void imageToDisplay(QImage image);
 private:

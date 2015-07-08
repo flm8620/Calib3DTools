@@ -6,7 +6,6 @@ Point2DView::Point2DView(QWidget *parent) :
     this->setHeaderHidden(false);
     this->setSelectionBehavior(QAbstractItemView::SelectRows);
     this->setSelectionMode(QAbstractItemView::SingleSelection);
-
 }
 
 void Point2DView::setPoint2DModel(Point2DModel *point2DModel)
