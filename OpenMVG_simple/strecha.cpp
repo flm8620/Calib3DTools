@@ -17,24 +17,23 @@ static const size_t ACRANSAC_ITER = 10;
 #include <fstream>
 #include <iterator>
 #include <vector>
-#include <iomanip>
+#include "messager.h"
 using namespace std;
-static void printdouble(const char *s, double a){
-    std::cout<<s<<std::setprecision(16)<<a<<" "<<std::hex<<*reinterpret_cast<long long *>(&a)
-             <<std::endl;
-}
 namespace Strecha {
 bool findCameraPosition(const std::vector<double> &K, const std::vector<double> &point2D,
                         const std::vector<double> &point3D, std::vector<double> &R_out,
                         std::vector<double> &T_out, std::vector<double> &center_out)
 {
-    if (K.size() != 5) return false;
-    if (point2D.size()%2 != 0) return false;
-    if (point3D.size()%3 != 0) return false;
-    if (point2D.size() == 0) return false;
-    if (point3D.size() == 0) return false;
-
-    if (point2D.size()/2 != point3D.size()/3) return false;
+    bool valueAllOk = true;
+    if (K.size() != 5) valueAllOk = false;
+    if (point2D.size()%2 != 0) valueAllOk = false;
+    if (point3D.size()%3 != 0) valueAllOk = false;
+    if (point2D.size() == 0) valueAllOk = false;
+    if (point3D.size() == 0) valueAllOk = false;
+    if (point2D.size()/2 != point3D.size()/3) valueAllOk = false;
+    if(!valueAllOk){
+        libMsg::cout<<"Argument invalid for camera solution"<<libMsg::endl;
+    }
     int pointCount = point2D.size()/2;
 
     srand(time(NULL));
@@ -74,8 +73,13 @@ bool findCameraPosition(const std::vector<double> &K, const std::vector<double> 
                                                      errorMax, true);
     errorMax = ACRansacOut.first;
 
-    // std::cout << P << std::endl;
-    // std::cout << errorMax << std::endl;
+    libMsg::cout<<"\n error max = "<<errorMax<<libMsg::endl;
+    libMsg::cout<<"Point2D accepted: ";
+    std::sort(vec_inliers.begin(), vec_inliers.end());
+    for(int i=0;i<vec_inliers.size();++i){
+        libMsg::cout<<vec_inliers[i]<<',';
+    }
+    libMsg::cout<<libMsg::endl<<libMsg::endl;
 
     Mat3 R, newK;
     Vec3 t;
@@ -95,5 +99,6 @@ bool findCameraPosition(const std::vector<double> &K, const std::vector<double> 
     center_out.push_back(cam._C(0));
     center_out.push_back(cam._C(1));
     center_out.push_back(cam._C(2));
+    return true;
 }
 }

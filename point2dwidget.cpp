@@ -6,7 +6,7 @@
 Point2DWidget::Point2DWidget(QWidget *parent) : QWidget(parent)
 {
     view = new Point2DView(this);
-    ScienceDoubleDelegate *delegate=new ScienceDoubleDelegate(this);
+    ScienceDoubleDelegate *delegate = new ScienceDoubleDelegate(this);
     delegate->setPrecision(6);
     this->view->setItemDelegate(delegate);
     QPushButton *addPointButton = new QPushButton(tr("+"));
@@ -51,8 +51,8 @@ Point2DWidget::Point2DWidget(QWidget *parent) : QWidget(parent)
     connect(loadButton, SIGNAL(clicked(bool)), this, SLOT(loadFile()));
     connect(saveButton, SIGNAL(clicked(bool)), this, SLOT(saveFile()));
     connect(clearButton, SIGNAL(clicked(bool)), this, SLOT(clear()));
-    connect(moveUpButton,SIGNAL(clicked(bool)),this,SLOT(moveUp()));
-    connect(moveDownButton,SIGNAL(clicked(bool)),this,SLOT(moveDown()));
+    connect(moveUpButton, SIGNAL(clicked(bool)), this, SLOT(movePointUp()));
+    connect(moveDownButton, SIGNAL(clicked(bool)), this, SLOT(movePointDown()));
 
     QVBoxLayout *hLay = new QVBoxLayout;
     hLay->addLayout(bLay);
@@ -87,38 +87,66 @@ void Point2DWidget::removePoint()
     this->model->removePoint(sId);
 }
 
-void Point2DWidget::moveUp()
+void Point2DWidget::movePointUp()
 {
-    QModelIndex index=this->getFirstSelectedItem();
-    this->model->movePointUp(index);
-    QModelIndex id = this->model->index(index.row()-1,index.column(),index.parent());
-    this->view->selectionModel()->select(id,QItemSelectionModel::ClearAndSelect);
+    QModelIndex index = this->getFirstSelectedItem();
+    if (this->model->indexMeansPoint(index)) {
+        this->model->movePointUp(index);
+        if (index.row() > 0) {
+            QModelIndex id = this->model->index(index.row()-1, index.column(), index.parent());
+            this->view->selectionModel()->select(id,
+                                                 QItemSelectionModel::ClearAndSelect
+                                                 |QItemSelectionModel::Rows);
+        } else {
+            QModelIndex id = this->model->index(index.row(), index.column(), index.parent());
+            this->view->selectionModel()->select(id,
+                                                 QItemSelectionModel::ClearAndSelect
+                                                 |QItemSelectionModel::Rows);
+        }
+    }
 }
 
-void Point2DWidget::moveDown()
+void Point2DWidget::movePointDown()
 {
-    QModelIndex index=this->getFirstSelectedItem();
-    this->model->movePointDown(index);
-    QModelIndex id = this->model->index(index.row()+1,index.column(),index.parent());
-    this->view->selectionModel()->select(id,QItemSelectionModel::ClearAndSelect);
+    QModelIndex index = this->getFirstSelectedItem();
+    if (this->model->indexMeansPoint(index)) {
+        this->model->movePointDown(index);
+        if (index.row() < this->model->pointCount()-1) {
+            QModelIndex id = this->model->index(index.row()+1, index.column(), index.parent());
+            this->view->selectionModel()->select(id,
+                                                 QItemSelectionModel::ClearAndSelect
+                                                 |QItemSelectionModel::Rows);
+        } else {
+            QModelIndex id = this->model->index(index.row(), index.column(), index.parent());
+            this->view->selectionModel()->select(id,
+                                                 QItemSelectionModel::ClearAndSelect
+                                                 |QItemSelectionModel::Rows);
+        }
+    }
 }
 
 void Point2DWidget::saveFile()
 {
-    QFileDialog dialog(this, tr("Save Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Save Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     dialog.setFileMode(QFileDialog::AnyFile);
     while (dialog.exec() == QDialog::Accepted)
         if (savePoint2D(dialog.selectedFiles())) break;
+    if (!dialog.selectedFiles().isEmpty())
+        settings.setValue("default_dir", dialog.selectedFiles().first());
 }
 
 void Point2DWidget::loadFile()
 {
-    QFileDialog dialog(this, tr("Load Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Load Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFile);
     while (dialog.exec() == QDialog::Accepted)
         if (loadPoint2D(dialog.selectedFiles())) break;
+    if (!dialog.selectedFiles().isEmpty())
+        settings.setValue("default_dir", dialog.selectedFiles().first());
 }
 
 void Point2DWidget::clear()
@@ -138,8 +166,8 @@ bool Point2DWidget::savePoint2D(const QStringList &list)
     this->model->core()->getAllPoints(plist);
 
     int size = plist.size();
-    if(size==0)return false;
-    int pointcount=plist[0].size();
+    if (size == 0) return false;
+    int pointcount = plist[0].size();
 
     // writing:
     st.setRealNumberPrecision(16);
@@ -147,7 +175,7 @@ bool Point2DWidget::savePoint2D(const QStringList &list)
     st<<"PointCount:\n"<<pointcount<<'\n';
     for (int i = 0; i < size; i++) {
         st<<tr("Image_%1").arg(i+1)<<'\n';
-        for(int j=0; j < pointcount; ++j){
+        for (int j = 0; j < pointcount; ++j) {
             st<<plist[i][j].x()<<'\t';
             st<<plist[i][j].y()<<'\n';
         }
@@ -167,24 +195,24 @@ bool Point2DWidget::loadPoint2D(const QStringList &list)
         return false;
     QTextStream st(&file);
     QList<QList<QPointF> > plist;
-    int size,pointcount;
+    int size, pointcount;
     // reading
     st.setRealNumberPrecision(16);
-    st.readLine();//ImageCount
+    st.readLine();// ImageCount
     st>>size;
     st.skipWhiteSpace();
-    st.readLine();//PointCount
+    st.readLine();// PointCount
     st>>pointcount;
     st.skipWhiteSpace();
     if (st.status() != QTextStream::Ok) return false;
     for (int i = 0; i < size; i++) {
         plist.append(QList<QPointF>());
-        st.readLine();//Image_i
-        for(int j=0; j < pointcount; ++j){
-            double x,y;
+        st.readLine();// Image_i
+        for (int j = 0; j < pointcount; ++j) {
+            double x, y;
             st>>x>>y;
             st.skipWhiteSpace();
-            plist[i].append(QPointF(x,y));
+            plist[i].append(QPointF(x, y));
         }
     }
     if (st.status() != QTextStream::Ok) return false;

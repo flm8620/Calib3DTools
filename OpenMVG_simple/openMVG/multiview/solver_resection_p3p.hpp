@@ -291,8 +291,6 @@ struct P3PSolver {
   // Solve the problem of camera pose.
   static void Solve(const Mat &pt2D, const Mat &pt3D, std::vector<Mat34> *models)
   {
-      std::cout<<std::setprecision(17)<<"pt2D\n"<<pt2D<<std::endl;
-      std::cout<<std::setprecision(17)<<"pt3D\n"<<pt3D<<std::endl;
     Mat3 R;
     Vec3 t;
     Mat34 P;

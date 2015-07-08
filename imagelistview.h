@@ -23,6 +23,7 @@ private slots:
 signals:
     void imageToDisplay(QImage image);
 private:
+    QModelIndex getFirstSelectedItem();
     bool openImage(const QStringList &list);
     bool saveImage(const QStringList &list);
     ImageListModel *imageModel;

@@ -41,20 +41,29 @@ QTableView *DistortionWidget::getView()
 
 void DistortionWidget::saveFile()
 {
-    QFileDialog dialog(this, tr("Save Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Save Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     dialog.setFileMode(QFileDialog::AnyFile);
     while (dialog.exec() == QDialog::Accepted)
         if (saveDistortion(dialog.selectedFiles())) break;
+    if(!dialog.selectedFiles().isEmpty()){
+        settings.setValue("default_dir",dialog.selectedFiles().first());
+    }
+
 }
 
 void DistortionWidget::loadFile()
 {
-    QFileDialog dialog(this, tr("Load Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Load Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFile);
     while (dialog.exec() == QDialog::Accepted)
         if (loadDistortion(dialog.selectedFiles())) break;
+    if(!dialog.selectedFiles().isEmpty()){
+        settings.setValue("default_dir",dialog.selectedFiles().first());
+    }
 }
 
 void DistortionWidget::clear()

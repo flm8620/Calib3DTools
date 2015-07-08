@@ -37,6 +37,7 @@ private:
     bool correctCircle();
     bool solveCamPos();
 
+    bool runInThread(bool(Solver::*fun)());
     bool calculateDistortionThread();
     bool calculateKThread();
     bool correctPhotoThread();

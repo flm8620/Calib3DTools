@@ -8,12 +8,12 @@ myScene::myScene(QObject *parent) :
     QGraphicsScene(parent),
     pointView(0)
 {
-    this->currentImageId=-1;
+    this->currentImageId = -1;
     myMode = MoveItem;
     this->mapper = new QSignalMapper(this);
     this->coreData = 0;
     this->currentZoomScale = 1;
-    connect(this->mapper, SIGNAL(mapped(int)), this, SLOT(onMarkerMoved(int)));
+    connect(this->mapper, SIGNAL(mapped(QObject *)), this, SLOT(onMarkerMoved(QObject *)));
 }
 
 void myScene::setCoreData(ImageListWithPoint2D *core)
@@ -112,7 +112,7 @@ void myScene::onDataReset()
 {
     this->clear();
     this->markerList.clear();
-    if (this->currentImageId>=0 && this->currentImageId < this->coreData->size()) {
+    if (this->currentImageId >= 0 && this->currentImageId < this->coreData->size()) {
         this->loadImage(this->coreData->getImage(this->currentImageId));
         QList<QPointF> list;
         this->coreData->getPointsInImage(this->currentImageId, list);
@@ -120,18 +120,22 @@ void myScene::onDataReset()
             Marker *marker = this->appendMarker();
             marker->setPos(list[i]);
         }
-    }else{
-        this->currentImageId=-1;
+    } else {
+        this->currentImageId = -1;
     }
     this->setSceneRect(this->itemsBoundingRect());
 }
 
-void myScene::onMarkerMoved(int id)
+void myScene::onMarkerMoved(QObject *markerFormMapper)
 {
-    QGraphicsObject *marker = markerList[id];
+    Marker *marker = static_cast<Marker *>(markerFormMapper);
     double x = marker->pos().x();
     double y = marker->pos().y();
     QPointF p = marker->pos();
+    int id = -1;
+    for (int i = 0; i < this->markerList.size(); ++i)
+        if (this->markerList[i] == marker) id = i;
+    if (id == -1) throw std::runtime_error("can't find marker");
     this->coreData->setPoint(this->currentImageId, id, p);
 }
 
@@ -146,16 +150,6 @@ void myScene::onCurrentPointChanged(int indexImg, int indexPoint)
         this->selectMarker(indexPoint);
         this->needScrollToMarker(indexPoint);
     }
-}
-
-void myScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
-{
-// if (myMode == InsertItem) {
-
-// event->accept();
-// } else {
-    QGraphicsScene::mousePressEvent(event);
-    // }
 }
 
 void myScene::loadImage(const QImage &image)
@@ -192,20 +186,19 @@ void myScene::resizeMarkers()
 void myScene::resizeMarker(int id)
 {
     Marker *marker = markerList[id];
-    if (marker)
-        marker->setScale(1/this->currentZoomScale);
+    marker->setScale(1/this->currentZoomScale);
 }
 
 Marker *myScene::appendMarker()
 {
     int id = this->markerList.size();
-    Marker *marker = new Marker(id);
+    Marker *marker = new Marker();
     markerList.append(marker);
     resizeMarker(id);
     this->addItem(marker);
     connect(marker, SIGNAL(xChanged()), mapper, SLOT(map()));
     connect(marker, SIGNAL(yChanged()), mapper, SLOT(map()));
-    mapper->setMapping(marker, id);
+    mapper->setMapping(marker, marker);
     return marker;
 }
 

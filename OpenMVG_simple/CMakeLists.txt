@@ -66,9 +66,9 @@ SET(OpenMVG_LIBS openMVG_multiview)
 SET(OpenMVG_LIBS "${OpenMVG_LIBS}" ${openMVG_linearProgramming})
 SET(OpenMVG_LIBS "${OpenMVG_LIBS}"
   ${OPENMVG_LIBRARY_DEPENDENCIES} CACHE STRING "openMVG library names")
-
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/libMessager)
 add_library(strecha strecha.cpp strecha.h)
-TARGET_LINK_LIBRARIES(strecha openMVG_multiview)
+TARGET_LINK_LIBRARIES(strecha openMVG_multiview libMessager)
 
 
 

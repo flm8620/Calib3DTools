@@ -14,7 +14,8 @@ public:
 signals:
     void currentPointChanged(int indexImg,int indexPoint);
 private slots:
-    void onCurrentChanged(const QModelIndex & current);
+    void onSelectionChanged(const QItemSelection &selected);
+    void onCurrentChanged(const QModelIndex &current);
 private:
     Point2DModel *point2DModel;
 };

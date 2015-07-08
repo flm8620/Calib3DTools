@@ -314,8 +314,11 @@ bool Solver::solveCamPos()
             pt2D.push_back(qpt2D[i].x());
         for (int i = 0; i < qpt2D.size(); ++i)
             pt2D.push_back(qpt2D[i].y());
-        if (!Strecha::findCameraPosition(K, pt2D, pt3D, matrixR, vectorT, center))
+        this->message(tr("Camera position for image_%1").arg(imageId+1).toStdString());
+        if (!Strecha::findCameraPosition(K, pt2D, pt3D, matrixR, vectorT, center)) {
+            this->message("Camera position solve failed!",M_WARN);
             return false;
+        }
         camPosValue.data.append(qMakePair(matrixR, center));
     }
     if (!this->camPos->setValue(camPosValue))
@@ -323,93 +326,13 @@ bool Solver::solveCamPos()
     return true;
 }
 
-bool Solver::calculateDistortionThread()
+bool Solver::runInThread(bool (Solver::*fun)())
 {
     bool ok;
     if (this->processLock.tryLock()) {
         libMsg::abortFlag.resetFlag();
         try{
-            ok = this->calculateDistortion();
-        }catch (MyException &bad) {
-            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-            ok = false;
-        }
-        libMsg::abortFlag.resetFlag();
-        this->processLock.unlock();
-    } else {
-        ok = false;
-        this->message("Please wait for current job to finish", M_WARN);
-    }
-    return ok;
-}
-
-bool Solver::calculateKThread()
-{
-    bool ok;
-    if (this->processLock.tryLock()) {
-        libMsg::abortFlag.resetFlag();
-        try{
-            ok = this->calculateK();
-        }catch (MyException &bad) {
-            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-            ok = false;
-        }
-        libMsg::abortFlag.resetFlag();
-        this->processLock.unlock();
-    } else {
-        ok = false;
-        this->message("Please wait for current job to finish", M_WARN);
-    }
-    return ok;
-}
-
-bool Solver::correctPhotoThread()
-{
-    bool ok;
-    if (this->processLock.tryLock()) {
-        libMsg::abortFlag.resetFlag();
-        try{
-            ok = this->correctPhoto();
-        }catch (MyException &bad) {
-            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-            ok = false;
-        }
-        libMsg::abortFlag.resetFlag();
-        this->processLock.unlock();
-    } else {
-        ok = false;
-        this->message("Please wait for current job to finish", M_WARN);
-    }
-    return ok;
-}
-
-bool Solver::correctCircleThread()
-{
-    bool ok;
-    if (this->processLock.tryLock()) {
-        libMsg::abortFlag.resetFlag();
-        try{
-            ok = this->correctCircle();
-        }catch (MyException &bad) {
-            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-            ok = false;
-        }
-        libMsg::abortFlag.resetFlag();
-        this->processLock.unlock();
-    } else {
-        ok = false;
-        this->message("Please wait for current job to finish", M_WARN);
-    }
-    return ok;
-}
-
-bool Solver::solveCamPosThread()
-{
-    bool ok;
-    if (this->processLock.tryLock()) {
-        libMsg::abortFlag.resetFlag();
-        try{
-            ok = this->solveCamPos();
+            ok = (this->*fun)();
         }catch (MyException &bad) {
             this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
             ok = false;
@@ -425,27 +348,27 @@ bool Solver::solveCamPosThread()
 
 bool Solver::onCalculateDistortion()
 {
-    QtConcurrent::run(this, &Solver::calculateDistortionThread);
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::calculateDistortion);
 }
 
 bool Solver::onCalculateK()
 {
-    QtConcurrent::run(this, &Solver::calculateKThread);
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::calculateK);
 }
 
 bool Solver::onCorrectPhoto()
 {
-    QtConcurrent::run(this, &Solver::correctPhotoThread);
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::correctPhoto);
 }
 
 bool Solver::onCorrectCircle()
 {
-    QtConcurrent::run(this, &Solver::correctCircleThread);
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::correctCircle);
 }
 
 bool Solver::onSolveStrecha()
 {
-    QtConcurrent::run(this, &Solver::solveCamPosThread);
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::solveCamPos);
 }
 
 bool Solver::correctPhoto()

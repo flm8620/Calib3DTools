@@ -162,7 +162,7 @@ static bool correct_image(ImageGray<double> &in, ImageGray<double> &out, int spl
 
     atomic_int progress;
 
-    libMsg::cout<<"Prepare Spline RGB"<<libMsg::endl;
+    libMsg::cout<<"Prepare Spline Gray"<<libMsg::endl;
     prepare_spline(in, spline_order);
     // divide image into 100row segments, and correct concurrentlly.
     int row = 0;
@@ -480,6 +480,7 @@ static libNumerics::vector<T> incLMA(DistortedLines<T> &distLines, const int ord
         rmse_max
             = distLines.RMSE_max(midParams.copyRef(0, sizebc-1),
                                  midParams.copyRef(sizebc, sizebc+sizebc-1), i, i, xp, yp);
+        libMsg::cout<<"When order = "<<i<<" :"<<libMsg::endl;
         libMsg::cout<<"initial RMSE / maximum RMSE: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
     }
     libMsg::cout<<"\n Iterative linear minimization step: \n"<<libMsg::endl;

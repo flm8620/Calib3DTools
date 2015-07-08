@@ -19,8 +19,8 @@ public:
     bool setData(const QModelIndex &index, const QVariant &value, int role);
     void storeImage(const QString &name, const QImage &image);
     ImageList *core();
-    void moveUp(int index);
-    void moveDown(int index);
+    void moveUp(const QModelIndex &index);
+    void moveDown(const QModelIndex &index);
     void clear();
     void deleteImage(int index);
     void appendImage(const QString& name,const QImage& image);

@@ -2,14 +2,13 @@
 #include <QtWidgets>
 #include <QDebug>
 #include <cstdlib>
-Marker::Marker(int id)
+Marker::Marker()
 {
     setFlags(ItemIsSelectable|ItemIsMovable);
     setAcceptHoverEvents(true);
     setZValue(10);
     radius=24.0;
     innerRadius=15.0;
-    this->id=id;
 }
 
 QRectF Marker::boundingRect() const

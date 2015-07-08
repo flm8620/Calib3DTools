@@ -74,14 +74,14 @@ ImageList *ImageListModel::core()
     return this->coreData;
 }
 
-void ImageListModel::moveUp(int index)
+void ImageListModel::moveUp(const QModelIndex &index)
 {
-    this->coreData->moveUp(index);
+    this->coreData->moveUp(index.row());
 }
 
-void ImageListModel::moveDown(int index)
+void ImageListModel::moveDown(const QModelIndex &index)
 {
-    this->coreData->moveDown(index);
+    this->coreData->moveDown(index.row());
 }
 
 void ImageListModel::clear()
