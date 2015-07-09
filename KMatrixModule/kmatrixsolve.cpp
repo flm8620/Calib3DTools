@@ -391,7 +391,7 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
             painter.resetTransform();
             painter.translate(xx, yy);
             painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
-            if(rmse>0.2)
+            if(rmse>4.0)
                 painter.setPen(Qt::red);
             painter.drawText(QRectF(5, 25, 50, 30),QString::number(rmse));
 

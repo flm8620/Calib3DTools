@@ -118,7 +118,7 @@ namespace libNumerics
 			vector<T> yModel( yData.nrow() );
 			modelData(P, yModel);
 			vector<T> E( yData-yModel );
-			T error = std::sqrt(E.qnorm());
+            T error = std::sqrt(E.qnorm()/E.size());
 			matrix<T> J( yData.nrow(), P.nrow() );
 			modelJacobian(P, J);
 			matrix<T> Jt = J.t();
@@ -137,7 +137,7 @@ namespace libNumerics
 				vector<T> tryP = P + dP;
 				modelData(tryP, yModel);
 				E = yData - yModel;
-				T tryError = std::sqrt(E.qnorm());
+                T tryError = std::sqrt(E.qnorm()/E.size());
                 if(ABS(tryError-error) <= relativeTol*error){
                     break;
                 }
@@ -154,7 +154,7 @@ namespace libNumerics
 					compress(JtJ, B);
 				}
 			}
-			return sqrt(error/yData.nrow());
+            return error;
 		}
 
         virtual void modelData(const vector<T>& P, vector<T>& ymodel) const = 0;
