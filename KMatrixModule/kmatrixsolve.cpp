@@ -285,10 +285,10 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
     libMsg::cout
         <<
         "For the feedback images:\n"
-        "black region : detected circle\n"
-        "red region : not a circle\n"
-        "green region : too small"
-        "blue region : filtered\n"
+        "\tBlack region : detected circle\n"
+        "\tRed region : not a circle\n"
+        "\tGreen region : too small"
+        "\tBlue region : filtered\n"
         "Number beside circle:\n\t\tindex\n\t\tindex after sort\n\t\terror RMSE"
         <<libMsg::endl<<libMsg::endl;
     for (int i = 0; i < nImage; ++i) {

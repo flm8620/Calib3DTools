@@ -164,6 +164,77 @@ bool initial_tache(const ImageGray<double> &I, vector<T> &h, T &rayon, bool colo
 }
 
 template<typename T>
+bool initial_tache_center(const ImageGray<double> &I, double &centerX, double &centerY, T &rayon,
+                          bool color, T x, T y)
+{
+    int COL_IMA = I.xsize();
+    int LIG_IMA = I.ysize();
+    int j = x;
+    int i = y;
+    int d = 2*rayon;
+    if (2*d+1 > LIG_IMA)
+        d = (LIG_IMA-1)/2;
+    if (2*d+1 > COL_IMA)
+        d = (COL_IMA-1)/2;
+    if (i < d)
+        i = d+1;
+    if (i > LIG_IMA-1-d)
+        i = LIG_IMA-2-d;
+    if (j < d)
+        j = d+1;
+    if (j > COL_IMA-1-d)
+        j = COL_IMA-2-d;
+    int val_haut = 0;
+    int val_bas = 255;
+    for (int k = -d; k <= d; k++) {
+        for (int l = -d; l <= d; l++) {
+            T lum = I.pixel(j+l, i+k);
+            if (lum > val_haut)
+                val_haut = lum;
+            else if (lum < val_bas)
+                val_bas = lum;
+        }
+    }
+    T seuil = 0;
+    if (!color)
+        seuil = val_bas + (val_haut - val_bas)/3 * 2;
+    else if (color)
+        seuil = val_bas + (val_haut - val_bas)/3;
+
+    matrix<T> tab = matrix<T>::zeros(2*d+1, 2*d+1);
+    int label = 1;
+    // Leman:
+    // tab:
+    // 0000000000
+    // 0000450000
+    // 0003456000
+    // 0023456700
+    // 0123456780
+    // 0123456780
+    // 0023456700
+    // 0003456000
+    // 0000450000
+    // 0000000000
+    double meanX = 0, meanY = 0, total = 0;
+    int count;
+    for (int k = -d+1; k <= d; k++) {
+        for (int l = -d+1; l <= d-1; l++) {
+            T lum = I.pixel(j+l, i+k);
+            if (lum < seuil) {
+                double weight = 255-lum;
+                total += weight;
+                meanX += weight*(j+l);
+                meanY += weight*(i+k);
+                count++;
+            }
+        }
+    }
+    centerX = meanX/total;
+    centerY = meanY/total;
+    return true;
+}
+
+template<typename T>
 vector<T> trgtDataCalc(ImageGray<double> &img_avg, T cx, T cy, T delta)
 {
     int xbegin = cx+0.5-delta;
@@ -199,14 +270,41 @@ bool centerLMA(const ImageGray<double> &sub_img, bool clr, T &centerX, T &center
     if (!initial_tache(sub_img, P, radi, clr, cx, cy)) return false;
     vector<T> trgData = trgtDataCalc<T>(img_avg, P[3], P[4], radi*2);
     LMTacheC<T> ellipseLMA(img_avg, P[3], P[4], radi*2, clr, w, h);
-    T rmse = ellipseLMA.minimize(P, trgData, 0.001);
+    T rmse = ellipseLMA.minimize(P, trgData, 0.01);
     T lambda1 = P[0];
     T lambda2 = P[1];
     T theta = P[2];
     centerX = P[3];
     centerY = P[4];
     Pout = P;
-    Pout[11]=rmse;
+    // Pout[11]=rmse;
+    return true;
+}
+
+template<typename T>
+bool centerSimple(const ImageGray<double> &sub_img, bool clr, T &centerX, T &centerY,
+                  vector<T> &Pout)
+{
+    ImageGray<double> img_avg;
+    average_image(sub_img, img_avg);
+    int w = sub_img.xsize();
+    int h = sub_img.ysize();
+    T cx = w/2, cy = h/2, radi = 0.4*w;
+    vector<T> P(12);
+    if (!initial_tache_center(sub_img, centerX, centerY, radi, clr, cx, cy)) return false;
+    P[0] =0.1;
+    P[1] =0.1;
+    P[2] =0;
+    P[3] =centerX;
+    P[4] =centerY;
+    P[5] =10;
+    P[6] =0;
+    P[7] =10;
+    P[8] =0;
+    P[9] =0;
+    P[10]=0;
+    P[11]=0;
+    Pout = P;
     return true;
 }
 
@@ -270,27 +368,24 @@ bool circleRedefineSegment(const ImageGray<double> *img, ImageRGB<BYTE> *feedbac
         takeSubImg(*img, (*x)[i], (*y)[i], (*r)[i], x0, y0, sub_img);
         vector<double> P;
         double cx = 0, cy = 0;
-        int wi=sub_img.xsize();
-        int he=sub_img.ysize();
-        //draw feedback: rect of SubImg[
-        for(int j=0;j<wi;++j){
-            if(feedback->pixelInside(j+x0,y0)){
-                feedback->pixel_R(j+x0,y0)=0;
-            }
-            if(feedback->pixelInside(j+x0,y0+he-1)){
-                feedback->pixel_R(j+x0,y0+he-1)=0;
-            }
+        int wi = sub_img.xsize();
+        int he = sub_img.ysize();
+        // draw feedback: rect of SubImg[
+        for (int j = 0; j < wi; ++j) {
+            if (feedback->pixelInside(j+x0, y0))
+                feedback->pixel_R(j+x0, y0) = 0;
+            if (feedback->pixelInside(j+x0, y0+he-1))
+                feedback->pixel_R(j+x0, y0+he-1) = 0;
         }
-        for(int k=0;k<he;++k){
-            if(feedback->pixelInside(x0,k+y0)){
-                feedback->pixel_R(x0,k+y0)=0;
-            }
-            if(feedback->pixelInside(x0+wi-1,k+y0)){
-                feedback->pixel_R(x0+wi-1,k+y0)=0;
-            }
+        for (int k = 0; k < he; ++k) {
+            if (feedback->pixelInside(x0, k+y0))
+                feedback->pixel_R(x0, k+y0) = 0;
+            if (feedback->pixelInside(x0+wi-1, k+y0))
+                feedback->pixel_R(x0+wi-1, k+y0) = 0;
         }
-        //feed back]
+        // feed back]
         if (!centerLMA<double>(sub_img, clr, cx, cy, P)) return false;
+        //if (!centerSimple<double>(sub_img, clr, cx, cy, P)) return false;
         libMsg::abortIfAsked();
 
         (*x)[i] = scale*(x0 + cx);
@@ -338,7 +433,7 @@ bool keypnts_circle_no_refine(const ImageGray<double> &img, ImageRGB<BYTE> &imgF
     double maxColor = 0;
     double minColor = 255;
     img_extremas(img, minColor, maxColor);
-    BYTE thre = (BYTE)(0.5*(maxColor-minColor));
+    BYTE thre = (BYTE)(0.4*(maxColor-minColor));
     ImageGray<BYTE> imgBi;
     imgBi.resize(wi, he, 255);
     imgFeedback.resize(wi, he, 255, 255, 255);
@@ -371,7 +466,7 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
     double maxColor = 0;
     double minColor = 255;
     img_extremas(img, minColor, maxColor);
-    BYTE thre = (BYTE)(0.5*(maxColor-minColor));
+    BYTE thre = (BYTE)(0.4*(maxColor-minColor));
     ImageGray<BYTE> imgBi;
     imgBi.resize(wi, he, 255);
     imgFeedback.resize(wi, he, 255, 255, 255);

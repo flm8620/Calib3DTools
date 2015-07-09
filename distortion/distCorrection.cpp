@@ -382,7 +382,7 @@ static bool read_images(DistortedLines<T> &distLines,
         threshed_nb_lines = 0;
 
         /* open image, compute edge points, close it */
-        libMsg::cout<<"start convert "<<i<<"..."<<libMsg::endl;
+        libMsg::cout<<"start convert image "<<i+1<<"..."<<libMsg::endl;
         imageDoubleFromImageBYTE(imageList[i], image);
         p = straight_edge_points(image, sigma, th_low, th_hi, min_length);
         w = image.xsize();
@@ -452,7 +452,9 @@ static libNumerics::vector<T> incLMA(DistortedLines<T> &distLines, const int ord
     paramsY[sizexy-2] = 1;
     T rmse = distLines.RMSE(paramsX, paramsY, order, order, xp, xp);
     T rmse_max = distLines.RMSE_max(paramsX, paramsY, order, order, xp, yp);
-    libMsg::cout<<"initial RMSE / maximum RMSE: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
+    libMsg::cout<<"Point to straight line distance: RMSE / max error distance"<<libMsg::endl;
+    libMsg::cout<<"Original photo:"<<libMsg::endl;
+    libMsg::cout<<"initial RMSE / maximum: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
     const int beginOrder = 3;
     vector<T> midParams(1);
     for (int i = beginOrder; i <= order; i = i+inc_order) {
@@ -481,7 +483,7 @@ static libNumerics::vector<T> incLMA(DistortedLines<T> &distLines, const int ord
             = distLines.RMSE_max(midParams.copyRef(0, sizebc-1),
                                  midParams.copyRef(sizebc, sizebc+sizebc-1), i, i, xp, yp);
         libMsg::cout<<"When order = "<<i<<" :"<<libMsg::endl;
-        libMsg::cout<<"initial RMSE / maximum RMSE: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
+        libMsg::cout<<"RMSE / maximum: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
     }
     libMsg::cout<<"\n Iterative linear minimization step: \n"<<libMsg::endl;
     T diff = 100;
@@ -569,13 +571,15 @@ bool DistortionModule::polyEstime(const std::vector<ImageGray<BYTE> > &list,
 
     double xp = (double)w/2+0.2, yp = (double)h/2+0.2; /* +0.2 - to avoid integers */
     const int inc = 2; /* increment; only odd orders will be taken */
+    libMsg::cout<<"Calculate Polynomial"<<libMsg::endl;
     vector<double> poly_params = incLMA <double>(distLines, order, inc, xp, yp);
-    libMsg::cout<<"incLMA"<<libMsg::endl;
+
     /* Get an inverse polynomial */
+    libMsg::cout<<"Inverse Polynomial ..."<<libMsg::endl;
     vector<double> poly_params_inv = polyInv<double>(poly_params, order, order, w, h, xp, yp);
     polynome.clear();
     for (int i = 0; i < poly_params_inv.size(); ++i)
         polynome.push_back(poly_params_inv[i]);
-    libMsg::cout<<"polyInv"<<libMsg::endl;
+
     return true;
 }

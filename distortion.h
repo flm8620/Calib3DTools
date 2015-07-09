@@ -8,11 +8,11 @@
  * @brief Distortion of image
  * Distortion is presented by two polynomial who correct respectively
  * the X and Y coordinate of pixels in a image.
- * For a pixel (x0, y0) in image, after correction, it moves to (X0, Y0),
+ * For a pixel (x, y) in image, after correction, it moves to (X, Y),
  * and we have:
  *
- * X0 = polyX(x0,y0) = a0*x^0*y0 + a1*x^1*y^0 + a2*x^0*y^1+ ...
- * Y0 = polyY(x0,y0) = b0*x^0*y0 + b1*x^1*y^0 + b2*x^0*y^1+ ...
+ * X = polyX(x,y) = a0*x^0*y^0 + a1*x^1*y^0 + a2*x^0*y^1+ ...
+ * Y = polyY(x,y) = b0*x^0*y^0 + b1*x^1*y^0 + b2*x^0*y^1+ ...
  *
  * For example, when maxOrder=3:
  * QList<QPair<double,double> >:
