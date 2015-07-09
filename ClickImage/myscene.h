@@ -25,7 +25,7 @@ private slots:
     void onPointChanged(int indexImg, int indexPoint);
     void onPointRemoved(int indexPoint);
     void onPointAppended();
-    void onPointSwaped(int indexPoint1, int indexPoint2);
+    //void onPointSwaped(int indexPoint1, int indexPoint2);
     void onImageChanged(int indexImg);
     void onImageAppended();
     void onDataReset();

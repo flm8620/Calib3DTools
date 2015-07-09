@@ -1,6 +1,6 @@
 #include "imageviewer.h"
 #include <QWheelEvent>
-#include <QDebug>
+#include <cmath>
 ImageViewer::ImageViewer(const QImage &image, QWidget *parent) :
     QGraphicsView(parent)
 {
@@ -34,10 +34,8 @@ void ImageViewer::wheelEvent(QWheelEvent *event)
     QPoint numPixels = event->pixelDelta();
     QPoint numDegrees = event->angleDelta() / 8;
     if (!numPixels.isNull()) {
-        qDebug()<<"pixel "<<numPixels;
         scrollWithPixels(numPixels);
     } else if (!numDegrees.isNull()) {
-        qDebug()<<"deg: "<<numDegrees;
         QPoint numSteps = numDegrees / 15;
         scrollWithDegrees(numSteps);
     }

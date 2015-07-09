@@ -27,7 +27,7 @@ void Point2DView::onSelectionChanged(const QItemSelection &selected)
 void Point2DView::onCurrentChanged(const QModelIndex &current)
 {
     if (this->point2DModel->indexMeansImage(current)) {
-        emit currentPointChanged(current.row(), 0);
+        emit currentPointChanged(current.row(), -1);
     } else if (this->point2DModel->indexMeansPoint(current)) {
         QModelIndex img = current.parent();
         emit currentPointChanged(img.row(), current.row());

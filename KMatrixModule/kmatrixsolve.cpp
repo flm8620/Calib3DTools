@@ -83,7 +83,7 @@ static bool findCorner(matrix<double> &circles, int &idx1, int &idx2, int &idx3,
 {
     std::vector<vector<double> > hullPoints;
     std::vector<int> hullIndex;
-    if(!convexHull(circles, hullPoints, hullIndex))return false;
+    if (!convexHull(circles, hullPoints, hullIndex)) return false;
     if (hullPoints.size() < 4) {
         libMsg::cout<<"hullPoint < 4. Something is wrong."<<libMsg::endl;
         return false;
@@ -279,7 +279,75 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
     int nCircleOf1stImage;
     int nRow, nCol;
     feedbackList.clear();
+    // go through all image to check validity
+    libMsg::cout<<"Step 1: check all images to know whether they all have the same circle points"
+                <<libMsg::endl;
+    libMsg::cout
+        <<
+        "For the feedback images:\n"
+        "black region : detected circle\n"
+        "red region : not a circle\n"
+        "green region : too small"
+        "blue region : filtered"
+        <<libMsg::endl<<libMsg::endl;
     for (int i = 0; i < nImage; ++i) {
+        libMsg::cout<<"Image "<<i+1<<'/'<<nImage<<libMsg::endl;
+        vector<double> x, y, r;
+        ImageRGB<BYTE> imgFeedback;
+        {
+            ImageGray<double> imageDouble;
+            QImage2ImageDouble(imageList[i], imageDouble);
+            if (!detectEllipseCenters_noRefine(imageDouble, imgFeedback, x, y, r)) return false;
+        }
+        matrix<double> centers(2, x.size());
+        for (int j = 0; j < x.size(); ++j) {
+            centers(0, j) = x(j);
+            centers(1, j) = y(j);
+        }
+        // feedback img
+        QImage image;
+        ImageByteRGB2QColorImage(imgFeedback, image);
+        QPainter painter(&image);
+        painter.setRenderHint(QPainter::Antialiasing);
+        for (int j = 0; j < x.size(); j++) {
+            double xx = x(j);
+            double yy = y(j);
+            painter.setPen(Qt::red);
+            painter.resetTransform();
+            painter.translate(xx, yy);
+            painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
+        }
+        feedbackList.push_back(image);
+        if (i == 0) {
+            nCircleOf1stImage = x.size();
+        } else if (x.size() != nCircleOf1stImage) {
+            libMsg::cout<<"The number of circles detected in Image_"<<i<<" is "<<x.size()
+                        <<
+                " , which is different from last image! Please check. Algorithm terminates"
+                        <<libMsg::endl;
+            return false;
+        }
+
+        int nRow_i, nCol_i;
+        if (!sortCircles(centers, nRow_i, nCol_i)) return false;
+        if (i == 0) {
+            nRow = nRow_i;
+            nCol = nCol_i;
+        } else {
+            if (!(nRow == nRow_i && nCol == nCol_i)) {
+                if (!(nCol == nRow_i && nRow == nCol_i)) {
+                    libMsg::cout<<"Image_"<<i<<" doesn't have the same nRow and nCol as Image_0 !"
+                                <<libMsg::endl;
+                    return false;
+                }
+            }
+        }
+    }
+    // refine the circle centers
+    libMsg::cout<<"\n\nStep 2: refine circle centers"<<libMsg::endl<<libMsg::endl;
+    feedbackList.clear();
+    for (int i = 0; i < nImage; ++i) {
+        libMsg::cout<<"\nImage "<<i+1<<'/'<<nImage<<libMsg::endl;
         vector<double> x, y, r;
         ImageRGB<BYTE> imgFeedback;
         std::vector<vector<double> > P;

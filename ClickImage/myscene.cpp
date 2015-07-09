@@ -36,7 +36,7 @@ void myScene::setCoreData(ImageListWithPoint2D *core)
     connect(this->coreData, SIGNAL(pointChanged(int, int)), this, SLOT(onPointChanged(int, int)));
     connect(this->coreData, SIGNAL(pointRemoved(int)), this, SLOT(onPointRemoved(int)));
     connect(this->coreData, SIGNAL(pointAppended()), this, SLOT(onPointAppended()));
-    connect(this->coreData, SIGNAL(pointSwaped(int, int)), this, SLOT(onPointSwaped(int, int)));
+    connect(this->coreData, SIGNAL(pointSwaped(int, int)), this, SLOT(onDataReset()));
     connect(this->coreData, SIGNAL(imageChanged(int)), this, SLOT(onImageChanged(int)));
     connect(this->coreData, SIGNAL(imageAppended()), this, SLOT(onImageAppended()));
     connect(this->coreData, SIGNAL(dataReset()), this, SLOT(onDataReset()));
@@ -91,11 +91,14 @@ void myScene::onPointAppended()
     this->onPointChanged(this->currentImageId, indexPoint);
 }
 
-void myScene::onPointSwaped(int indexPoint1, int indexPoint2)
-{
-    this->onPointChanged(this->currentImageId, indexPoint1);
-    this->onPointChanged(this->currentImageId, indexPoint2);
-}
+// void myScene::onPointSwaped(int indexPoint1, int indexPoint2)
+// {
+// if (indexPoint1 >= 0 && indexPoint1 < this->markerList.size() && indexPoint2 >= 0
+// && indexPoint2 < this->markerList.size())
+// qSwap(this->markerList[indexPoint1], this->markerList[indexPoint2]);
+////this->onPointChanged(this->currentImageId, indexPoint1);
+////this->onPointChanged(this->currentImageId, indexPoint2);
+// }
 
 void myScene::onImageChanged(int indexImg)
 {
@@ -144,8 +147,10 @@ void myScene::onCurrentPointChanged(int indexImg, int indexPoint)
     if (this->currentImageId != indexImg) {
         this->currentImageId = indexImg;
         this->onDataReset();
-        this->selectMarker(indexPoint);
-        this->needScrollToMarker(indexPoint);
+        if (indexPoint >= 0) {
+            this->selectMarker(indexPoint);
+            this->needScrollToMarker(indexPoint);
+        }
     } else {
         this->selectMarker(indexPoint);
         this->needScrollToMarker(indexPoint);
@@ -192,7 +197,7 @@ void myScene::resizeMarker(int id)
 Marker *myScene::appendMarker()
 {
     int id = this->markerList.size();
-    Marker *marker = new Marker();
+    Marker *marker = new Marker(id);
     markerList.append(marker);
     resizeMarker(id);
     this->addItem(marker);

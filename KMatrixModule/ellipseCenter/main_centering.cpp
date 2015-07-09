@@ -259,8 +259,9 @@ void img_extremas(const ImageGray<double> &img, T &min, T &max)
 }
 
 bool circleRedefineSegment(const ImageGray<double> *img, vector<double> *x, vector<double> *y,
-                           const vector<double> *r, double scale, bool clr, std::vector<vector<double> > *Pout,
-                           int from, int count, std::atomic_int *progress)
+                           const vector<double> *r, double scale, bool clr,
+                           std::vector<vector<double> > *Pout, int from, int count,
+                           std::atomic_int *progress)
 {
     for (int i = from; i < from+count; i++) {
         int x0, y0;
@@ -273,7 +274,7 @@ bool circleRedefineSegment(const ImageGray<double> *img, vector<double> *x, vect
 
         (*x)[i] = scale*(x0 + cx);
         (*y)[i] = scale*(y0 + cy);
-        (*Pout)[i]=P;
+        (*Pout)[i] = P;
         progress->fetch_add(1, std::memory_order_relaxed);
     }
     return true;
@@ -309,8 +310,39 @@ bool circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, c
     return true;
 }
 
+bool keypnts_circle_no_refine(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback,
+                              vector<double> &x, vector<double> &y, vector<double> &r)
+{
+    int wi = img.xsize(), he = img.ysize();
+    double maxColor = 0;
+    double minColor = 255;
+    img_extremas(img, minColor, maxColor);
+    BYTE thre = (BYTE)(0.5*(maxColor-minColor));
+    ImageGray<BYTE> imgBi;
+    imgBi.resize(wi, he, 255);
+    imgFeedback.resize(wi, he, 255, 255, 255);
+    binarization(imgBi, img, thre);
+    // write_pgm_image_double(imgbiB, "rawdata/b.pgm");
+
+    libMsg::cout<<"finding connected components... "<<libMsg::endl;
+    std::vector<CCStats> ccstats;
+    if(!CC(ccstats, imgBi, imgFeedback))return false;
+
+    int ntaches = ccstats.size();
+    x = x.ones(ntaches);
+    y = y.ones(ntaches);
+    r = r.ones(ntaches);
+    for (int i = 0; i < ntaches; i++) {
+        x[i] = ccstats[i].centerX;
+        y[i] = ccstats[i].centerY;
+        r[i] = (ccstats[i].radius1+ccstats[i].radius2)/2;
+    }
+    return true;
+}
+
 bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, vector<double> &x,
-                    vector<double> &y, vector<double> &r, double scale, std::vector<vector<double> > &P)
+                    vector<double> &y, vector<double> &r, double scale,
+                    std::vector<vector<double> > &P)
 {
     auto startTime = std::chrono::high_resolution_clock::now();
     int wi = img.xsize(), he = img.ysize();
@@ -327,7 +359,7 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
 
     libMsg::cout<<"finding connected components... "<<libMsg::endl;
     std::vector<CCStats> ccstats;
-    CC(ccstats, imgBi, imgFeedback);
+    if(!CC(ccstats, imgBi, imgFeedback))return false;
 
     int ntaches = ccstats.size();
     x = x.ones(ntaches);
@@ -339,7 +371,7 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
         r[i] = (ccstats[i].radius1+ccstats[i].radius2)/2;
     }
     bool clr = 0;
-    for(int i=0;i<ntaches;++i)P.push_back(vector<double>());
+    for (int i = 0; i < ntaches; ++i) P.push_back(vector<double>());
 
     // Lauche Multitask{
     std::vector<std::future<bool> > ftrs;
@@ -352,7 +384,9 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
         std::future<bool> ftr
             = concurrent::SimpleThreadPool::DEFAULT.start(&circleRedefineSegment,
                                                           (const ImageGray<double> *)(
-                                                              &img), &x, &y, (const vector<double>*)(&r), scale, clr, &P,
+                                                              &img), &x, &y,
+                                                          (const vector<double> *)(
+                                                              &r), scale, clr, &P,
                                                           from, TASK_SIZE, &progress);
         from += TASK_SIZE;
         ftrs.push_back(std::move(ftr));
@@ -360,18 +394,18 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
     std::future<bool> ftr2
         = concurrent::SimpleThreadPool::DEFAULT.start(&circleRedefineSegment,
                                                       (const ImageGray<double> *)(
-                                                          &img), &x, &y, (const vector<double>*)(&r), scale, clr, &P,
+                                                          &img), &x, &y, (const vector<double> *)(
+                                                          &r), scale, clr, &P,
                                                       from, ntaches-from, &progress);
     ftrs.push_back(std::move(ftr2));
     // }Lauche MultiTask
 
-    //Report progress and wait for all task to finish
-    concurrent::ReportProgrsAndWaitFtr(progress,ntaches,ftrs);
+    // Report progress and wait for all task to finish
+    concurrent::ReportProgrsAndWaitFtr(progress, ntaches, ftrs);
 
     // get futures and handle exceptions in multi-task
     bool allOk;
-    concurrent::getBoolFtr_CheckExcpt(allOk,ftrs);
-
+    concurrent::getBoolFtr_CheckExcpt(allOk, ftrs);
 
     if (allOk) {
         libMsg::cout<<" Done, "<<std::chrono::duration<double, std::milli>(
@@ -388,5 +422,12 @@ bool detectEllipseCenters(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedb
                           std::vector<vector<double> > &P, double scale)
 {
     if (!keypnts_circle(img, imgFeedback, x, y, r, scale, P)) return false;
+    return true;
+}
+
+bool detectEllipseCenters_noRefine(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback,
+                          vector<double> &x, vector<double> &y, vector<double> &r)
+{
+    if (!keypnts_circle_no_refine(img, imgFeedback, x, y, r)) return false;
     return true;
 }

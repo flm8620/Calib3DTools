@@ -3,6 +3,7 @@
 #include <QGraphicsView>
 #include <QObject>
 #include <QList>
+#include <cmath>
 #include "myscene.h"
 #include "marker.h"
 #include "imagelistwithpoint2d.h"
@@ -30,8 +31,9 @@ protected:
     void wheelEvent(QWheelEvent *event);
 public slots:
     void scrollTo(QPointF pos);
-    void zoomIn();
-    void zoomOut();
+    void scrollWithPixels(const QPoint &pixel);
+    void scrollWithDegrees(const QPoint &step);
+    void zoom(double z);
     void zoomRestore();
 private:
 
