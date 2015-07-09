@@ -288,7 +288,8 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
         "black region : detected circle\n"
         "red region : not a circle\n"
         "green region : too small"
-        "blue region : filtered"
+        "blue region : filtered\n"
+        "Number beside circle:\n\t\tindex\n\t\tindex after sort\n\t\terror RMSE"
         <<libMsg::endl<<libMsg::endl;
     for (int i = 0; i < nImage; ++i) {
         libMsg::cout<<"Image "<<i+1<<'/'<<nImage<<libMsg::endl;
@@ -356,17 +357,18 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
             QImage2ImageDouble(imageList[i], imageDouble);
             if (!detectEllipseCenters(imageDouble, imgFeedback, x, y, r, P, 1.0)) return false;
         }
-        /*P[0] = 1.0/rayon;                           /* lambda1      */
-        /*P[1] = (std::sqrt(lambda1/lambda2))/rayon;  /* lambda2		*/
-        /*P[2] = std::atan2(sx2/ss-lambda1, -sxy/ss);     /* alpha        */
-        /*P[3] = x;           /* tu           */
-        /*P[4] = y;           /* tv           */
-        /*P[5] = 0.25;        /* rayon cercle 1       */
-        /*P[6] = -2.0;        /* pente            */
-        /*P[7] = 0.25;        /* rayon cercle 2       */
-        /*P[8] = val_haut;    /* val_haut         */
-        /*P[9] = val_bas;     /* val_bas          */
-        /*P[10] = 1.0;    /* position step    */
+        //P[0] = 1.0/rayon;                            lambda1
+        //P[1] = (std::sqrt(lambda1/lambda2))/rayon;   lambda2
+        //P[2] = std::atan2(sx2/ss-lambda1, -sxy/ss);  alpha
+        //P[3] = x;            tu
+        //P[4] = y;            tv
+        //P[5] = 0.25;         rayon cercle 1
+        //P[6] = -2.0;         pente
+        //P[7] = 0.25;         rayon cercle 2
+        //P[8] = val_haut;     val_haut
+        //P[9] = val_bas;      val_bas
+        //P[10] = 1.0;         position step
+        //P[11] = RMSE         error
         Ellipse_centers.push_back(matrix<double>::zeros(2, x.size()));
         matrix<double> &centers = Ellipse_centers.back();
         for (int j = 0; j < x.size(); ++j) {
@@ -384,10 +386,14 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
             double r1 = 1/P[j](0);
             double r2 = 1/P[j](1);
             double alpha = P[j](2);
-            painter.setPen(Qt::red);
+            double rmse = P[j](11);
+            painter.setPen(Qt::blue);
             painter.resetTransform();
             painter.translate(xx, yy);
             painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
+            if(rmse>0.2)
+                painter.setPen(Qt::red);
+            painter.drawText(QRectF(5, 25, 50, 30),QString::number(rmse));
 
             painter.rotate(-alpha/3.14159265358979323*180);
             painter.setPen(Qt::red);
@@ -433,7 +439,7 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
             double yy = Ellipse_centers[i](1, j);
             painter.setPen(Qt::green);
             painter.resetTransform();
-            painter.translate(xx, yy+15);
+            painter.translate(xx, yy+10);
             painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
         }
     }

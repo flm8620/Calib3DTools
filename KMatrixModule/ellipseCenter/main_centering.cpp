@@ -195,7 +195,7 @@ bool centerLMA(const ImageGray<double> &sub_img, bool clr, T &centerX, T &center
     int w = sub_img.xsize();
     int h = sub_img.ysize();
     T cx = w/2, cy = h/2, radi = 0.4*w;
-    vector<T> P(11);
+    vector<T> P(12);
     if (!initial_tache(sub_img, P, radi, clr, cx, cy)) return false;
     vector<T> trgData = trgtDataCalc<T>(img_avg, P[3], P[4], radi*2);
     LMTacheC<T> ellipseLMA(img_avg, P[3], P[4], radi*2, clr, w, h);
@@ -206,12 +206,13 @@ bool centerLMA(const ImageGray<double> &sub_img, bool clr, T &centerX, T &center
     centerX = P[3];
     centerY = P[4];
     Pout = P;
+    Pout[11]=rmse;
     return true;
 }
 
 template<typename T>
 void takeSubImg(const ImageGray<double> &IMG, T cx, T cy, T radi, int &x0, int &y0,
-                ImageGray<double> &img)
+                ImageGray<double> &imgOut)
 {
     int size = 2.5 * radi;
     int x1 = cx - 0.5*size, x2 = cx + 0.5*size;
@@ -220,13 +221,13 @@ void takeSubImg(const ImageGray<double> &IMG, T cx, T cy, T radi, int &x0, int &
     y0 = y1;
     if (y2-y1 != x2-x1)
         y2 = y1+x2-x1;
-    img.resize(x2-x1, y2-y1);
-    for (int i = 0; i < img.xsize(); i++) {
-        for (int j = 0; j < img.ysize(); j++)
+    imgOut.resize(x2-x1, y2-y1);
+    for (int i = 0; i < imgOut.xsize(); i++) {
+        for (int j = 0; j < imgOut.ysize(); j++)
             if (IMG.pixelInside(x1+i, y1+j))
-                img.pixel(i, j) = IMG.pixel(x1+i, y1+j);
+                imgOut.pixel(i, j) = IMG.pixel(x1+i, y1+j);
             else
-                img.pixel(i, j) = 255;
+                imgOut.pixel(i, j) = 255;
     }
 }
 
@@ -258,10 +259,10 @@ void img_extremas(const ImageGray<double> &img, T &min, T &max)
     }
 }
 
-bool circleRedefineSegment(const ImageGray<double> *img, vector<double> *x, vector<double> *y,
-                           const vector<double> *r, double scale, bool clr,
-                           std::vector<vector<double> > *Pout, int from, int count,
-                           std::atomic_int *progress)
+bool circleRedefineSegment(const ImageGray<double> *img, ImageRGB<BYTE> *feedback,
+                           vector<double> *x, vector<double> *y, const vector<double> *r,
+                           double scale, bool clr, std::vector<vector<double> > *Pout, int from,
+                           int count, std::atomic_int *progress)
 {
     for (int i = from; i < from+count; i++) {
         int x0, y0;
@@ -269,6 +270,26 @@ bool circleRedefineSegment(const ImageGray<double> *img, vector<double> *x, vect
         takeSubImg(*img, (*x)[i], (*y)[i], (*r)[i], x0, y0, sub_img);
         vector<double> P;
         double cx = 0, cy = 0;
+        int wi=sub_img.xsize();
+        int he=sub_img.ysize();
+        //draw feedback: rect of SubImg[
+        for(int j=0;j<wi;++j){
+            if(feedback->pixelInside(j+x0,y0)){
+                feedback->pixel_R(j+x0,y0)=0;
+            }
+            if(feedback->pixelInside(j+x0,y0+he-1)){
+                feedback->pixel_R(j+x0,y0+he-1)=0;
+            }
+        }
+        for(int k=0;k<he;++k){
+            if(feedback->pixelInside(x0,k+y0)){
+                feedback->pixel_R(x0,k+y0)=0;
+            }
+            if(feedback->pixelInside(x0+wi-1,k+y0)){
+                feedback->pixel_R(x0+wi-1,k+y0)=0;
+            }
+        }
+        //feed back]
         if (!centerLMA<double>(sub_img, clr, cx, cy, P)) return false;
         libMsg::abortIfAsked();
 
@@ -280,35 +301,35 @@ bool circleRedefineSegment(const ImageGray<double> *img, vector<double> *x, vect
     return true;
 }
 
-template<typename T>
-bool circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, const vector<T> &r,
-                     T scale, bool clr, std::vector<vector<T> > &Pout)
-{
-    libMsg::cout<<"\nLMA center redefinition ... \n"<<libMsg::endl;
-    int ntaches = x.size();
-    double nextPercent = 0;
-    Pout.clear();
-    for (int i = 0; i < ntaches; i++) {
-        int x0, y0;
-        ImageGray<double> sub_img;
-        takeSubImg(img, x[i], y[i], r[i], x0, y0, sub_img);
-        vector<T> P;
-        T cx = 0, cy = 0;
-        if (!centerLMA<T>(sub_img, clr, cx, cy, P)) return false;
-        libMsg::abortIfAsked();
+// template<typename T>
+// bool circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, const vector<T> &r,
+// T scale, bool clr, std::vector<vector<T> > &Pout)
+// {
+// libMsg::cout<<"\nLMA center redefinition ... \n"<<libMsg::endl;
+// int ntaches = x.size();
+// double nextPercent = 0;
+// Pout.clear();
+// for (int i = 0; i < ntaches; i++) {
+// int x0, y0;
+// ImageGray<double> sub_img;
+// takeSubImg(img, x[i], y[i], r[i], x0, y0, sub_img);
+// vector<T> P;
+// T cx = 0, cy = 0;
+// if (!centerLMA<T>(sub_img, clr, cx, cy, P)) return false;
+// libMsg::abortIfAsked();
 
-        x[i] = scale*(x0 + cx);
-        y[i] = scale*(y0 + cy);
-        Pout.push_back(P);
-        double percent = ((double)i / (double)ntaches)*100;
-        if (percent > nextPercent) {
-            libMsg::cout<<(int)nextPercent<<'%'<<libMsg::flush;
-            nextPercent = (int(percent/10)+1)*10;
-        }
-    }
-    libMsg::cout<<libMsg::endl;
-    return true;
-}
+// x[i] = scale*(x0 + cx);
+// y[i] = scale*(y0 + cy);
+// Pout.push_back(P);
+// double percent = ((double)i / (double)ntaches)*100;
+// if (percent > nextPercent) {
+// libMsg::cout<<(int)nextPercent<<'%'<<libMsg::flush;
+// nextPercent = (int(percent/10)+1)*10;
+// }
+// }
+// libMsg::cout<<libMsg::endl;
+// return true;
+// }
 
 bool keypnts_circle_no_refine(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback,
                               vector<double> &x, vector<double> &y, vector<double> &r)
@@ -326,7 +347,7 @@ bool keypnts_circle_no_refine(const ImageGray<double> &img, ImageRGB<BYTE> &imgF
 
     libMsg::cout<<"finding connected components... "<<libMsg::endl;
     std::vector<CCStats> ccstats;
-    if(!CC(ccstats, imgBi, imgFeedback))return false;
+    if (!CC(ccstats, imgBi, imgFeedback)) return false;
 
     int ntaches = ccstats.size();
     x = x.ones(ntaches);
@@ -359,7 +380,7 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
 
     libMsg::cout<<"finding connected components... "<<libMsg::endl;
     std::vector<CCStats> ccstats;
-    if(!CC(ccstats, imgBi, imgFeedback))return false;
+    if (!CC(ccstats, imgBi, imgFeedback)) return false;
 
     int ntaches = ccstats.size();
     x = x.ones(ntaches);
@@ -384,7 +405,7 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
         std::future<bool> ftr
             = concurrent::SimpleThreadPool::DEFAULT.start(&circleRedefineSegment,
                                                           (const ImageGray<double> *)(
-                                                              &img), &x, &y,
+                                                              &img), &imgFeedback, &x, &y,
                                                           (const vector<double> *)(
                                                               &r), scale, clr, &P,
                                                           from, TASK_SIZE, &progress);
@@ -394,7 +415,8 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
     std::future<bool> ftr2
         = concurrent::SimpleThreadPool::DEFAULT.start(&circleRedefineSegment,
                                                       (const ImageGray<double> *)(
-                                                          &img), &x, &y, (const vector<double> *)(
+                                                          &img), &imgFeedback, &x, &y,
+                                                      (const vector<double> *)(
                                                           &r), scale, clr, &P,
                                                       from, ntaches-from, &progress);
     ftrs.push_back(std::move(ftr2));
@@ -426,7 +448,7 @@ bool detectEllipseCenters(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedb
 }
 
 bool detectEllipseCenters_noRefine(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback,
-                          vector<double> &x, vector<double> &y, vector<double> &r)
+                                   vector<double> &x, vector<double> &y, vector<double> &r)
 {
     if (!keypnts_circle_no_refine(img, imgFeedback, x, y, r)) return false;
     return true;
