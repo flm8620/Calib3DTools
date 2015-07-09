@@ -1,5 +1,3 @@
-#ifndef KMATRIXSOLVE_CPP
-#define KMATRIXSOLVE_CPP
 #include "kmatrixsolve.h"
 #include "main_centering.h"
 #include "kmatrix_main.h"
@@ -466,5 +464,3 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
     gamma = K(0, 1);
     return true;
 }
-
-#endif // KMATRIXSOLVE_CPP
