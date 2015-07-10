@@ -13,8 +13,16 @@
 #include "matrix.h"
 #include "centers.h"
 #include "abberation.h"
-#include "simplethreadpool.h"
+// libConcurrent
+#include "abstractthreadpool.h"
+#include "stlCallable.h"
+//#include "simplethreadpool.h"
+//static concurrent::AbstractThreadPool& DEFAULT_THREAD_POOL = concurrent::SimpleThreadPool::DEFAULT;
+#include "qthreadpoolbridge.h"
+static concurrent::AbstractThreadPool& DEFAULT_THREAD_POOL = QThreadpoolBridge::DEFAULT;
+
 #include <atomic>
+#include <algorithm>
 using namespace libNumerics;
 void average_image(const ImageGray<double> &img, ImageGray<double> &img_avg)
 {
@@ -310,7 +318,8 @@ bool circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, c
 }
 
 bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, vector<double> &x,
-                    vector<double> &y, vector<double> &r, double scale, std::vector<vector<double> > &P)
+                    vector<double> &y, vector<double> &r, double scale, std::vector<vector<double> > &P,
+                    concurrent::AbstractThreadPool& pool = DEFAULT_THREAD_POOL)
 {
     auto startTime = std::chrono::high_resolution_clock::now();
     int wi = img.xsize(), he = img.ysize();
@@ -342,27 +351,21 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
     for(int i=0;i<ntaches;++i)P.push_back(vector<double>());
 
     // Lauche Multitask{
-    std::vector<std::future<bool> > ftrs;
+    std::vector<concurrent::Future<bool>*> ftrs;//TODO: use move sementics in Future.
     int from = 0;
     std::atomic_int progress;
     progress.store(0);
 
-    const int TASK_SIZE = 10;
+    const static int TASK_SIZE = 10;
     while (from+TASK_SIZE < ntaches) {
-        std::future<bool> ftr
-            = concurrent::SimpleThreadPool::DEFAULT.start(&circleRedefineSegment,
-                                                          (const ImageGray<double> *)(
-                                                              &img), &x, &y, (const vector<double>*)(&r), scale, clr, &P,
-                                                          from, TASK_SIZE, &progress);
+        ftrs.push_back(concurrent::asyncInvoke(
+                        pool, &circleRedefineSegment, (const ImageGray<double> *)(&img), &x, &y,
+                       (const vector<double>*)(&r), scale, clr, &P, from, TASK_SIZE, &progress));
         from += TASK_SIZE;
-        ftrs.push_back(std::move(ftr));
     }
-    std::future<bool> ftr2
-        = concurrent::SimpleThreadPool::DEFAULT.start(&circleRedefineSegment,
-                                                      (const ImageGray<double> *)(
-                                                          &img), &x, &y, (const vector<double>*)(&r), scale, clr, &P,
-                                                      from, ntaches-from, &progress);
-    ftrs.push_back(std::move(ftr2));
+    ftrs.push_back(concurrent::asyncInvoke(
+                        pool, &circleRedefineSegment, (const ImageGray<double> *)(&img), &x, &y,
+                       (const vector<double>*)(&r), scale, clr, &P, from, ntaches-from, &progress));
     // }Lauche MultiTask
 
     //Report progress and wait for all task to finish
@@ -370,7 +373,8 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
 
     // get futures and handle exceptions in multi-task
     bool allOk;
-    concurrent::getBoolFtr_CheckExcpt(allOk,ftrs);
+    concurrent::getFtr_CheckExcpt(allOk, ftrs);
+    std::for_each(ftrs.begin(), ftrs.end(), [](concurrent::Future<bool>* ftr){ delete ftr; });
 
 
     if (allOk) {

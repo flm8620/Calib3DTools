@@ -15,6 +15,7 @@ include_directories(${CMAKE_SOURCE_DIR}/QImageConvert)
 include_directories(${CMAKE_SOURCE_DIR}/libImage)
 include_directories(${CMAKE_SOURCE_DIR}/libMessager)
 include_directories(${CMAKE_SOURCE_DIR}/Concurrent)
+include_directories(${CMAKE_SOURCE_DIR}/QtThreadpool)
 
 include_directories(Kmatrix)
 add_subdirectory(Kmatrix)

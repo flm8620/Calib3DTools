@@ -6,6 +6,7 @@ ${CMAKE_SOURCE_DIR}/libMessager
 ${CMAKE_SOURCE_DIR}/libImage
 ${CMAKE_SOURCE_DIR}/libNumerics
 ${CMAKE_SOURCE_DIR}/Concurrent
+${CMAKE_SOURCE_DIR}/QtThreadpool
 libDistortion
 libLineDetection
 libMisc
@@ -20,9 +21,10 @@ ${CMAKE_SOURCE_DIR}/libMessager
 ${CMAKE_SOURCE_DIR}/libImage
 ${CMAKE_SOURCE_DIR}/libNumerics
 ${CMAKE_SOURCE_DIR}/Concurrent
+${CMAKE_SOURCE_DIR}/QtThreadpool
 libDistortion
 libLineDetection
 libMisc
 )
 target_link_libraries(DistortionPoly linedetect distortion misc
-libImage libNumerics libMessager Concurrent)
+libImage libNumerics libMessager Concurrent QtThreadpool Qt5::Core)
