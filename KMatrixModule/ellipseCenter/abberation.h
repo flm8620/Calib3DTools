@@ -31,7 +31,7 @@ void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<BYT
 
 int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img);
 
-void CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BYTE> &imgFeedback);
+bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BYTE> &imgFeedback);
 
 // finds corresponding circle center match among two channels
 template<typename T>

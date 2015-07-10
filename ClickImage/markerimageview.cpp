@@ -24,11 +24,15 @@ void MarkerImageView::loadImage(const QImage &image)
 
 void MarkerImageView::wheelEvent(QWheelEvent *event)
 {
-    int a = event->angleDelta().y();
-    if (a > 0)
-        zoomIn();
-    else
-        zoomOut();
+    QPoint numPixels = event->pixelDelta();
+    QPoint numDegrees = event->angleDelta() / 8;
+    if (!numPixels.isNull()) {
+        scrollWithPixels(numPixels);
+    } else if (!numDegrees.isNull()) {
+        QPoint numSteps = numDegrees / 15;
+        scrollWithDegrees(numSteps);
+    }
+    event->accept();
 }
 
 void MarkerImageView::scrollTo(QPointF pos)
@@ -36,19 +40,33 @@ void MarkerImageView::scrollTo(QPointF pos)
     this->centerOn(pos);
 }
 
-void MarkerImageView::zoomIn()
+void MarkerImageView::scrollWithPixels(const QPoint &pixel)
 {
-    if (this->transform().m11() < 100 && this->transform().m22() < 100) {
-        scale(1.25, 1.25);
-        this->scene->setZoomScale(this->transform().m11());
-    }
+    int s = pixel.y();
+    double z = std::pow(1.01, s);
+    this->zoom(z);
 }
 
-void MarkerImageView::zoomOut()
+void MarkerImageView::scrollWithDegrees(const QPoint &step)
 {
-    if (this->transform().m11() > 0.01 && this->transform().m22() > 0.01) {
-        scale(0.8, 0.8);
-        this->scene->setZoomScale(this->transform().m11());
+    int s = step.y();
+    double z = std::pow(1.1, s);
+    this->zoom(z);
+}
+
+void MarkerImageView::zoom(double z)
+{
+    if (z > 1) {
+        if (this->transform().m11() < 100 && this->transform().m22() < 100) {
+            scale(z, z);
+            this->scene->setZoomScale(this->transform().m11());
+        }
+    }
+    if (z < 1 && z > 0) {
+        if (this->transform().m11() > 0.01 && this->transform().m22() > 0.01) {
+            scale(z, z);
+            this->scene->setZoomScale(this->transform().m11());
+        }
     }
 }
 

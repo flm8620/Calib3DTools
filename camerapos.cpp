@@ -47,7 +47,7 @@ double CameraPos::RMatrixElement(int index, int i, int j) const
 {
     QReadLocker locker(&rwLock);
     if (index < this->value.data.size())
-        return this->value.data[index].first[i+j*3];
+        return this->value.data[index].first[i*3+j];
 }
 
 double CameraPos::centerVector(int index, int i) const
@@ -62,7 +62,7 @@ void CameraPos::setRMatrixElement(int index, int i, int j, double val)
     {
         QWriteLocker locker(&rwLock);
         if (index < this->value.data.size())
-            this->value.data[index].first[i+j*3] = val;
+            this->value.data[index].first[i*3+j] = val;
     }
     emit dataChanged();
 }

@@ -172,6 +172,77 @@ bool initial_tache(const ImageGray<double> &I, vector<T> &h, T &rayon, bool colo
 }
 
 template<typename T>
+bool initial_tache_center(const ImageGray<double> &I, double &centerX, double &centerY, T &rayon,
+                          bool color, T x, T y)
+{
+    int COL_IMA = I.xsize();
+    int LIG_IMA = I.ysize();
+    int j = x;
+    int i = y;
+    int d = 2*rayon;
+    if (2*d+1 > LIG_IMA)
+        d = (LIG_IMA-1)/2;
+    if (2*d+1 > COL_IMA)
+        d = (COL_IMA-1)/2;
+    if (i < d)
+        i = d+1;
+    if (i > LIG_IMA-1-d)
+        i = LIG_IMA-2-d;
+    if (j < d)
+        j = d+1;
+    if (j > COL_IMA-1-d)
+        j = COL_IMA-2-d;
+    int val_haut = 0;
+    int val_bas = 255;
+    for (int k = -d; k <= d; k++) {
+        for (int l = -d; l <= d; l++) {
+            T lum = I.pixel(j+l, i+k);
+            if (lum > val_haut)
+                val_haut = lum;
+            else if (lum < val_bas)
+                val_bas = lum;
+        }
+    }
+    T seuil = 0;
+    if (!color)
+        seuil = val_bas + (val_haut - val_bas)/3 * 2;
+    else if (color)
+        seuil = val_bas + (val_haut - val_bas)/3;
+
+    matrix<T> tab = matrix<T>::zeros(2*d+1, 2*d+1);
+    int label = 1;
+    // Leman:
+    // tab:
+    // 0000000000
+    // 0000450000
+    // 0003456000
+    // 0023456700
+    // 0123456780
+    // 0123456780
+    // 0023456700
+    // 0003456000
+    // 0000450000
+    // 0000000000
+    double meanX = 0, meanY = 0, total = 0;
+    int count;
+    for (int k = -d+1; k <= d; k++) {
+        for (int l = -d+1; l <= d-1; l++) {
+            T lum = I.pixel(j+l, i+k);
+            if (lum < seuil) {
+                double weight = 255-lum;
+                total += weight;
+                meanX += weight*(j+l);
+                meanY += weight*(i+k);
+                count++;
+            }
+        }
+    }
+    centerX = meanX/total;
+    centerY = meanY/total;
+    return true;
+}
+
+template<typename T>
 vector<T> trgtDataCalc(ImageGray<double> &img_avg, T cx, T cy, T delta)
 {
     int xbegin = cx+0.5-delta;
@@ -203,23 +274,51 @@ bool centerLMA(const ImageGray<double> &sub_img, bool clr, T &centerX, T &center
     int w = sub_img.xsize();
     int h = sub_img.ysize();
     T cx = w/2, cy = h/2, radi = 0.4*w;
-    vector<T> P(11);
+    vector<T> P(12);
     if (!initial_tache(sub_img, P, radi, clr, cx, cy)) return false;
     vector<T> trgData = trgtDataCalc<T>(img_avg, P[3], P[4], radi*2);
     LMTacheC<T> ellipseLMA(img_avg, P[3], P[4], radi*2, clr, w, h);
-    T rmse = ellipseLMA.minimize(P, trgData, 0.001);
+    T rmse = ellipseLMA.minimize(P, trgData, 0.01);
     T lambda1 = P[0];
     T lambda2 = P[1];
     T theta = P[2];
     centerX = P[3];
     centerY = P[4];
     Pout = P;
+    // Pout[11]=rmse;
+    return true;
+}
+
+template<typename T>
+bool centerSimple(const ImageGray<double> &sub_img, bool clr, T &centerX, T &centerY,
+                  vector<T> &Pout)
+{
+    ImageGray<double> img_avg;
+    average_image(sub_img, img_avg);
+    int w = sub_img.xsize();
+    int h = sub_img.ysize();
+    T cx = w/2, cy = h/2, radi = 0.4*w;
+    vector<T> P(12);
+    if (!initial_tache_center(sub_img, centerX, centerY, radi, clr, cx, cy)) return false;
+    P[0] =0.1;
+    P[1] =0.1;
+    P[2] =0;
+    P[3] =centerX;
+    P[4] =centerY;
+    P[5] =10;
+    P[6] =0;
+    P[7] =10;
+    P[8] =0;
+    P[9] =0;
+    P[10]=0;
+    P[11]=0;
+    Pout = P;
     return true;
 }
 
 template<typename T>
 void takeSubImg(const ImageGray<double> &IMG, T cx, T cy, T radi, int &x0, int &y0,
-                ImageGray<double> &img)
+                ImageGray<double> &imgOut)
 {
     int size = 2.5 * radi;
     int x1 = cx - 0.5*size, x2 = cx + 0.5*size;
@@ -228,13 +327,13 @@ void takeSubImg(const ImageGray<double> &IMG, T cx, T cy, T radi, int &x0, int &
     y0 = y1;
     if (y2-y1 != x2-x1)
         y2 = y1+x2-x1;
-    img.resize(x2-x1, y2-y1);
-    for (int i = 0; i < img.xsize(); i++) {
-        for (int j = 0; j < img.ysize(); j++)
+    imgOut.resize(x2-x1, y2-y1);
+    for (int i = 0; i < imgOut.xsize(); i++) {
+        for (int j = 0; j < imgOut.ysize(); j++)
             if (IMG.pixelInside(x1+i, y1+j))
-                img.pixel(i, j) = IMG.pixel(x1+i, y1+j);
+                imgOut.pixel(i, j) = IMG.pixel(x1+i, y1+j);
             else
-                img.pixel(i, j) = 255;
+                imgOut.pixel(i, j) = 255;
     }
 }
 
@@ -266,9 +365,10 @@ void img_extremas(const ImageGray<double> &img, T &min, T &max)
     }
 }
 
-bool circleRedefineSegment(const ImageGray<double> *img, vector<double> *x, vector<double> *y,
-                           const vector<double> *r, double scale, bool clr, std::vector<vector<double> > *Pout,
-                           int from, int count, std::atomic_int *progress)
+bool circleRedefineSegment(const ImageGray<double> *img, ImageRGB<BYTE> *feedback,
+                           vector<double> *x, vector<double> *y, const vector<double> *r,
+                           double scale, bool clr, std::vector<vector<double> > *Pout, int from,
+                           int count, std::atomic_int *progress)
 {
     for (int i = from; i < from+count; i++) {
         int x0, y0;
@@ -276,58 +376,72 @@ bool circleRedefineSegment(const ImageGray<double> *img, vector<double> *x, vect
         takeSubImg(*img, (*x)[i], (*y)[i], (*r)[i], x0, y0, sub_img);
         vector<double> P;
         double cx = 0, cy = 0;
-        if (!centerLMA<double>(sub_img, clr, cx, cy, P)) return false;
+        int wi = sub_img.xsize();
+        int he = sub_img.ysize();
+        // draw feedback: rect of SubImg[
+        for (int j = 0; j < wi; ++j) {
+            if (feedback->pixelInside(j+x0, y0))
+                feedback->pixel_R(j+x0, y0) = 0;
+            if (feedback->pixelInside(j+x0, y0+he-1))
+                feedback->pixel_R(j+x0, y0+he-1) = 0;
+        }
+        for (int k = 0; k < he; ++k) {
+            if (feedback->pixelInside(x0, k+y0))
+                feedback->pixel_R(x0, k+y0) = 0;
+            if (feedback->pixelInside(x0+wi-1, k+y0))
+                feedback->pixel_R(x0+wi-1, k+y0) = 0;
+        }
+        // feed back]
+        //if (!centerLMA<double>(sub_img, clr, cx, cy, P)) return false;
+        if (!centerSimple<double>(sub_img, clr, cx, cy, P)) return false;
         libMsg::abortIfAsked();
 
         (*x)[i] = scale*(x0 + cx);
         (*y)[i] = scale*(y0 + cy);
-        (*Pout)[i]=P;
+        (*Pout)[i] = P;
         progress->fetch_add(1, std::memory_order_relaxed);
     }
     return true;
 }
 
-template<typename T>
-bool circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, const vector<T> &r,
-                     T scale, bool clr, std::vector<vector<T> > &Pout)
-{
-    libMsg::cout<<"\nLMA center redefinition ... \n"<<libMsg::endl;
-    int ntaches = x.size();
-    double nextPercent = 0;
-    Pout.clear();
-    for (int i = 0; i < ntaches; i++) {
-        int x0, y0;
-        ImageGray<double> sub_img;
-        takeSubImg(img, x[i], y[i], r[i], x0, y0, sub_img);
-        vector<T> P;
-        T cx = 0, cy = 0;
-        if (!centerLMA<T>(sub_img, clr, cx, cy, P)) return false;
-        libMsg::abortIfAsked();
+// template<typename T>
+// bool circle_redefine(const ImageGray<double> &img, vector<T> &x, vector<T> &y, const vector<T> &r,
+// T scale, bool clr, std::vector<vector<T> > &Pout)
+// {
+// libMsg::cout<<"\nLMA center redefinition ... \n"<<libMsg::endl;
+// int ntaches = x.size();
+// double nextPercent = 0;
+// Pout.clear();
+// for (int i = 0; i < ntaches; i++) {
+// int x0, y0;
+// ImageGray<double> sub_img;
+// takeSubImg(img, x[i], y[i], r[i], x0, y0, sub_img);
+// vector<T> P;
+// T cx = 0, cy = 0;
+// if (!centerLMA<T>(sub_img, clr, cx, cy, P)) return false;
+// libMsg::abortIfAsked();
 
-        x[i] = scale*(x0 + cx);
-        y[i] = scale*(y0 + cy);
-        Pout.push_back(P);
-        double percent = ((double)i / (double)ntaches)*100;
-        if (percent > nextPercent) {
-            libMsg::cout<<(int)nextPercent<<'%'<<libMsg::flush;
-            nextPercent = (int(percent/10)+1)*10;
-        }
-    }
-    libMsg::cout<<libMsg::endl;
-    return true;
-}
+// x[i] = scale*(x0 + cx);
+// y[i] = scale*(y0 + cy);
+// Pout.push_back(P);
+// double percent = ((double)i / (double)ntaches)*100;
+// if (percent > nextPercent) {
+// libMsg::cout<<(int)nextPercent<<'%'<<libMsg::flush;
+// nextPercent = (int(percent/10)+1)*10;
+// }
+// }
+// libMsg::cout<<libMsg::endl;
+// return true;
+// }
 
-bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, vector<double> &x,
-                    vector<double> &y, vector<double> &r, double scale, std::vector<vector<double> > &P,
-                    concurrent::AbstractThreadPool& pool = DEFAULT_THREAD_POOL)
+bool keypnts_circle_no_refine(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback,
+                              vector<double> &x, vector<double> &y, vector<double> &r)
 {
-    auto startTime = std::chrono::high_resolution_clock::now();
     int wi = img.xsize(), he = img.ysize();
-
     double maxColor = 0;
     double minColor = 255;
     img_extremas(img, minColor, maxColor);
-    BYTE thre = (BYTE)(0.5*(maxColor-minColor));
+    BYTE thre = (BYTE)(0.4*(maxColor-minColor));
     ImageGray<BYTE> imgBi;
     imgBi.resize(wi, he, 255);
     imgFeedback.resize(wi, he, 255, 255, 255);
@@ -336,7 +450,41 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
 
     libMsg::cout<<"finding connected components... "<<libMsg::endl;
     std::vector<CCStats> ccstats;
-    CC(ccstats, imgBi, imgFeedback);
+    if (!CC(ccstats, imgBi, imgFeedback)) return false;
+
+    int ntaches = ccstats.size();
+    x = x.ones(ntaches);
+    y = y.ones(ntaches);
+    r = r.ones(ntaches);
+    for (int i = 0; i < ntaches; i++) {
+        x[i] = ccstats[i].centerX;
+        y[i] = ccstats[i].centerY;
+        r[i] = (ccstats[i].radius1+ccstats[i].radius2)/2;
+    }
+    return true;
+}
+
+bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, vector<double> &x,
+                    vector<double> &y, vector<double> &r, double scale,
+                    std::vector<vector<double> > &P,
+                    concurrent::AbstractThreadPool& pool = DEFAULT_THREAD_POOL)
+{
+    auto startTime = std::chrono::high_resolution_clock::now();
+    int wi = img.xsize(), he = img.ysize();
+
+    double maxColor = 0;
+    double minColor = 255;
+    img_extremas(img, minColor, maxColor);
+    BYTE thre = (BYTE)(0.4*(maxColor-minColor));
+    ImageGray<BYTE> imgBi;
+    imgBi.resize(wi, he, 255);
+    imgFeedback.resize(wi, he, 255, 255, 255);
+    binarization(imgBi, img, thre);
+    // write_pgm_image_double(imgbiB, "rawdata/b.pgm");
+
+    libMsg::cout<<"finding connected components... "<<libMsg::endl;
+    std::vector<CCStats> ccstats;
+    if (!CC(ccstats, imgBi, imgFeedback)) return false;
 
     int ntaches = ccstats.size();
     x = x.ones(ntaches);
@@ -348,10 +496,10 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
         r[i] = (ccstats[i].radius1+ccstats[i].radius2)/2;
     }
     bool clr = 0;
-    for(int i=0;i<ntaches;++i)P.push_back(vector<double>());
+    for (int i = 0; i < ntaches; ++i) P.push_back(vector<double>());
 
     // Lauche Multitask{
-    std::vector<concurrent::Future<bool>*> ftrs;//TODO: use move sementics in Future.
+    std::vector<concurrent::Future<bool>*> ftrs;
     int from = 0;
     std::atomic_int progress;
     progress.store(0);
@@ -359,23 +507,26 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
     const static int TASK_SIZE = 10;
     while (from+TASK_SIZE < ntaches) {
         ftrs.push_back(concurrent::asyncInvoke(
-                        pool, &circleRedefineSegment, (const ImageGray<double> *)(&img), &x, &y,
-                       (const vector<double>*)(&r), scale, clr, &P, from, TASK_SIZE, &progress));
+                        pool, &circleRedefineSegment,
+                        (const ImageGray<double> *)(&img), &imgFeedback, &x, &y,
+                        (const vector<double> *)(&r), scale, clr, &P,
+                                              from, TASK_SIZE, &progress));
         from += TASK_SIZE;
     }
     ftrs.push_back(concurrent::asyncInvoke(
-                        pool, &circleRedefineSegment, (const ImageGray<double> *)(&img), &x, &y,
-                       (const vector<double>*)(&r), scale, clr, &P, from, ntaches-from, &progress));
+                        pool, &circleRedefineSegment,
+                        (const ImageGray<double> *)(&img), &imgFeedback, &x, &y,
+                        (const vector<double> *)(&r), scale, clr, &P,
+                        from, ntaches-from, &progress));
     // }Lauche MultiTask
 
-    //Report progress and wait for all task to finish
-    concurrent::ReportProgrsAndWaitFtr(progress,ntaches,ftrs);
+    // Report progress and wait for all task to finish
+    concurrent::ReportProgrsAndWaitFtr(progress, ntaches, ftrs);
 
     // get futures and handle exceptions in multi-task
     bool allOk;
     concurrent::getFtr_CheckExcpt(allOk, ftrs);
     std::for_each(ftrs.begin(), ftrs.end(), [](concurrent::Future<bool>* ftr){ delete ftr; });
-
 
     if (allOk) {
         libMsg::cout<<" Done, "<<std::chrono::duration<double, std::milli>(
@@ -392,5 +543,12 @@ bool detectEllipseCenters(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedb
                           std::vector<vector<double> > &P, double scale)
 {
     if (!keypnts_circle(img, imgFeedback, x, y, r, scale, P)) return false;
+    return true;
+}
+
+bool detectEllipseCenters_noRefine(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback,
+                                   vector<double> &x, vector<double> &y, vector<double> &r)
+{
+    if (!keypnts_circle_no_refine(img, imgFeedback, x, y, r)) return false;
     return true;
 }

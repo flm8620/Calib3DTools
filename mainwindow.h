@@ -72,6 +72,7 @@ private:
     Point3DModel *point3DModel;
 
     CamPosModel *camPosModel;
+    CamPosModel *camCompareModel;
 };
 
 #endif // MAINWINDOW_H

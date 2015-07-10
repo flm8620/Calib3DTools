@@ -5,18 +5,36 @@
 Point3DWidget::Point3DWidget(QWidget *parent) : QWidget(parent)
 {
     this->view = new QTableView(this);
-    this->view->setItemDelegate(new ScienceDoubleDelegate);
+    ScienceDoubleDelegate *delegate = new ScienceDoubleDelegate(this);
+    delegate->setPrecision(6);
+    this->view->setItemDelegate(delegate);
+    this->view->horizontalHeader()->setStretchLastSection(true);
+    this->view->setSelectionBehavior(QAbstractItemView::SelectRows);
+    this->view->setSelectionMode(QAbstractItemView::SingleSelection);
+
     QPushButton *addPointButton = new QPushButton(tr("+"));
     QPushButton *removePointButton = new QPushButton(tr("-"));
-    QPushButton *moveUpButton = new QPushButton(tr("Up"));
-    QPushButton *moveDownButton = new QPushButton(tr("Down"));
+    QPushButton *moveUpButton = new QPushButton(tr("^"));
+    QPushButton *moveDownButton = new QPushButton(tr("v"));
     QPushButton *loadButton = new QPushButton(tr("Load"));
     QPushButton *saveButton = new QPushButton(tr("Save"));
     QPushButton *clearButton = new QPushButton(tr("Clear"));
-    addPointButton->setMaximumWidth(40);
-    removePointButton->setMaximumWidth(40);
-    moveUpButton->setMaximumWidth(40);
-    moveDownButton->setMaximumWidth(40);
+
+    addPointButton->setMaximumWidth(20);
+    removePointButton->setMaximumWidth(20);
+    moveUpButton->setMaximumWidth(20);
+    moveDownButton->setMaximumWidth(20);
+    loadButton->setMaximumWidth(40);
+    saveButton->setMaximumWidth(40);
+    clearButton->setMaximumWidth(40);
+
+    addPointButton->setMaximumHeight(20);
+    removePointButton->setMaximumHeight(20);
+    moveUpButton->setMaximumHeight(20);
+    moveDownButton->setMaximumHeight(20);
+    loadButton->setMaximumHeight(20);
+    saveButton->setMaximumHeight(20);
+    clearButton->setMaximumHeight(20);
 
     QHBoxLayout *bLay1 = new QHBoxLayout;
     QHBoxLayout *bLay2 = new QHBoxLayout;
@@ -64,7 +82,7 @@ void Point3DWidget::appendPoint()
 void Point3DWidget::removePoint()
 {
     QModelIndex index = this->getFirstSelectedItem();
-    model->removeRow(index.row());
+    this->model->remove(index.row());
     view->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect);
 }
 
@@ -72,34 +90,50 @@ void Point3DWidget::moveUp()
 {
     QModelIndex index = this->getFirstSelectedItem();
     this->model->moveUp(index);
-    QModelIndex id = this->model->index(index.row()-1, index.column(), index.parent());
-    this->view->selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    if (index.row() > 0) {
+        QModelIndex id = this->model->index(index.row()-1, index.column(), index.parent());
+        this->view->selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    } else {
+        QModelIndex id = this->model->index(index.row(), index.column(), index.parent());
+        this->view->selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    }
 }
 
 void Point3DWidget::moveDown()
 {
     QModelIndex index = this->getFirstSelectedItem();
     this->model->moveDown(index);
-    QModelIndex id = this->model->index(index.row()+1, index.column(), index.parent());
-    this->view->selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    if (index.row() < this->model->rowCount()-1) {
+        QModelIndex id = this->model->index(index.row()+1, index.column(), index.parent());
+        this->view->selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    } else {
+        QModelIndex id = this->model->index(index.row(), index.column(), index.parent());
+        this->view->selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    }
 }
 
 void Point3DWidget::saveFile()
 {
-    QFileDialog dialog(this, tr("Save Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Save Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     dialog.setFileMode(QFileDialog::AnyFile);
     while (dialog.exec() == QDialog::Accepted)
         if (savePoint3D(dialog.selectedFiles())) break;
+    if (!dialog.selectedFiles().isEmpty())
+        settings.setValue("default_dir", dialog.selectedFiles().first());
 }
 
 void Point3DWidget::loadFile()
 {
-    QFileDialog dialog(this, tr("Load Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Load Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFile);
     while (dialog.exec() == QDialog::Accepted)
         if (loadPoint3D(dialog.selectedFiles())) break;
+    if (!dialog.selectedFiles().isEmpty())
+        settings.setValue("default_dir", dialog.selectedFiles().first());
 }
 
 void Point3DWidget::clear()

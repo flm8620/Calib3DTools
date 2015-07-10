@@ -1,5 +1,5 @@
-#ifndef EVENTTHREADPOOL_H
-#define EVENTTHREADPOOL_H
+#ifndef SIMPLETHREADPOOL_H
+#define SIMPLETHREADPOOL_H
 
 #include "abstractthreadpool.h"
 #include <vector>
@@ -12,7 +12,6 @@ namespace concurrent {
 
 class SimpleThreadPool : public AbstractThreadPool
 {
-
 public:
     static SimpleThreadPool DEFAULT;
     SimpleThreadPool(int threads = 5);
@@ -43,4 +42,4 @@ private:
 };
 
 } // namespace concurrent
-#endif // EVENTTHREADPOOL_H
+#endif // SIMPLETHREADPOOL_H

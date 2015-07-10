@@ -11,12 +11,13 @@
 #include "distCorrection.h"
 #include "kmatrixsolve.h"
 #include "strecha.h"
+#include "camcompare.h"
 using namespace libMsg;
 Solver::Solver(QObject *parent) : QObject(parent)
 {
 }
 
-//deprecated
+// deprecated
 ///**
 // * @brief PolyOrderConvert_Qt2Lib
 // * @param poly
@@ -37,28 +38,28 @@ Solver::Solver(QObject *parent) : QObject(parent)
 // * a8 * x^1*y^2
 // * a9 * x^0*y^3    b9 * x^0*y^0
 // */
-//static bool PolyOrderConvert_Qt2Lib(Bi<std::vector<double> > &poly)
-//{
-//    size_t polysize =poly.x.size(), ysize =poly.y.size();
-//    int maxOrder = (isqrt(8*polysize+1) - 1)/2-1;
-//    if (polysize != (maxOrder+1)*(maxOrder+2)/2 || polysize!=ysize)
-//        return false;
+// static bool PolyOrderConvert_Qt2Lib(Bi<std::vector<double> > &poly)
+// {
+// size_t polysize =poly.x.size(), ysize =poly.y.size();
+// int maxOrder = (isqrt(8*polysize+1) - 1)/2-1;
+// if (polysize != (maxOrder+1)*(maxOrder+2)/2 || polysize!=ysize)
+// return false;
 
-//    poly.x.reserve(polysize*2-maxOrder-1);
-//    poly.y.reserve(polysize*2-maxOrder-1);
-//    std::vector<double>::const_iterator xbegin = poly.x.cbegin(), ybegin = poly.y.cbegin();
-//    for(int order = maxOrder-1; order>=0; order--)
-//        for(int i=0, idx = (order*(order+1)/2); i<=order; i++, idx++) {
-//            poly.x.push_back(poly.x[idx]);
-//            poly.y.push_back(poly.y[idx]);
-//        }
-//    int newtop = maxOrder*(maxOrder+1)/2;
-//    poly.x.erase( xbegin, xbegin + newtop );
-//    poly.y.erase( ybegin, ybegin + newtop );
-//    poly.x.shrink_to_fit();
-//    poly.y.shrink_to_fit();
-//    return true;
-//}
+// poly.x.reserve(polysize*2-maxOrder-1);
+// poly.y.reserve(polysize*2-maxOrder-1);
+// std::vector<double>::const_iterator xbegin = poly.x.cbegin(), ybegin = poly.y.cbegin();
+// for(int order = maxOrder-1; order>=0; order--)
+// for(int i=0, idx = (order*(order+1)/2); i<=order; i++, idx++) {
+// poly.x.push_back(poly.x[idx]);
+// poly.y.push_back(poly.y[idx]);
+// }
+// int newtop = maxOrder*(maxOrder+1)/2;
+// poly.x.erase( xbegin, xbegin + newtop );
+// poly.y.erase( ybegin, ybegin + newtop );
+// poly.x.shrink_to_fit();
+// poly.y.shrink_to_fit();
+// return true;
+// }
 
 static bool PolyOrderConvert_Lib2Qt(std::vector<double> &poly, int maxOrder)
 {
@@ -94,14 +95,15 @@ static bool PolyOrderConvert_Lib2Qt(std::vector<double> &poly, int maxOrder)
     return true;
 }
 
-static void distortionValue2Polynome(const DistortionValue &distValue, Bi<std::vector<double> > &polynome)
+static void distortionValue2Polynome(const DistortionValue &distValue,
+                                     Bi<std::vector<double> > &polynome)
 {
     polynome.x.clear();
     polynome.y.clear();
     Q_ASSERT(distValue.isValid());
     for (int i = 0; i < distValue._size; ++i) {
-        polynome.x.push_back( distValue._XYData[i].first );
-        polynome.y.push_back( distValue._XYData[i].second );
+        polynome.x.push_back(distValue._XYData[i].first);
+        polynome.y.push_back(distValue._XYData[i].second);
     }
 }
 
@@ -175,13 +177,13 @@ static bool correctDistortion(const QImage &imageIn, QImage &out, Distortion *di
     }
     DistortionValue distValue = distortion->getValue();
     if (!distValue.isValid() || distValue._size == 0) {
-        libMsg::cout<<"DistortionCorrection: distortion polynomail is empty!"<<libMsg::endl;
+        libMsg::cout<<"DistortionCorrection: distortion polynomial is empty!"<<libMsg::endl;
         return false;
     }
     Bi<std::vector<double> > polynome;
     distortionValue2Polynome(distValue, polynome);
-//    bool success = PolyOrderConvert_Qt2Lib(polynome);
-//    Q_ASSERT(success);
+// bool success = PolyOrderConvert_Qt2Lib(polynome);
+// Q_ASSERT(success);
 
     QImage result;
     if (imageIn.isGrayscale()) {
@@ -213,9 +215,9 @@ static bool calculateKFromImages(ImageList *circlePhotoList, ImageList *feedback
     std::vector<QImage> feedback;
     for (int i = 0; i < snapshot.size(); ++i)
         stdImageList.push_back(snapshot[i].second);
-    double alpha, beta, gamma, u0, v0;
+    double alpha, beta, u0, v0, gamma;
 
-    bool ok = KMatrixSolve::KMatrixSolver(stdImageList, feedback, alpha, beta, gamma, u0, v0, 3.0,
+    bool ok = KMatrixSolve::KMatrixSolver(stdImageList, feedback, alpha, beta, u0, v0, gamma, 3.0,
                                           1.0);
 
     QList<QPair<QString, QImage> > tempFeedback;
@@ -225,7 +227,7 @@ static bool calculateKFromImages(ImageList *circlePhotoList, ImageList *feedback
     feedbackList->setContent(tempFeedback);
 
     if (!ok) return false;
-    kValue = {alpha, beta, gamma, u0, v0};
+    kValue = {alpha, beta, u0, v0, gamma };
     return true;
 }
 
@@ -234,7 +236,7 @@ void Solver::registerModels(ImageList *photoList, ImageList *circleList, ImageLi
                             ImageList *undistortedCircleList, ImageList *undistortedHarpList,
                             ImageList *harpFeedbackList, ImageList *circleFeedbackList,
                             Distortion *distortion, KMatrix *kMatrix, Point3D *point3D,
-                            CameraPos *camPos, libMsg::Messager *messager)
+                            CameraPos *camPos,CameraPos *camCompare, libMsg::Messager *messager)
 {
     this->photoList = photoList;
     this->circleList = circleList;
@@ -248,6 +250,7 @@ void Solver::registerModels(ImageList *photoList, ImageList *circleList, ImageLi
     this->distortion = distortion;
     this->point3D = point3D;
     this->camPos = camPos;
+    this->camCompare=camCompare;
     this->messager = messager;
 }
 
@@ -313,8 +316,11 @@ bool Solver::solveCamPos()
             pt2D.push_back(qpt2D[i].x());
         for (int i = 0; i < qpt2D.size(); ++i)
             pt2D.push_back(qpt2D[i].y());
-        if (!Strecha::findCameraPosition(K, pt2D, pt3D, matrixR, vectorT, center))
+        this->message(tr("Camera position for image_%1").arg(imageId+1).toStdString());
+        if (!Strecha::findCameraPosition(K, pt2D, pt3D, matrixR, vectorT, center)) {
+            this->message("Camera position solve failed!",M_WARN);
             return false;
+        }
         camPosValue.data.append(qMakePair(matrixR, center));
     }
     if (!this->camPos->setValue(camPosValue))
@@ -322,93 +328,45 @@ bool Solver::solveCamPos()
     return true;
 }
 
-bool Solver::calculateDistortionThread()
+bool Solver::compareCam()
 {
-    bool ok;
-    if (this->processLock.tryLock()) {
-        libMsg::abortFlag.resetFlag();
-        try{
-            ok = this->calculateDistortion();
-        }catch (MyException &bad) {
-            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-            ok = false;
-        }
-        libMsg::abortFlag.resetFlag();
-        this->processLock.unlock();
-    } else {
-        ok = false;
-        this->message("Please wait for current job to finish", M_WARN);
+    CameraPosValue value1=this->camPos->getValue();
+    CameraPosValue value2=this->camCompare->getValue();
+    if(value1.data.isEmpty()){
+        this->message("No Camera data in CamPos Tab",M_WARN);
+        return false;
     }
-    return ok;
+
+    if(value2.data.isEmpty()){
+        this->message("No Camera data in CamCompare Tab",M_WARN);
+        return false;
+    }
+    if(value1.data.size()!=value2.data.size()){
+        this->message("Camera Number isn't the same.",M_WARN);
+        return false;
+    }
+    int size=value1.data.size();
+    CamSet camset1,camset2;
+    for(int i=0;i<size;++i){
+        camset1.push_back(std::make_pair(value1.data[i].first,value1.data[i].second));
+        camset2.push_back(std::make_pair(value2.data[i].first,value2.data[i].second));
+    }
+    if(!CamSolver::camCompare(camset1,camset2)){
+        this->message("Camera Compare failed.",M_WARN);
+        return false;
+    }else{
+        this->message("Camera Compare finished.",M_WARN);
+        return true;
+    }
 }
 
-bool Solver::calculateKThread()
+bool Solver::runInThread(bool (Solver::*fun)())
 {
     bool ok;
     if (this->processLock.tryLock()) {
         libMsg::abortFlag.resetFlag();
         try{
-            ok = this->calculateK();
-        }catch (MyException &bad) {
-            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-            ok = false;
-        }
-        libMsg::abortFlag.resetFlag();
-        this->processLock.unlock();
-    } else {
-        ok = false;
-        this->message("Please wait for current job to finish", M_WARN);
-    }
-    return ok;
-}
-
-bool Solver::correctPhotoThread()
-{
-    bool ok;
-    if (this->processLock.tryLock()) {
-        libMsg::abortFlag.resetFlag();
-        try{
-            ok = this->correctPhoto();
-        }catch (MyException &bad) {
-            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-            ok = false;
-        }
-        libMsg::abortFlag.resetFlag();
-        this->processLock.unlock();
-    } else {
-        ok = false;
-        this->message("Please wait for current job to finish", M_WARN);
-    }
-    return ok;
-}
-
-bool Solver::correctCircleThread()
-{
-    bool ok;
-    if (this->processLock.tryLock()) {
-        libMsg::abortFlag.resetFlag();
-        try{
-            ok = this->correctCircle();
-        }catch (MyException &bad) {
-            this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
-            ok = false;
-        }
-        libMsg::abortFlag.resetFlag();
-        this->processLock.unlock();
-    } else {
-        ok = false;
-        this->message("Please wait for current job to finish", M_WARN);
-    }
-    return ok;
-}
-
-bool Solver::solveCamPosThread()
-{
-    bool ok;
-    if (this->processLock.tryLock()) {
-        libMsg::abortFlag.resetFlag();
-        try{
-            ok = this->solveCamPos();
+            ok = (this->*fun)();
         }catch (MyException &bad) {
             this->message("Exception catched :"+std::string(bad.what()), M_ERROR);
             ok = false;
@@ -424,27 +382,32 @@ bool Solver::solveCamPosThread()
 
 bool Solver::onCalculateDistortion()
 {
-    QtConcurrent::run(this, &Solver::calculateDistortionThread);
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::calculateDistortion);
 }
 
 bool Solver::onCalculateK()
 {
-    QtConcurrent::run(this, &Solver::calculateKThread);
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::calculateK);
 }
 
 bool Solver::onCorrectPhoto()
 {
-    QtConcurrent::run(this, &Solver::correctPhotoThread);
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::correctPhoto);
 }
 
 bool Solver::onCorrectCircle()
 {
-    QtConcurrent::run(this, &Solver::correctCircleThread);
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::correctCircle);
 }
 
 bool Solver::onSolveStrecha()
 {
-    QtConcurrent::run(this, &Solver::solveCamPosThread);
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::solveCamPos);
+}
+
+bool Solver::onCompareCam()
+{
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::compareCam);
 }
 
 bool Solver::correctPhoto()
@@ -572,8 +535,8 @@ bool Solver::calculateK()
             this->message("Undistorted circle photo loaded.");
         }
         KValue kValue;
-        if (!calculateKFromImages(this->undistortedCircleList, this->circleFeedbackList, kValue)){
-            this->message("Failed to calculate K Matrix",M_WARN);
+        if (!calculateKFromImages(this->undistortedCircleList, this->circleFeedbackList, kValue)) {
+            this->message("Failed to calculate K Matrix", M_WARN);
             return false;
         }
         this->kMatrix->setValue(kValue);

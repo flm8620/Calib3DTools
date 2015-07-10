@@ -1,5 +1,5 @@
-#ifndef CALLABLE_H
-#define CALLABLE_H
+#ifndef STLCALLABLE_H
+#define STLCALLABLE_H
 
 #include "abstractthreadpool.h"
 #include "messager.h"
@@ -55,8 +55,15 @@ class StlCallable : public Callable
     };
 
     std::packaged_task<R()> task;
-    void run() { task(); }
-    void done() { delete this; }
+    void run()
+    {
+        task();
+    }
+    void done()
+    {
+        //BE CAREFUL
+        delete this;
+    }
 
 public:
     StlCallable(R(*fn)(ARGS...), ARGS... args)
@@ -129,4 +136,4 @@ void getFtr_CheckExcpt(bool &allOk, std::vector<Future<T>*> &ftrs)
 
 }//namespace concurrent
 
-#endif // CALLABLE_H
+#endif // STLCALLABLE_H

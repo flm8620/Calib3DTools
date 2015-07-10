@@ -16,8 +16,8 @@ signals:
 public slots:
     void addPoint();
     void removePoint();
-    void moveUp();
-    void moveDown();
+    void movePointUp();
+    void movePointDown();
     void saveFile();
     void loadFile();
     void clear();

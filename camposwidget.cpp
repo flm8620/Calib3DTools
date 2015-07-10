@@ -14,6 +14,8 @@ CamPosWidget::CamPosWidget(QWidget *parent) : QWidget(parent)
     bLay->addWidget(saveButton);
     bLay->addWidget(clearButton);
     this->tableView = new QTableView;
+    this->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    this->tableView->setSelectionMode(QAbstractItemView::SingleSelection);
 
     layout->addLayout(bLay);
     layout->addWidget(this->tableView);
@@ -26,13 +28,20 @@ CamPosWidget::CamPosWidget(QWidget *parent) : QWidget(parent)
     connect(loadButton, SIGNAL(clicked(bool)), this, SLOT(loadFile()));
     connect(saveButton, SIGNAL(clicked(bool)), this, SLOT(saveFile()));
     connect(clearButton, SIGNAL(clicked(bool)), this, SLOT(clear()));
-    this->tableView->setItemDelegate(new ScienceDoubleDelegate);
+    ScienceDoubleDelegate *delegate=new ScienceDoubleDelegate(this);
+    delegate->setPrecision(6);
+    this->tableView->setItemDelegate(delegate);
 }
 
 void CamPosWidget::setModel(CamPosModel *model)
 {
     this->tableView->setModel(model);
     this->model = model;
+}
+
+CamPosModel *CamPosWidget::getModel()
+{
+    return this->model;
 }
 
 QTableView *CamPosWidget::getView()
@@ -42,20 +51,28 @@ QTableView *CamPosWidget::getView()
 
 void CamPosWidget::saveFile()
 {
-    QFileDialog dialog(this, tr("Save Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Save Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     dialog.setFileMode(QFileDialog::AnyFile);
     while (dialog.exec() == QDialog::Accepted)
         if (saveCamPos(dialog.selectedFiles())) break;
+    if(!dialog.selectedFiles().isEmpty()){
+        settings.setValue("default_dir",dialog.selectedFiles().first());
+    }
 }
 
 void CamPosWidget::loadFile()
 {
-    QFileDialog dialog(this, tr("Load Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Load Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFile);
     while (dialog.exec() == QDialog::Accepted)
         if (loadCamPos(dialog.selectedFiles())) break;
+    if(!dialog.selectedFiles().isEmpty()){
+        settings.setValue("default_dir",dialog.selectedFiles().first());
+    }
 }
 
 void CamPosWidget::clear()
@@ -116,7 +133,6 @@ bool CamPosWidget::loadCamPos(const QStringList &list)
         for (int j = 0; j < 9; ++j) {
             double val;
             st>>val;
-            qDebug()<<val;
             R.push_back(val);
         }
         st.skipWhiteSpace();
@@ -124,7 +140,6 @@ bool CamPosWidget::loadCamPos(const QStringList &list)
         for (int j = 0; j < 3; ++j) {
             double val;
             st>>val;
-            qDebug()<<val;
             C.push_back(val);
         }
         st.skipWhiteSpace();
