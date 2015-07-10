@@ -14,38 +14,39 @@ MainWindow::MainWindow(QWidget *parent) :
     setupKMatrixWidget();
     setupDistortionWidgets();
 
-    //console
+    // console
     this->consoleWidget = new ConsoleWidget;
     connect(this, SIGNAL(messageSignal(QString, libMsg::MessageType)), consoleWidget->getConsole(),
             SLOT(messageReceiver(QString, libMsg::MessageType)));
-    connect(this->consoleWidget->getAbortButton(),SIGNAL(clicked(bool)),this,SLOT(onAbortAsked()));
+    connect(this->consoleWidget->getAbortButton(), SIGNAL(clicked(bool)), this,
+            SLOT(onAbortAsked()));
 
-    //solver
+    // solver
     this->solver = new Solver(this);
     this->solver->registerModels(photoModel->core(), photoCircleModel->core(),
                                  photoHarpModel->core(), this->imagePoint2DCore,
                                  undistortedCircleModel->core(), undistortedHarpModel->core(),
                                  harpFeedbackModel->core(),
                                  circleFeedbackModel->core(), distModel->core(),
-                                 kModel->core(), point3DModel->core(),camPosModel->core(), this);
+                                 kModel->core(), point3DModel->core(),
+                                 camPosModel->core(), camCompareModel->core(), this);
 
-
-    //two viewer
-    this->markerViewer=new MarkerImageView(this);
+    // two viewer
+    this->markerViewer = new MarkerImageView(this);
     this->imageViewer = new ImageViewer(this);
-    QTabWidget *centerTab=new QTabWidget;
-    centerTab->addTab(this->imageViewer,"ImageViewer");
-    centerTab->addTab(this->markerViewer,"Point2DViewer");
+    QTabWidget *centerTab = new QTabWidget;
+    centerTab->addTab(this->imageViewer, "ImageViewer");
+    centerTab->addTab(this->markerViewer, "Point2DViewer");
 
-    //tabWidget
+    // tabWidget
     this->tabWidget = new TabWidget;
     this->tabWidget->connectToSolver(this->solver);
     this->tabWidget->registerModel(photoHarpModel, harpFeedbackModel, photoCircleModel,
-                             undistortedCircleModel, circleFeedbackModel, photoModel,
-                             undistortedPhotoModel, point2DModel, point3DModel,camPosModel);
+                                   undistortedCircleModel, circleFeedbackModel, photoModel,
+                                   undistortedPhotoModel, point2DModel, point3DModel, camPosModel,
+                                   camCompareModel);
     this->tabWidget->connectToImageViewer(this->imageViewer);
     this->tabWidget->connectToMarkerViewer(this->markerViewer);
-
 
     // layout
 
@@ -93,8 +94,7 @@ void MainWindow::setupPhotoModels()
     undistortedCircleModel = new ImageListModel(this);
     undistortedHarpModel = new ImageListModel(this);
 
-
-    this->imagePoint2DCore=new ImageListWithPoint2D(this);
+    this->imagePoint2DCore = new ImageListWithPoint2D(this);
     undistortedPhotoModel->setCoreData(this->imagePoint2DCore);
 }
 
@@ -107,13 +107,14 @@ void MainWindow::setupPointModels()
 
 void MainWindow::setupCamPosModel()
 {
-    this->camPosModel=new CamPosModel(this);
+    this->camPosModel = new CamPosModel(this);
+    this->camCompareModel = new CamPosModel(this);
 }
 
 void MainWindow::setupKMatrixWidget()
 {
     this->kModel = new KMatrixModel(this);
-    this->kWidget=new KMatrixWidget(this);
+    this->kWidget = new KMatrixWidget(this);
     this->kWidget->setModel(this->kModel);
 }
 
@@ -123,4 +124,3 @@ void MainWindow::setupDistortionWidgets()
     distWidget = new DistortionWidget(this);
     distWidget->setModel(distModel);
 }
-

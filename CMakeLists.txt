@@ -21,8 +21,8 @@ add_subdirectory(QImageConvert)
 add_subdirectory(ClickImage)
 add_subdirectory(distortion)
 add_subdirectory(KMatrixModule)
-
 add_subdirectory(OpenMVG_simple)
+add_subdirectory(CamCompare)
 
 include_directories(QImageConvert)
 include_directories(libMessager)
@@ -31,6 +31,7 @@ include_directories(distortion)
 include_directories(KMatrixModule)
 include_directories(ClickImage)
 include_directories(OpenMVG_simple)
+include_directories(CamCompare)
 
 
 
@@ -47,6 +48,7 @@ QImageConvert
 DistortionPoly
 KMatrixModule
 strecha
+CamCompare
 
 Qt5::Widgets
 Qt5::Concurrent
