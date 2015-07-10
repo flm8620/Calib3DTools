@@ -11,6 +11,7 @@
 #include "distCorrection.h"
 #include "kmatrixsolve.h"
 #include "strecha.h"
+#include "camcompare.h"
 using namespace libMsg;
 Solver::Solver(QObject *parent) : QObject(parent)
 {
@@ -235,7 +236,7 @@ void Solver::registerModels(ImageList *photoList, ImageList *circleList, ImageLi
                             ImageList *undistortedCircleList, ImageList *undistortedHarpList,
                             ImageList *harpFeedbackList, ImageList *circleFeedbackList,
                             Distortion *distortion, KMatrix *kMatrix, Point3D *point3D,
-                            CameraPos *camPos, libMsg::Messager *messager)
+                            CameraPos *camPos,CameraPos *camCompare, libMsg::Messager *messager)
 {
     this->photoList = photoList;
     this->circleList = circleList;
@@ -249,6 +250,7 @@ void Solver::registerModels(ImageList *photoList, ImageList *circleList, ImageLi
     this->distortion = distortion;
     this->point3D = point3D;
     this->camPos = camPos;
+    this->camCompare=camCompare;
     this->messager = messager;
 }
 
@@ -326,6 +328,38 @@ bool Solver::solveCamPos()
     return true;
 }
 
+bool Solver::compareCam()
+{
+    CameraPosValue value1=this->camPos->getValue();
+    CameraPosValue value2=this->camCompare->getValue();
+    if(value1.data.isEmpty()){
+        this->message("No Camera data in CamPos Tab",M_WARN);
+        return false;
+    }
+
+    if(value2.data.isEmpty()){
+        this->message("No Camera data in CamCompare Tab",M_WARN);
+        return false;
+    }
+    if(value1.data.size()!=value2.data.size()){
+        this->message("Camera Number isn't the same.",M_WARN);
+        return false;
+    }
+    int size=value1.data.size();
+    CamSet camset1,camset2;
+    for(int i=0;i<size;++i){
+        camset1.push_back(std::make_pair(value1.data[i].first,value1.data[i].second));
+        camset2.push_back(std::make_pair(value2.data[i].first,value2.data[i].second));
+    }
+    if(!CamSolver::camCompare(camset1,camset2)){
+        this->message("Camera Compare failed.",M_WARN);
+        return false;
+    }else{
+        this->message("Camera Compare finished.",M_WARN);
+        return true;
+    }
+}
+
 bool Solver::runInThread(bool (Solver::*fun)())
 {
     bool ok;
@@ -369,6 +403,11 @@ bool Solver::onCorrectCircle()
 bool Solver::onSolveStrecha()
 {
     QtConcurrent::run(this, &Solver::runInThread, &Solver::solveCamPos);
+}
+
+bool Solver::onCompareCam()
+{
+    QtConcurrent::run(this, &Solver::runInThread, &Solver::compareCam);
 }
 
 bool Solver::correctPhoto()

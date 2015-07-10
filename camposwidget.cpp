@@ -39,6 +39,11 @@ void CamPosWidget::setModel(CamPosModel *model)
     this->model = model;
 }
 
+CamPosModel *CamPosWidget::getModel()
+{
+    return this->model;
+}
+
 QTableView *CamPosWidget::getView()
 {
     return this->tableView;

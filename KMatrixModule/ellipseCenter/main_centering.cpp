@@ -384,8 +384,8 @@ bool circleRedefineSegment(const ImageGray<double> *img, ImageRGB<BYTE> *feedbac
                 feedback->pixel_R(x0+wi-1, k+y0) = 0;
         }
         // feed back]
-        if (!centerLMA<double>(sub_img, clr, cx, cy, P)) return false;
-        //if (!centerSimple<double>(sub_img, clr, cx, cy, P)) return false;
+        //if (!centerLMA<double>(sub_img, clr, cx, cy, P)) return false;
+        if (!centerSimple<double>(sub_img, clr, cx, cy, P)) return false;
         libMsg::abortIfAsked();
 
         (*x)[i] = scale*(x0 + cx);

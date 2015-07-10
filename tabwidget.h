@@ -96,6 +96,23 @@ private:
     QPushButton *solveStrecha;
 };
 
+class CamCompareTab : public QWidget
+{
+    Q_OBJECT
+public:
+    CamCompareTab(QWidget *parent = 0);
+    void connectToSolver(Solver *solver);
+    void registerModel(CamPosModel *camPosModel);
+private slots:
+    void loadJson();
+private:
+    bool loadCamPos(const QStringList &list);
+    CamPosWidget *camPosWidget;
+    QPushButton *loadFromOpenMVGjson;
+    QPushButton *compareButton;
+};
+
+
 class TabWidget : public QTabWidget
 {
     Q_OBJECT
@@ -106,7 +123,7 @@ public:
                        ImageListModel *circlePhotoModel, ImageListModel *circleCorrectedModel,
                        ImageListModel *circleFeedbackModel, ImageListModel *photoModel,
                        ImageListModel *photoCorrectedModel, Point2DModel *point2DModel,
-                       Point3DModel *point3DModel, CamPosModel *camPosModel);
+                       Point3DModel *point3DModel, CamPosModel *camPosModel, CamPosModel *camCompareModel);
     void connectToImageViewer(ImageViewer *viewer);
     void connectToMarkerViewer(MarkerImageView *markerViewer);
 private:
@@ -116,6 +133,7 @@ private:
     Point2DTab *point2dTab;
     Point3DTab *point3dTab;
     CamPosTab *camPosTab;
+    CamCompareTab *camCompareTab;
 };
 
 #endif // TABWIDGET_H
