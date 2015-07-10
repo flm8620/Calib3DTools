@@ -121,8 +121,14 @@ QVariant Point2DModel::data(const QModelIndex &index, int role) const
         } else {
             int idximg = (int)index.internalId()-1;
             QPointF p = this->coreData->getPoint(idximg, index.row());
-            if (index.column() == 1) return p.x();
-            if (index.column() == 2) return p.y();
+            switch (index.column()) {
+            case 0:
+                return QString("Point %1").arg(index.row()+1);
+            case 1:
+                return p.x();
+            case 2:
+                return p.y();
+            }
         }
     }
     return QVariant();
@@ -194,12 +200,10 @@ QModelIndex Point2DModel::parent(const QModelIndex &child) const
 Qt::ItemFlags Point2DModel::flags(const QModelIndex &index) const
 {
     if (index.isValid()) {
-        if (this->indexMeansPoint(index)) {
+        if (this->indexMeansPoint(index))
             if (index.column() >= 1 && index.column() <= 2)
                 return Qt::ItemIsSelectable|Qt::ItemIsEnabled|Qt::ItemIsEditable;
-        } else {
-            return Qt::ItemIsSelectable|Qt::ItemIsEnabled;
-        }
+        return Qt::ItemIsSelectable|Qt::ItemIsEnabled;
     }
     return 0;
 }

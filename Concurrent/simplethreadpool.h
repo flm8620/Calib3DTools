@@ -12,7 +12,6 @@ namespace concurrent {
 
 class SimpleThreadPool : public AbstractThreadPool
 {
-
 public:
     static SimpleThreadPool DEFAULT;
     SimpleThreadPool(int threads = 5);

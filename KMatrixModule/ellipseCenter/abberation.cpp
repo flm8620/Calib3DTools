@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "messager.h"
-int white_neighbors(const Pixel &p,const ImageGray<BYTE> &img)
+int white_neighbors(const Pixel &p, const ImageGray<BYTE> &img)
 {
     int nn = 0;
     Pixel p1(p.x-1, p.y);
@@ -42,7 +42,7 @@ int white_neighbors(const Pixel &p,const ImageGray<BYTE> &img)
     return nn;
 }
 
-void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats,const ImageGray<BYTE> &img)
+void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<BYTE> &img)
 {
     stats.nPoints = cc.size();
     stats.perimeter = 0;
@@ -91,9 +91,10 @@ int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img)
     return cc.size();
 }
 
-void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE> &imgFeedback)
+bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BYTE> &imgFeedback)
 {
     ImageGray<BYTE> img_copy(imgbi);
+    std::vector<Pixel> firstPixels;
     double meansize = 0;
     for (int i = 0; i < imgbi.xsize(); i++) {
         for (int j = 0; j < imgbi.ysize(); j++) {
@@ -107,31 +108,34 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE
                 if (std::min(stats.radius1,
                              stats.radius2) > 8 && compactness < 1.5 && compactness > 0.7) {
                     ccstats.push_back(stats);
+                    firstPixels.push_back(Pixel(i, j));
                     meansize += stats.nPoints;
-                    //draw Feedback
-                    for(int k=0;k<ccC.size();++k){
-                        Pixel p=ccC[k];
-                        imgFeedback.pixel_R(p.x,p.y)=0;
-                        imgFeedback.pixel_G(p.x,p.y)=0;
-                        imgFeedback.pixel_B(p.x,p.y)=0;
+                    // draw Feedback
+                    for (int k = 0; k < ccC.size(); ++k) {
+                        Pixel p = ccC[k];
+                        // black means detected
+                        imgFeedback.pixel_R(p.x, p.y) = 0;
+                        imgFeedback.pixel_G(p.x, p.y) = 0;
+                        imgFeedback.pixel_B(p.x, p.y) = 0;
+                    }
+                } else {
+                    // draw Feedback
+                    for (int k = 0; k < ccC.size(); ++k) {
+                        Pixel p = ccC[k];
+                        // red means it's not a circle
+                        imgFeedback.pixel_R(p.x, p.y) = 150;
+                        imgFeedback.pixel_G(p.x, p.y) = 0;
+                        imgFeedback.pixel_B(p.x, p.y) = 0;
                     }
                 }
-                else{
-                    //draw Feedback
-                    for(int k=0;k<ccC.size();++k){
-                        Pixel p=ccC[k];
-                        imgFeedback.pixel_R(p.x,p.y)=100;
-                        imgFeedback.pixel_G(p.x,p.y)=0;
-                        imgFeedback.pixel_B(p.x,p.y)=0;
-                    }
-                }
-            }else{
-                //draw Feedback
-                for(int k=0;k<ccC.size();++k){
-                    Pixel p=ccC[k];
-                    imgFeedback.pixel_R(p.x,p.y)=0;
-                    imgFeedback.pixel_G(p.x,p.y)=100;
-                    imgFeedback.pixel_B(p.x,p.y)=0;
+            } else {
+                // draw Feedback
+                for (int k = 0; k < ccC.size(); ++k) {
+                    Pixel p = ccC[k];
+                    // green means it's too small
+                    imgFeedback.pixel_R(p.x, p.y) = 0;
+                    imgFeedback.pixel_G(p.x, p.y) = 150;
+                    imgFeedback.pixel_B(p.x, p.y) = 0;
                 }
             }
         }
@@ -142,7 +146,11 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE
             libMsg::cout<<'.'<<libMsg::flush;
     }
     libMsg::cout<<libMsg::endl;
-    libMsg::cout<<"Region found before filter: [ "<<ccstats.size()<<" ]"<<libMsg::endl;
+
+    if (ccstats.size() == 0) {
+        libMsg::cout<<"Nothing interesting found in this image. Please check.";
+        return false;
+    }
     // retrieve min_size and max_size to build a size histogram
     int max_val = 0;
     int rad_thre = 7;
@@ -164,6 +172,7 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE
     int commonsize = meansize;
     libMsg::cout<<"Average area of region: "<<meansize<<" pixels"<<libMsg::endl;
     libMsg::cout<<"Max area of region: "<<max_val<<" pixels"<<libMsg::endl;
+    libMsg::cout<<"Region found before filter: [ "<<ccstats.size()<<" ]"<<libMsg::endl;
     /*
      *  frequency
      *   ^
@@ -221,10 +230,13 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE
         count--;
     }
 
-
+    std::vector<CCStats> erasedCCStats;
+    std::vector<int> outliersIdx;
     int idx = 0;
     while (idx < ccstats.size()) {
         if (inliers[idx] == 0) {
+            erasedCCStats.push_back(ccstats[idx]);
+            outliersIdx.push_back(idx);
             ccstats.erase(ccstats.begin() + idx);
             inliers.erase(inliers.begin() + idx);
         } else {
@@ -232,4 +244,26 @@ void CC(std::vector<CCStats> &ccstats,const ImageGray<BYTE> &imgbi,ImageRGB<BYTE
         }
     }
     libMsg::cout<<"Region found after filter: [ "<<ccstats.size()<<" ]"<<libMsg::endl;
+    if (erasedCCStats.size() > 0) {
+        libMsg::cout<<"Erased circles:"<<libMsg::endl;
+        ImageGray<BYTE> img_copy2(imgbi);
+        for (int i = 0; i < erasedCCStats.size(); ++i) {
+            CCStats &stats = erasedCCStats[i];
+            libMsg::cout<<"circle "<<i<<libMsg::endl;
+            libMsg::cout<<"\tarea: "<<stats.nPoints<<libMsg::endl;
+            libMsg::cout<<"\tcenter: "<<stats.centerX<<", "<<stats.centerY<<libMsg::endl;
+            int index = outliersIdx[i];
+            Pixel first = firstPixels[index];
+            std::vector<Pixel> ccC;
+            extract_cc_(first, ccC, img_copy2);
+            for (int k = 0; k < ccC.size(); ++k) {
+                Pixel p = ccC[k];
+                // blue means filtered
+                imgFeedback.pixel_R(p.x, p.y) = 0;
+                imgFeedback.pixel_G(p.x, p.y) = 0;
+                imgFeedback.pixel_B(p.x, p.y) = 150;
+            }
+        }
+    }
+    return true;
 }

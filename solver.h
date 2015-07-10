@@ -20,7 +20,7 @@ public:
                         ImageListWithPoint2D *undistortedPhotoPoint2DList, ImageList *undistortedCircleList,
                         ImageList *undistortedHarpList, ImageList *harpFeedbackList,
                         ImageList *circleFeedbackList, Distortion *distortion,
-                        KMatrix *kMatrix, Point3D *point3D,CameraPos *camPos,
+                        KMatrix *kMatrix, Point3D *point3D, CameraPos *camPos, CameraPos *camCompare,
                         libMsg::Messager *messager = 0);
 
 public slots:
@@ -29,14 +29,16 @@ public slots:
     bool onCorrectPhoto();
     bool onCorrectCircle();
     bool onSolveStrecha();
-
+    bool onCompareCam();
 private:
     bool calculateDistortion();
     bool calculateK();
     bool correctPhoto();
     bool correctCircle();
     bool solveCamPos();
+    bool compareCam();
 
+    bool runInThread(bool(Solver::*fun)());
     bool calculateDistortionThread();
     bool calculateKThread();
     bool correctPhotoThread();
@@ -56,6 +58,7 @@ private:
     KMatrix *kMatrix;
     Point3D *point3D;
     CameraPos *camPos;
+    CameraPos *camCompare;
     libMsg::Messager *messager;
 
     QMutex processLock;

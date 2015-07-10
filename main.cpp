@@ -12,13 +12,12 @@ Q_DECLARE_METATYPE(libMsg::MessageType)
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-//    qRegisterMetaType<QVector<int>>(); // The QT complained the type not registered when the KmatrixModel emits the dataChanged signal.
-//    qRegisterMetaType<KMatrix>("KMatrix");
-//    qRegisterMetaType<Distortion>("Distortion");
-//    qRegisterMetaType<ImageList >("ImageList");
-//    qRegisterMetaType<Target2D>();
-//    qRegisterMetaType<Target3D>("Target3D");
 
+    QCoreApplication::setOrganizationName("IMAGINE");
+    QCoreApplication::setOrganizationDomain("imagine.com");
+    QCoreApplication::setApplicationName("IMAGINE Stereovision Tool");
+
+    QSettings qsettings;
     qRegisterMetaType<libMsg::MessageType>();
 
     MainWindow w;

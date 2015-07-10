@@ -11,7 +11,8 @@ KMatrixWidget::KMatrixWidget(QWidget *parent) : QWidget(parent)
     bLay->addWidget(saveButton);
     bLay->addWidget(clearButton);
     this->view = new QTableView;
-    this->view->setItemDelegate(new ScienceDoubleDelegate);
+    this->view->setItemDelegate(new ScienceDoubleDelegate(this));
+    this->view->horizontalHeader()->setStretchLastSection(true);
     layout->addLayout(bLay);
     layout->addWidget(this->view);
 
@@ -38,20 +39,26 @@ QTableView *KMatrixWidget::getView()
 
 void KMatrixWidget::saveFile()
 {
-    QFileDialog dialog(this, tr("Save Matrix K"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Save Matrix K"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     dialog.setFileMode(QFileDialog::AnyFile);
     while (dialog.exec() == QDialog::Accepted)
         if (saveKMatrix(dialog.selectedFiles())) break;
+    if (!dialog.selectedFiles().isEmpty())
+        settings.setValue("default_dir", dialog.selectedFiles().first());
 }
 
 void KMatrixWidget::loadFile()
 {
-    QFileDialog dialog(this, tr("Load Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Load Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFile);
     while (dialog.exec() == QDialog::Accepted)
         if (loadKMatrix(dialog.selectedFiles())) break;
+    if (!dialog.selectedFiles().isEmpty())
+        settings.setValue("default_dir", dialog.selectedFiles().first());
 }
 
 void KMatrixWidget::clear()
@@ -69,7 +76,6 @@ bool KMatrixWidget::saveKMatrix(const QStringList &list)
     QTextStream st(&file);
     KValue value = this->model->core()->getValue();
 
-
     // writing:
     st.setRealNumberPrecision(16);
     st<<"fx: \n";
@@ -82,7 +88,6 @@ bool KMatrixWidget::saveKMatrix(const QStringList &list)
     st<<value.y0<<'\n';
     st<<"s: \n";
     st<<value.s<<'\n';
-
 
     if (file.commit()) return true;
     else return false;
@@ -102,16 +107,16 @@ bool KMatrixWidget::loadKMatrix(const QStringList &list)
     st.setRealNumberPrecision(16);
     st.readLine();// "fx: \n"
     st>>value.fx;
-    st.readLine();//n"
+    st.readLine();// n"
     st.readLine();// "fy: \n"
     st>>value.fy;
-    st.readLine();//n"
+    st.readLine();// n"
     st.readLine();// "x0: \n"
     st>>value.x0;
-    st.readLine();//n"
+    st.readLine();// n"
     st.readLine();// "y0: \n"
     st>>value.y0;
-    st.readLine();//n"
+    st.readLine();// n"
     st.readLine();// "s: \n"
     st>>value.s;
 

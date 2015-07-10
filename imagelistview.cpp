@@ -9,18 +9,21 @@
 ImageListView::ImageListView(QWidget *parent) :
     QListView(parent)
 {
-    connect(this, SIGNAL(clicked(QModelIndex)), this, SLOT(imageClicked(QModelIndex)));
 }
 
 void ImageListView::setModel(ImageListModel *model)
 {
     this->imageModel = model;
     QListView::setModel(model);
+    connect(this->selectionModel(), SIGNAL(selectionChanged(QItemSelection, QItemSelection)), this,
+            SLOT(onSelectionChanged(QItemSelection)));
+    connect(this, SIGNAL(clicked(QModelIndex)), this, SLOT(onCurrentChanged(QModelIndex)));
 }
 
 void ImageListView::onOpenImage()
 {
-    QFileDialog dialog(this, tr("Open Image"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Open Image"), settings.value("default_dir").toString());
     // QStringList formatList;
     QStringList filters;
     filters << "Image files (*.png *.bmp *.jpg *.jpeg)"
@@ -32,15 +35,20 @@ void ImageListView::onOpenImage()
     dialog.setFileMode(QFileDialog::ExistingFiles);
     while (dialog.exec() == QDialog::Accepted)
         if (openImage(dialog.selectedFiles())) break;
+    if (!dialog.selectedFiles().isEmpty())
+        settings.setValue("default_dir", dialog.selectedFiles().first());
 }
 
 void ImageListView::onSaveImage()
 {
-    QFileDialog dialog(this, tr("Save Image"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Save Image"), settings.value("default_dir").toString());
     dialog.setFileMode(QFileDialog::Directory);
     dialog.setOption(QFileDialog::ShowDirsOnly, true);
     while (dialog.exec() == QDialog::Accepted)
         if (saveImage(dialog.selectedFiles())) break;
+    if (!dialog.selectedFiles().isEmpty())
+        settings.setValue("default_dir", dialog.selectedFiles().first());
 }
 
 bool ImageListView::openImage(const QStringList &list)
@@ -74,9 +82,8 @@ bool ImageListView::saveImage(const QStringList &list)
         QString name = imageList[i].first;
         QString filepath = QDir(path).filePath(name);
         QString suffix = QFileInfo(filepath).suffix().toLower();
-        if (suffix != tr("jpg") && suffix != tr("jpeg") && suffix != tr("bmp")) {
+        if (suffix != tr("jpg") && suffix != tr("jpeg") && suffix != tr("bmp"))
             name = name+tr(".bmp");
-        }
         QImageWriter writer(QDir(path).filePath(name));
         if (!writer.write(imageList[i].second)) {
             libMsg::cout<<"failed to save image: "<<QDir(path).filePath(name).toStdString()
@@ -89,35 +96,35 @@ bool ImageListView::saveImage(const QStringList &list)
 
 void ImageListView::deleteImage()
 {
-    QModelIndexList idList = selectionModel()->selectedRows();
-    if (idList.isEmpty()) return;
-    int row = idList.first().row();
-    this->imageModel->deleteImage(row);
-    this->selectionModel()->select(idList.first(),QItemSelectionModel::ClearAndSelect);
+    QModelIndex index = this->getFirstSelectedItem();
+    this->imageModel->deleteImage(index.row());
+    this->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect);
 }
 
 void ImageListView::moveUp()
 {
-    QModelIndexList idList = selectionModel()->selectedRows();
-    if (idList.isEmpty()) return;
-    int row = idList.first().row();
-    QAbstractItemModel *m = model();
-    if (row <= 0 || row >= m->rowCount()) return;
-    this->imageModel->moveUp(row);
-    QModelIndex id = m->index(row-1, 0);
-    selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    QModelIndex index = this->getFirstSelectedItem();
+    this->imageModel->moveUp(index);
+    if (index.row() > 0) {
+        QModelIndex id = this->imageModel->index(index.row()-1, index.column(), index.parent());
+        this->selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    } else {
+        QModelIndex id = this->imageModel->index(index.row(), index.column(), index.parent());
+        this->selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    }
 }
 
 void ImageListView::moveDown()
 {
-    QModelIndexList idList = selectionModel()->selectedRows();
-    if (idList.isEmpty()) return;
-    int row = idList.first().row();
-    QAbstractItemModel *m = model();
-    if (row < 0 || row >= m->rowCount()-1) return;
-    this->imageModel->moveDown(row);
-    QModelIndex id = m->index(row+1, 0);
-    selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    QModelIndex index = this->getFirstSelectedItem();
+    this->imageModel->moveUp(index);
+    if (index.row() > 0) {
+        QModelIndex id = this->imageModel->index(index.row()+1, index.column(), index.parent());
+        this->selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    } else {
+        QModelIndex id = this->imageModel->index(index.row(), index.column(), index.parent());
+        this->selectionModel()->select(id, QItemSelectionModel::ClearAndSelect);
+    }
 }
 
 void ImageListView::clear()
@@ -125,9 +132,24 @@ void ImageListView::clear()
     this->imageModel->clear();
 }
 
-void ImageListView::imageClicked(QModelIndex index)
+void ImageListView::onSelectionChanged(const QItemSelection &selected)
+{
+    if (selected.isEmpty()) return;
+    QModelIndex current = selected.first().indexes().first();
+    this->onCurrentChanged(current);
+}
+
+void ImageListView::onCurrentChanged(QModelIndex index)
 {
     int row = index.row();
     QImage image = this->imageModel->core()->getImage(row);
     emit imageToDisplay(image);
+}
+
+QModelIndex ImageListView::getFirstSelectedItem()
+{
+    QItemSelection s = this->selectionModel()->selection();
+    if (!s.isEmpty())
+        return s.first().indexes().first();
+    return QModelIndex();
 }

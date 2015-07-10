@@ -3,15 +3,17 @@
 #include <QGraphicsObject>
 class Marker: public QGraphicsObject
 {
+    Q_OBJECT
 public:
-    Marker(int id);
+    Marker(int row);
     QRectF boundingRect() const Q_DECL_OVERRIDE;
     QPainterPath shape() const Q_DECL_OVERRIDE;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget*) Q_DECL_OVERRIDE;
 private:
-    int id;
+    QColor idToColor(int id);
     double radius;
     double innerRadius;
+    QColor color;
 };
 
 #endif // MARKER_H

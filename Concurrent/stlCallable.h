@@ -55,8 +55,15 @@ class StlCallable : public Callable
     };
 
     std::packaged_task<R()> task;
-    void run() { task(); }
-    void done() { delete this; }
+    void run()
+    {
+        task();
+    }
+    void done()
+    {
+        //BE CAREFUL
+        delete this;
+    }
 
 public:
     StlCallable(R(*fn)(ARGS...), ARGS... args)

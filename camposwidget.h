@@ -10,6 +10,7 @@ class CamPosWidget : public QWidget
 public:
     explicit CamPosWidget(QWidget *parent = 0);
     void setModel(CamPosModel *model);
+    CamPosModel *getModel();
     QTableView *getView();
 public slots:
     void saveFile();

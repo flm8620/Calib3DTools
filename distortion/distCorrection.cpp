@@ -29,7 +29,7 @@
 #include "correction.h"
 #include "spline.h"
 // libDistortion
-#include "distortion.h"
+#include "distortionline.h"
 // libLineDetection
 #include "gaussian_convol_on_curve.h"
 #include "straight_edge_points.h"
@@ -172,7 +172,7 @@ static bool correct_image(ImageGray<double> &in, ImageGray<double> &out, int spl
 
     atomic_int progress;
 
-    libMsg::cout<<"Prepare Spline RGB"<<libMsg::endl;
+    libMsg::cout<<"Prepare Spline Gray"<<libMsg::endl;
     prepare_spline(in, spline_order);
     // divide image into 100row segments, and correct concurrentlly.
     int row = 0;
@@ -359,7 +359,7 @@ bool DistortionModule::distortionCorrect(ImageGray<double> &in, ImageGray<double
 }
 
 template<typename T>
-static void read_images(DistortedLines<T> &distLines,
+static bool read_images(DistortedLines<T> &distLines,
                         const std::vector<ImageGray<BYTE> > &imageList, int length_thresh,
                         int down_factor)
 {
@@ -387,7 +387,7 @@ static void read_images(DistortedLines<T> &distLines,
         threshed_nb_lines = 0;
 
         /* open image, compute edge points, close it */
-        libMsg::cout<<"start convert "<<i<<"..."<<libMsg::endl;
+        libMsg::cout<<"start convert image "<<i+1<<"..."<<libMsg::endl;
         imageDoubleFromImageBYTE(imageList[i], image);
         p = straight_edge_points(image, sigma, th_low, th_hi, min_length);
         w = image.xsize();
@@ -420,7 +420,10 @@ static void read_images(DistortedLines<T> &distLines,
         free_ntuple_ll(p);
         libMsg::abortIfAsked();
     }
-    // distLines.pushMemGroup((int)point_set->size);
+    if(distLines.nLines<=0){
+        libMsg::cout<<"Nothing detected in any image. Please check"<<libMsg::endl;
+        return false;
+    }
     int countL = 0;
     for (unsigned int i = 0; i < point_set->size; i++) {
         /* Gaussian convolution and sub-sampling */
@@ -440,6 +443,7 @@ static void read_images(DistortedLines<T> &distLines,
     /* free memory */
     free_ntuple_ll(point_set);
     free_ntuple_list(convolved_pts);
+    return true;
 }
 
 template<typename T>
@@ -453,7 +457,9 @@ static libNumerics::vector<T> incLMA(DistortedLines<T> &distLines, const int ord
     paramsY[sizexy-2] = 1;
     T rmse = distLines.RMSE(paramsX, paramsY, order, order, xp, xp);
     T rmse_max = distLines.RMSE_max(paramsX, paramsY, order, order, xp, yp);
-    libMsg::cout<<"initial RMSE / maximum RMSE: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
+    libMsg::cout<<"Point to straight line distance: RMSE / max error distance"<<libMsg::endl;
+    libMsg::cout<<"Original photo:"<<libMsg::endl;
+    libMsg::cout<<"initial RMSE / maximum: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
     const int beginOrder = 3;
     vector<T> midParams(1);
     for (int i = beginOrder; i <= order; i = i+inc_order) {
@@ -481,7 +487,8 @@ static libNumerics::vector<T> incLMA(DistortedLines<T> &distLines, const int ord
         rmse_max
             = distLines.RMSE_max(midParams.copyRef(0, sizebc-1),
                                  midParams.copyRef(sizebc, sizebc+sizebc-1), i, i, xp, yp);
-        libMsg::cout<<"initial RMSE / maximum RMSE: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
+        libMsg::cout<<"When order = "<<i<<" :"<<libMsg::endl;
+        libMsg::cout<<"RMSE / maximum: "<<rmse<<" / "<<rmse_max<<" \n"<<libMsg::endl;
     }
     libMsg::cout<<"\n Iterative linear minimization step: \n"<<libMsg::endl;
     T diff = 100;
@@ -545,7 +552,8 @@ bool DistortionModule::polyEstime(const std::vector<ImageGray<BYTE> > &list,
     }
     int min_length = std::min(w, h)*0.3;
     DistortedLines<double> distLines;
-    read_images<double>(distLines, list, min_length, 60);
+    if(!read_images<double>(distLines, list, min_length, 60))
+        return false;
 
     // store lines detected in detectedLines
     int count = 0;
@@ -568,13 +576,15 @@ bool DistortionModule::polyEstime(const std::vector<ImageGray<BYTE> > &list,
 
     double xp = (double)w/2+0.2, yp = (double)h/2+0.2; /* +0.2 - to avoid integers */
     const int inc = 2; /* increment; only odd orders will be taken */
+    libMsg::cout<<"Calculate Polynomial"<<libMsg::endl;
     vector<double> poly_params = incLMA <double>(distLines, order, inc, xp, yp);
-    libMsg::cout<<"incLMA"<<libMsg::endl;
+
     /* Get an inverse polynomial */
+    libMsg::cout<<"Inverse Polynomial ..."<<libMsg::endl;
     vector<double> poly_params_inv = polyInv<double>(poly_params, order, order, w, h, xp, yp);
     polynome.clear();
     for (int i = 0; i < poly_params_inv.size(); ++i)
         polynome.push_back(poly_params_inv[i]);
-    libMsg::cout<<"polyInv"<<libMsg::endl;
+
     return true;
 }

@@ -1,6 +1,6 @@
 #include "imageviewer.h"
 #include <QWheelEvent>
-#include <QDebug>
+#include <cmath>
 ImageViewer::ImageViewer(const QImage &image, QWidget *parent) :
     QGraphicsView(parent)
 {
@@ -26,25 +26,42 @@ void ImageViewer::setImage(QImage image)
     QPixmap pix = QPixmap::fromImage(myImage);
     scene->clear();
     scene->addPixmap(pix);
+    scene->setSceneRect(scene->itemsBoundingRect());
 }
 
 void ImageViewer::wheelEvent(QWheelEvent *event)
 {
-    int a = event->angleDelta().y();
-    if (a > 0)
-        zoomIn();
-    else if (a < 0)
-        zoomOut();
+    QPoint numPixels = event->pixelDelta();
+    QPoint numDegrees = event->angleDelta() / 8;
+    if (!numPixels.isNull()) {
+        scrollWithPixels(numPixels);
+    } else if (!numDegrees.isNull()) {
+        QPoint numSteps = numDegrees / 15;
+        scrollWithDegrees(numSteps);
+    }
+    event->accept();
 }
 
-void ImageViewer::zoomIn()
+void ImageViewer::scrollWithPixels(const QPoint &pixel)
 {
-    if (this->transform().m11() < 100 && this->transform().m22() < 100)
-        scale(1.25, 1.25);
+    int s = pixel.y();
+    double z = std::pow(1.01, s);
+    this->zoom(z);
 }
 
-void ImageViewer::zoomOut()
+void ImageViewer::scrollWithDegrees(const QPoint &step)
 {
-    if (this->transform().m11() > 0.01 && this->transform().m22() > 0.01)
-        scale(0.8, 0.8);
+    int s = step.y();
+    double z = std::pow(1.1, s);
+    this->zoom(z);
+}
+
+void ImageViewer::zoom(double z)
+{
+    if (z > 1)
+        if (this->transform().m11() < 100 && this->transform().m22() < 100)
+            scale(z, z);
+    if (z < 1 && z > 0)
+        if (this->transform().m11() > 0.01 && this->transform().m22() > 0.01)
+            scale(z, z);
 }

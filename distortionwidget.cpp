@@ -13,10 +13,11 @@ DistortionWidget::DistortionWidget(QWidget *parent) : QWidget(parent)
     bLay->addWidget(saveButton);
     bLay->addWidget(clearButton);
     this->tableView = new QTableView;
+    this->tableView->horizontalHeader()->setStretchLastSection(true);
     layout->addLayout(bLay);
     layout->addWidget(this->tableView);
 
-    QGroupBox *groupBox = new QGroupBox(tr("Distortion"));
+    QGroupBox *groupBox = new QGroupBox(tr("Distortion Polynomial"));
     groupBox->setLayout(layout);
     QHBoxLayout *boxLayout = new QHBoxLayout;
     boxLayout->addWidget(groupBox);
@@ -24,7 +25,7 @@ DistortionWidget::DistortionWidget(QWidget *parent) : QWidget(parent)
     connect(loadButton, SIGNAL(clicked(bool)), this, SLOT(loadFile()));
     connect(saveButton, SIGNAL(clicked(bool)), this, SLOT(saveFile()));
     connect(clearButton, SIGNAL(clicked(bool)), this, SLOT(clear()));
-    this->tableView->setItemDelegate(new ScienceDoubleDelegate);
+    this->tableView->setItemDelegate(new ScienceDoubleDelegate(this));
 }
 
 void DistortionWidget::setModel(DistortionModel *model)
@@ -40,20 +41,29 @@ QTableView *DistortionWidget::getView()
 
 void DistortionWidget::saveFile()
 {
-    QFileDialog dialog(this, tr("Save Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Save Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     dialog.setFileMode(QFileDialog::AnyFile);
     while (dialog.exec() == QDialog::Accepted)
         if (saveDistortion(dialog.selectedFiles())) break;
+    if(!dialog.selectedFiles().isEmpty()){
+        settings.setValue("default_dir",dialog.selectedFiles().first());
+    }
+
 }
 
 void DistortionWidget::loadFile()
 {
-    QFileDialog dialog(this, tr("Load Distortion"), QDir::currentPath());
+    QSettings settings;
+    QFileDialog dialog(this, tr("Load Distortion"), settings.value("default_dir").toString());
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::ExistingFile);
     while (dialog.exec() == QDialog::Accepted)
         if (loadDistortion(dialog.selectedFiles())) break;
+    if(!dialog.selectedFiles().isEmpty()){
+        settings.setValue("default_dir",dialog.selectedFiles().first());
+    }
 }
 
 void DistortionWidget::clear()

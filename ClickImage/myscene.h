@@ -25,17 +25,15 @@ private slots:
     void onPointChanged(int indexImg, int indexPoint);
     void onPointRemoved(int indexPoint);
     void onPointAppended();
-    void onPointSwaped(int indexPoint1, int indexPoint2);
+    //void onPointSwaped(int indexPoint1, int indexPoint2);
     void onImageChanged(int indexImg);
     void onImageAppended();
     void onDataReset();
 
-    void onMarkerMoved(int id);
+    void onMarkerMoved(QObject *markerFormMapper);
     void onCurrentPointChanged(int indexImg,int indexPoint);
 signals:
     void requireScrollTo(QPointF pos);
-protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent *event);
 private:
     void loadImage(const QImage &image);
     void needScrollToMarker(int id);
