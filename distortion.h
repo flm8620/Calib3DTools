@@ -55,6 +55,7 @@ struct DistortionValue
  */
 class Distortion : public QObject
 {
+
     Q_OBJECT
 public:
     Distortion(QObject *parent = 0);

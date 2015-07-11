@@ -33,12 +33,21 @@
 // libLineDetection
 #include "gaussian_convol_on_curve.h"
 #include "straight_edge_points.h"
-#include "simplethreadpool.h"
+// libConcurrent
+#include "abstractthreadpool.h"
+#include "stlCallable.h"
+//#include "simplethreadpool.h"
+//static concurrent::AbstractThreadPool& DEFAULT_THREAD_POOL = concurrent::SimpleThreadPool::DEFAULT;
+#include "qthreadpoolbridge.h"
+static concurrent::AbstractThreadPool& DEFAULT_THREAD_POOL = QThreadpoolBridge::DEFAULT;
 
 #include <atomic>
 #include <thread>
+#include <algorithm>
 #include <iostream>
 #include <ctime>
+
+
 
 /*----------------------------------------------------------------------------*/
 /* Static parameters.
@@ -152,7 +161,8 @@ static void correctSegment(const ImageGray<double> *in, ImageGray<double> *out,
 const static int TASK_BATCH_SIZE = 100;
 /* Given an image and a correction polynomial. Apply it to every pixel and save result to output folder */
 static bool correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_order,
-                          const Bi<std::vector<double> > &poly_params_inv)
+                          const Bi<std::vector<double> > &poly_params_inv,
+                          concurrent::AbstractThreadPool& thPool =DEFAULT_THREAD_POOL)
 {
     auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -169,22 +179,19 @@ static bool correct_image(ImageGray<double> &in, ImageGray<double> &out, int spl
     progress.store(0);
 
     // Lauche MultiTask{
-    std::vector<std::future<void> > ftrs;
+    std::vector<concurrent::Future<void>*> ftrs;//TODO: use move sementics in Future.
+    ftrs.clear();
     while (row + TASK_BATCH_SIZE < he) {
-        std::future<void> ftr
-            = concurrent::SimpleThreadPool::DEFAULT.start(&correctSegment,
-                                                          (const ImageGray<double> *)(
-                                                              &in), &out, &poly_params_inv, spline_order,
-                                                          row, TASK_BATCH_SIZE, &progress);
+        ftrs.push_back(concurrent::asyncInvoke(
+                            thPool, &correctSegment, (const ImageGray<double> *)(&in), &out,
+                           &poly_params_inv, spline_order, row, TASK_BATCH_SIZE, &progress));
+
         row += TASK_BATCH_SIZE;
-        ftrs.push_back(std::move(ftr));
     }
     // correct the rest segment.
-    std::future<void> ftr
-        = concurrent::SimpleThreadPool::DEFAULT.start(&correctSegment, (const ImageGray<double> *)(
-                                                          &in), &out, &poly_params_inv, spline_order, row,
-                                                      (int)(he-row), &progress);
-    ftrs.push_back(std::move(ftr));
+    ftrs.push_back(concurrent::asyncInvoke(
+                     thPool, &correctSegment, (const ImageGray<double> *)(&in), &out,
+                     &poly_params_inv, spline_order, row, (int)(he-row), &progress));
     libMsg::cout<<ftrs.size()<<" Tasks lauched"<<libMsg::endl;
     // }Lauche MultiTask
 
@@ -193,7 +200,8 @@ static bool correct_image(ImageGray<double> &in, ImageGray<double> &out, int spl
 
     // get futures and handle exceptions in multi-task
     bool allOk;
-    concurrent::getVoidFtr_CheckExcpt(allOk,ftrs);
+    concurrent::getFtr_CheckExcpt(allOk,ftrs);
+    std::for_each(ftrs.begin(), ftrs.end(), [](concurrent::Future<void>* ftr){ delete ftr; });
 
     if (allOk) {
         libMsg::cout<<" Done, "<<std::chrono::duration<double, std::milli>(
@@ -237,7 +245,8 @@ static void correctRGBSegment(const ImageRGB<double> *in, ImageRGB<double> *out,
 }
 
 static bool correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int spline_order,
-                              const Bi<std::vector<double> > &poly_params_inv)
+                              const Bi<std::vector<double> > &poly_params_inv,
+                              concurrent::AbstractThreadPool& thPool =DEFAULT_THREAD_POOL)
 {
     auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -256,24 +265,18 @@ static bool correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int s
     progress.store(0);
 
     // Lauche MultiTask{
-    std::vector<std::future<void> > ftrs;
-
+    std::vector<concurrent::Future<void>*> ftrs;//TODO: use move sementics in Future.
     while (row + TASK_BATCH_SIZE < he) {
-        auto poly = poly_params_inv;
-        std::future<void> ftr = concurrent::SimpleThreadPool::DEFAULT
-                                .start(&correctRGBSegment, (const ImageRGB<double> *)(
-                                           &in), &out,
-                                       &poly_params_inv, spline_order, row, TASK_BATCH_SIZE,
-                                       &progress);
+        ftrs.push_back(concurrent::asyncInvoke(
+                            thPool,&correctRGBSegment,(const ImageRGB<double> *)(&in), &out,
+                            &poly_params_inv, spline_order, row, TASK_BATCH_SIZE, &progress));
+
         row += TASK_BATCH_SIZE;
-        ftrs.push_back(std::move(ftr));
     }
     // correct the rest segment.
-    std::future<void> ftr = concurrent::SimpleThreadPool::DEFAULT
-                            .start(&correctRGBSegment, (const ImageRGB<double> *)(
-                                       &in), &out,
-                                   &poly_params_inv, spline_order, row, (int)(he - row), &progress);
-    ftrs.push_back(std::move(ftr));
+    ftrs.push_back(concurrent::asyncInvoke(
+                        thPool, &correctRGBSegment, (const ImageRGB<double> *)(&in), &out,
+                        &poly_params_inv, spline_order, row, (int)(he-row), &progress));
     libMsg::cout<<ftrs.size()<<" Tasks lauched"<<libMsg::endl;
     // }Lauche MultiTask
 
@@ -282,7 +285,9 @@ static bool correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int s
 
     // get futures and handle exceptions in multi-task
     bool allOk;
-    concurrent::getVoidFtr_CheckExcpt(allOk,ftrs);
+    concurrent::getFtr_CheckExcpt(allOk,ftrs);
+//TODO: use move sementics in Future.
+    std::for_each(ftrs.begin(), ftrs.end(), [](concurrent::Future<void>* ftr){ delete ftr; });
 
     if (allOk) {
         libMsg::cout<<" Done, "<<std::chrono::duration<double, std::milli>(
