@@ -63,7 +63,7 @@ void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<BYT
     stats.radius2 = 0.5 * (maxY - minY);
 }
 
-int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img)
+int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img,int i,int j)
 {
     std::stack<Pixel> s;
     BYTE *pColor;
@@ -71,8 +71,10 @@ int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img)
         pColor = &img.pixel(p.x, p.y);
     else
         return 0;
+    //std::cout<<i<<' '<<j<<"in"<<std::endl;
     while (*pColor == 0 || !s.empty())
     {
+
         if (*pColor == 0) {
             cc.push_back(p);
             *pColor = 255;
@@ -88,6 +90,7 @@ int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img)
         else
             *pColor = 255;
     }
+    //std::cout<<"out"<<std::endl;
     return cc.size();
 }
 
@@ -96,11 +99,15 @@ bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BY
     ImageGray<BYTE> img_copy(imgbi);
     std::vector<Pixel> firstPixels;
     double meansize = 0;
+    std::cout<<img_copy.xsize()<<' '<<img_copy.ysize()<<std::endl;
     for (int i = 0; i < imgbi.xsize(); i++) {
+
         for (int j = 0; j < imgbi.ysize(); j++) {
             std::vector<Pixel> ccC;
             CCStats stats;
-            int npix = extract_cc_(Pixel(i, j), ccC, img_copy);
+
+            int npix = extract_cc_(Pixel(i, j), ccC, img_copy,i,j);
+
             if (npix > 180) {
                 extract_CCStats(ccC, stats, imgbi);
                 double compactness = 4*PI*stats.nPoints / (stats.perimeter*stats.perimeter);
@@ -255,7 +262,7 @@ bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BY
             int index = outliersIdx[i];
             Pixel first = firstPixels[index];
             std::vector<Pixel> ccC;
-            extract_cc_(first, ccC, img_copy2);
+            extract_cc_(first, ccC, img_copy2,-1,-1);
             for (int k = 0; k < ccC.size(); ++k) {
                 Pixel p = ccC[k];
                 // blue means filtered

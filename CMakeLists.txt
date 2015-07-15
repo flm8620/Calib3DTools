@@ -8,7 +8,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 #set(CMAKE_BUILD_TYPE Debug)
 find_package(Qt5Widgets)
+find_package(Qt5Core)
 find_package(Qt5Concurrent)
+find_package(Qt5Gui)
 #Qt5
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")

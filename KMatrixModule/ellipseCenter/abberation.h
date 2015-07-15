@@ -29,7 +29,7 @@ int white_neighbors(const Pixel &p,const ImageGray<BYTE> &img);
 
 void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<BYTE> &img);
 
-int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img);
+int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img, int i, int j);
 
 bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BYTE> &imgFeedback);
 

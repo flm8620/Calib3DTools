@@ -6,6 +6,7 @@ ${CMAKE_SOURCE_DIR}/libMessager
 ${CMAKE_SOURCE_DIR}/libImage
 ${CMAKE_SOURCE_DIR}/libNumerics
 ${CMAKE_SOURCE_DIR}/Concurrent
+${CMAKE_SOURCE_DIR}/QImageConvert
 libDistortion
 libLineDetection
 libMisc
@@ -25,4 +26,4 @@ libLineDetection
 libMisc
 )
 target_link_libraries(DistortionPoly linedetect distortion misc
-libImage libNumerics libMessager Concurrent)
+libImage libNumerics libMessager Concurrent Qt5::Gui QImageConvert)

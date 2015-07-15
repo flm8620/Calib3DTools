@@ -289,55 +289,60 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
         "\tBlue region : filtered\n"
         "Number beside circle:\n\t\tindex\n\t\tindex after sort\n\t\terror RMSE"
         <<libMsg::endl<<libMsg::endl;
-    for (int i = 0; i < nImage; ++i) {
-        libMsg::cout<<"Image "<<i+1<<'/'<<nImage<<libMsg::endl;
-        vector<double> x, y, r;
-        ImageRGB<BYTE> imgFeedback;
-        {
-            ImageGray<double> imageDouble;
-            QImage2ImageDouble(imageList[i], imageDouble);
-            if (!detectEllipseCenters_noRefine(imageDouble, imgFeedback, x, y, r)) return false;
-        }
-        matrix<double> centers(2, x.size());
-        for (int j = 0; j < x.size(); ++j) {
-            centers(0, j) = x(j);
-            centers(1, j) = y(j);
-        }
-        // feedback img
-        QImage image;
-        ImageByteRGB2QColorImage(imgFeedback, image);
-        QPainter painter(&image);
-        painter.setRenderHint(QPainter::Antialiasing);
-        for (int j = 0; j < x.size(); j++) {
-            double xx = x(j);
-            double yy = y(j);
-            painter.setPen(Qt::red);
-            painter.resetTransform();
-            painter.translate(xx, yy);
-            painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
-        }
-        feedbackList.push_back(image);
-        if (i == 0) {
-            nCircleOf1stImage = x.size();
-        } else if (x.size() != nCircleOf1stImage) {
-            libMsg::cout<<"The number of circles detected in Image_"<<i<<" is "<<x.size()
-                        <<
-                " , which is different from last image! Please check. Algorithm terminates"
-                        <<libMsg::endl;
-            return false;
-        }
+    bool validityCheck = false;
+    bool needFeedback = false;
+    if (validityCheck) {
+        for (int i = 0; i < nImage; ++i) {
+            libMsg::cout<<"Image "<<i+1<<'/'<<nImage<<libMsg::endl;
+            vector<double> x, y, r;
+            ImageRGB<BYTE> imgFeedback;
+            {
+                ImageGray<double> imageDouble;
+                QImage2ImageDouble(imageList[i], imageDouble);
+                if (!detectEllipseCenters_noRefine(imageDouble, imgFeedback, x, y, r)) return false;
+            }
+            matrix<double> centers(2, x.size());
+            for (int j = 0; j < x.size(); ++j) {
+                centers(0, j) = x(j);
+                centers(1, j) = y(j);
+            }
+            // feedback img
+            QImage image;
+            ImageByteRGB2QColorImage(imgFeedback, image);
+            QPainter painter(&image);
+            painter.setRenderHint(QPainter::Antialiasing);
+            for (int j = 0; j < x.size(); j++) {
+                double xx = x(j);
+                double yy = y(j);
+                painter.setPen(Qt::red);
+                painter.resetTransform();
+                painter.translate(xx, yy);
+                painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
+            }
+            feedbackList.push_back(image);
+            if (i == 0) {
+                nCircleOf1stImage = x.size();
+            } else if (x.size() != nCircleOf1stImage) {
+                libMsg::cout<<"The number of circles detected in Image_"<<i<<" is "<<x.size()
+                            <<
+                    " , which is different from last image! Please check. Algorithm terminates"
+                            <<libMsg::endl;
+                return false;
+            }
 
-        int nRow_i, nCol_i;
-        if (!sortCircles(centers, nRow_i, nCol_i)) return false;
-        if (i == 0) {
-            nRow = nRow_i;
-            nCol = nCol_i;
-        } else {
-            if (!(nRow == nRow_i && nCol == nCol_i)) {
-                if (!(nCol == nRow_i && nRow == nCol_i)) {
-                    libMsg::cout<<"Image_"<<i<<" doesn't have the same nRow and nCol as Image_0 !"
-                                <<libMsg::endl;
-                    return false;
+            int nRow_i, nCol_i;
+            if (!sortCircles(centers, nRow_i, nCol_i)) return false;
+            if (i == 0) {
+                nRow = nRow_i;
+                nCol = nCol_i;
+            } else {
+                if (!(nRow == nRow_i && nCol == nCol_i)) {
+                    if (!(nCol == nRow_i && nRow == nCol_i)) {
+                        libMsg::cout<<"Image_"<<i
+                                    <<" doesn't have the same nRow and nCol as Image_0 !"
+                                    <<libMsg::endl;
+                        return false;
+                    }
                 }
             }
         }
@@ -355,18 +360,18 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
             QImage2ImageDouble(imageList[i], imageDouble);
             if (!detectEllipseCenters(imageDouble, imgFeedback, x, y, r, P, 1.0)) return false;
         }
-        //P[0] = 1.0/rayon;                            lambda1
-        //P[1] = (std::sqrt(lambda1/lambda2))/rayon;   lambda2
-        //P[2] = std::atan2(sx2/ss-lambda1, -sxy/ss);  alpha
-        //P[3] = x;            tu
-        //P[4] = y;            tv
-        //P[5] = 0.25;         rayon cercle 1
-        //P[6] = -2.0;         pente
-        //P[7] = 0.25;         rayon cercle 2
-        //P[8] = val_haut;     val_haut
-        //P[9] = val_bas;      val_bas
-        //P[10] = 1.0;         position step
-        //P[11] = RMSE         error
+        // P[0] = 1.0/rayon;                            lambda1
+        // P[1] = (std::sqrt(lambda1/lambda2))/rayon;   lambda2
+        // P[2] = std::atan2(sx2/ss-lambda1, -sxy/ss);  alpha
+        // P[3] = x;            tu
+        // P[4] = y;            tv
+        // P[5] = 0.25;         rayon cercle 1
+        // P[6] = -2.0;         pente
+        // P[7] = 0.25;         rayon cercle 2
+        // P[8] = val_haut;     val_haut
+        // P[9] = val_bas;      val_bas
+        // P[10] = 1.0;         position step
+        // P[11] = RMSE         error
         Ellipse_centers.push_back(matrix<double>::zeros(2, x.size()));
         matrix<double> &centers = Ellipse_centers.back();
         for (int j = 0; j < x.size(); ++j) {
@@ -374,32 +379,34 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
             centers(1, j) = y(j);
         }
         // draw feedback
-        QImage image;
-        ImageByteRGB2QColorImage(imgFeedback, image);
-        QPainter painter(&image);
-        painter.setRenderHint(QPainter::Antialiasing);
-        for (int j = 0; j < x.size(); j++) {
-            double xx = x(j);
-            double yy = y(j);
-            double r1 = 1/P[j](0);
-            double r2 = 1/P[j](1);
-            double alpha = P[j](2);
-            double rmse = P[j](11);
-            painter.setPen(Qt::blue);
-            painter.resetTransform();
-            painter.translate(xx, yy);
-            painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
-            if(rmse>4.0)
-                painter.setPen(Qt::red);
-            painter.drawText(QRectF(5, 25, 50, 30),QString::number(rmse));
+        if (needFeedback) {
+            QImage image;
+            ImageByteRGB2QColorImage(imgFeedback, image);
+            QPainter painter(&image);
+            painter.setRenderHint(QPainter::Antialiasing);
+            for (int j = 0; j < x.size(); j++) {
+                double xx = x(j);
+                double yy = y(j);
+                double r1 = 1/P[j](0);
+                double r2 = 1/P[j](1);
+                double alpha = P[j](2);
+                double rmse = P[j](11);
+                painter.setPen(Qt::blue);
+                painter.resetTransform();
+                painter.translate(xx, yy);
+                painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
+                if (rmse > 4.0)
+                    painter.setPen(Qt::red);
+                painter.drawText(QRectF(5, 25, 50, 30), QString::number(rmse));
 
-            painter.rotate(-alpha/3.14159265358979323*180);
-            painter.setPen(Qt::red);
-            painter.drawLine(QPointF(-r1, 0), QPointF(r1, 0));
-            painter.setPen(Qt::green);
-            painter.drawLine(QPointF(0, -r2), QPointF(0, r2));
+                painter.rotate(-alpha/3.14159265358979323*180);
+                painter.setPen(Qt::red);
+                painter.drawLine(QPointF(-r1, 0), QPointF(r1, 0));
+                painter.setPen(Qt::green);
+                painter.drawLine(QPointF(0, -r2), QPointF(0, r2));
+            }
+            feedbackList.push_back(image);
         }
-        feedbackList.push_back(image);
         // end draw feedback
         if (i == 0) {
             nCircleOf1stImage = x.size();
@@ -429,16 +436,18 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
         }
     }
     // draw feedback for sorted index
-    for (int i = 0; i < nImage; ++i) {
-        QPainter painter(&feedbackList[i]);
-        painter.setRenderHint(QPainter::Antialiasing);
-        for (int j = 0; j < Ellipse_centers[i].ncol(); j++) {
-            double xx = Ellipse_centers[i](0, j);
-            double yy = Ellipse_centers[i](1, j);
-            painter.setPen(Qt::green);
-            painter.resetTransform();
-            painter.translate(xx, yy+10);
-            painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
+    if (needFeedback) {
+        for (int i = 0; i < nImage; ++i) {
+            QPainter painter(&feedbackList[i]);
+            painter.setRenderHint(QPainter::Antialiasing);
+            for (int j = 0; j < Ellipse_centers[i].ncol(); j++) {
+                double xx = Ellipse_centers[i](0, j);
+                double yy = Ellipse_centers[i](1, j);
+                painter.setPen(Qt::green);
+                painter.resetTransform();
+                painter.translate(xx, yy+10);
+                painter.drawText(QRectF(5, 5, 30, 30), QString::number(j));
+            }
         }
     }
     libMsg::cout<<"nRow="<<nRow<<" nCol="<<nCol<<libMsg::endl;

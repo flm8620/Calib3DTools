@@ -35,6 +35,7 @@
 #include "straight_edge_points.h"
 #include "simplethreadpool.h"
 
+#include "qimageconvert.h"
 #include <atomic>
 #include <thread>
 #include <iostream>
@@ -355,7 +356,7 @@ bool DistortionModule::distortionCorrect(ImageGray<double> &in, ImageGray<double
 
 template<typename T>
 static bool read_images(DistortedLines<T> &distLines,
-                        const std::vector<ImageGray<BYTE> > &imageList, int length_thresh,
+                        const QList<QImage> &imageList, int length_thresh,
                         int down_factor)
 {
     int w_tmp = 0, h_tmp = 0;
@@ -383,7 +384,7 @@ static bool read_images(DistortedLines<T> &distLines,
 
         /* open image, compute edge points, close it */
         libMsg::cout<<"start convert image "<<i+1<<"..."<<libMsg::endl;
-        imageDoubleFromImageBYTE(imageList[i], image);
+        QImage2ImageDouble(imageList[i], image);
         p = straight_edge_points(image, sigma, th_low, th_hi, min_length);
         w = image.xsize();
         h = image.ysize();
@@ -526,7 +527,7 @@ static vector<T> polyInv(const vector<T> &poly_params, const int degX, const int
                         yp);
 }
 
-bool DistortionModule::polyEstime(const std::vector<ImageGray<BYTE> > &list,
+bool DistortionModule::polyEstime(const QList<QImage> &list,
                                   std::vector<double> &polynome, int order,
                                   std::vector<std::vector<std::vector<std::pair<double,
                                                                                 double> > > > &detectedLines)
@@ -535,10 +536,10 @@ bool DistortionModule::polyEstime(const std::vector<ImageGray<BYTE> > &list,
     // check: same size for all image
     for (int i = 0; i < list.size(); ++i) {
         if (i == 0) {
-            w = list[0].xsize();
-            h = list[0].ysize();
+            w = list[0].width();
+            h = list[0].height();
         } else {
-            if (w != list[i].xsize() || h != list[i].ysize()) {
+            if (w != list[i].width() || h != list[i].height()) {
                 libMsg::cout<<"All images harp must have the same size ! But the Image_"<<i+1
                             <<" has the wrong size"<<libMsg::endl;
                 return false;

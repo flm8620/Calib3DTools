@@ -124,9 +124,9 @@ static bool distortionFromImages(ImageList *imageList, ImageList *feedbackList,
     QList<QPair<QString, QImage> > snapshot;
     imageList->getContent(snapshot);
     if (snapshot.size() == 0) return false;
-    std::vector<ImageGray<BYTE> > byteImageList(snapshot.size());
+    QList<QImage> byteImageList;
     for (int i = 0; i < snapshot.size(); ++i)
-        QImage2ImageByte(snapshot[i].second, byteImageList[i]);
+        byteImageList.append(snapshot[i].second);
 
     libMsg::abortIfAsked();
     std::vector<double> polynome;
