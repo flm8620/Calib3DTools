@@ -168,10 +168,8 @@ std::pair<double, double> ACRANSAC(const Kernel &kernel, std::vector<size_t> &ve
 
     // Main estimation loop.
     for (size_t iter = 0; iter < nIter; ++iter) {
-        // UniformSample(sizeSample, vec_index, &vec_sample); // Get random sample
-        vec_sample[0] = 0;
-        vec_sample[1] = 2;
-        vec_sample[2] = 1;
+        UniformSample(sizeSample, vec_index, &vec_sample); // Get random sample
+
 
         std::vector<typename Kernel::Model> vec_models; // Up to max_models solutions
         kernel.Fit(vec_sample, &vec_models);
@@ -219,25 +217,18 @@ std::pair<double, double> ACRANSAC(const Kernel &kernel, std::vector<size_t> &ve
         }
         libMsg::cout<<"minNFA="<<minNFA<<libMsg::endl;
         // ACRANSAC optimization: draw samples among best set of inliers so far
-        if ((better && minNFA < 0) || (iter+1 == nIter && nIterReserve)) {
-            if (vec_inliers.empty()) { // No model found at all so far
-                libMsg::cout<<"No model found at all so far"<<libMsg::endl;
-                nIter++; // Continue to look for any model, even not meaningful
-                nIterReserve--;
-            } else {
-                // ACRANSAC optimization: draw samples among best set of inliers so far
-                libMsg::cout<<"draw samples among best set of inliers so far"<<libMsg::endl;
-
-                vec_index = vec_inliers;
-                std::sort(vec_index.begin(), vec_index.end());
-                for (int i = 0; i < vec_index.size(); ++i) libMsg::cout<<vec_index[i]<<',';
-                libMsg::cout << ")" <<libMsg::endl;
-
-                if (nIterReserve) {
-                    nIter = iter+1+nIterReserve;
-                    nIterReserve = 0;
-                }
+        if((better && minNFA<0) || (iter+1==nIter && nIterReserve)) {
+          if(vec_inliers.empty()) { // No model found at all so far
+            nIter++; // Continue to look for any model, even not meaningful
+            nIterReserve--;
+          } else {
+            // ACRANSAC optimization: draw samples among best set of inliers so far
+            vec_index = vec_inliers;
+            if(nIterReserve) {
+                nIter = iter+1+nIterReserve;
+                nIterReserve=0;
             }
+          }
         }
     }
 

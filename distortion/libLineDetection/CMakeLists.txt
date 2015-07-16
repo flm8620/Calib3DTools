@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2.3)
+cmake_minimum_required(VERSION 3.2.0)
 
 #include_directories(${CMAKE_SOURCE_DIR}/libMessager)
 #include_directories(${CMAKE_SOURCE_DIR}/libImage)
