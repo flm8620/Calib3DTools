@@ -14,8 +14,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     QCoreApplication::setOrganizationName("IMAGINE");
-    QCoreApplication::setOrganizationDomain("imagine.com");
-    QCoreApplication::setApplicationName("IMAGINE Stereovision Tool");
+    QCoreApplication::setApplicationName("Calib3D Tools");
 
     QSettings qsettings;
     qRegisterMetaType<libMsg::MessageType>();

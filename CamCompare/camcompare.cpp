@@ -154,7 +154,7 @@ bool CamSolver::camCompare(const CamSet &camSet1, const CamSet &camSet2)
         C.push_back(C1);
         Cc.push_back(C2);
     }
-    if (!compareByAlign(R,Rc,C, Cc)) return false;
-    //if (!compareOpenMVG(C, Cc)) return false;
+    //if (!compareByAlign(R,Rc,C, Cc)) return false;
+    if (!compareOpenMVG(C, Cc)) return false;
     return true;
 }

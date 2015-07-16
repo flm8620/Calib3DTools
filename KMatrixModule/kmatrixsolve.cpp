@@ -290,7 +290,7 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
         "Number beside circle:\n\t\tindex\n\t\tindex after sort\n\t\terror RMSE"
         <<libMsg::endl<<libMsg::endl;
     bool validityCheck = false;
-    bool needFeedback = false;
+    bool needFeedback = true;
     if (validityCheck) {
         for (int i = 0; i < nImage; ++i) {
             libMsg::cout<<"Image "<<i+1<<'/'<<nImage<<libMsg::endl;
