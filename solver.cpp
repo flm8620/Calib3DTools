@@ -124,14 +124,14 @@ static bool distortionFromImages(ImageList *imageList, ImageList *feedbackList,
     QList<QPair<QString, QImage> > snapshot;
     imageList->getContent(snapshot);
     if (snapshot.size() == 0) return false;
-    std::vector<ImageGray<BYTE> > byteImageList(snapshot.size());
+    std::vector<ImageGray<pixel::BYTE> > byteImageList(snapshot.size());
     for (int i = 0; i < snapshot.size(); ++i)
         QImage2ImageByte(snapshot[i].second, byteImageList[i]);
 
     libMsg::abortIfAsked();
     std::vector<double> polynome;
     int order = 11;
-    std::vector<std::vector<std::vector<std::pair<double, double> > > > detectedLines;
+    std::vector<DistortionModule::LineCollection> detectedLines;
     if (!DistortionModule::polyEstime(byteImageList, polynome, order, detectedLines))
         return false;
     PolyOrderConvert_Lib2Qt(polynome, order);
@@ -144,19 +144,17 @@ static bool distortionFromImages(ImageList *imageList, ImageList *feedbackList,
         checkQImageMemory(image);
         QPainter painter(&image);
         painter.setRenderHint(QPainter::Antialiasing);
-        std::vector<std::vector<std::pair<double, double> > > &lines = detectedLines[i];
+        DistortionModule::LineCollection &lines = detectedLines[i];
         for (int j = 0; j < lines.size(); ++j) {
-            std::vector<std::pair<double, double> > &oneline = lines[j];
+            DistortionModule::Line &oneline = lines[j];
             double x1, y1, x2, y2;
-            x1 = oneline[0].first;
-            y1 = oneline[0].second;
+            x1 = oneline[0].x;
+            y1 = oneline[0].y;
             for (int k = 1; k < oneline.size(); ++k) {
-                x2 = oneline[k].first;
-                y2 = oneline[k].second;
+                x2 = oneline[k].x;
+                y2 = oneline[k].y;
                 painter.setPen(Qt::green);
                 painter.drawLine(x1, y1, x2, y2);
-// painter.setPen(Qt::red);
-// painter.drawPoint(x2, y2);
                 painter.fillRect(x2-2, y2-2, 5, 5, Qt::red);
                 x1 = x2;
                 y1 = y2;
@@ -169,7 +167,8 @@ static bool distortionFromImages(ImageList *imageList, ImageList *feedbackList,
     return true;
 }
 
-static bool correctDistortion(const QImage &imageIn, QImage &out, Distortion *distortion)
+const static int DEFAULT_SPLINE_ORDER = 5;
+static bool correctDistortion(const QImage &imageIn, QImage &imageOut, Distortion *distortion)
 {
     if (imageIn.isNull()) {
         libMsg::cout<<"DistortionCorrection: image is empty!"<<libMsg::endl;
@@ -182,26 +181,22 @@ static bool correctDistortion(const QImage &imageIn, QImage &out, Distortion *di
     }
     Bi<std::vector<double> > polynome;
     distortionValue2Polynome(distValue, polynome);
-// bool success = PolyOrderConvert_Qt2Lib(polynome);
-// Q_ASSERT(success);
 
-    QImage result;
     if (imageIn.isGrayscale()) {
         libMsg::cout<<"Color type: Gray scale "<<libMsg::endl;
         ImageGray<double> in, out;
         QImage2ImageDouble(imageIn, in);
-        if (!DistortionModule::distortionCorrect(in, out, polynome))
+        if (!DistortionModule::correct_image(in, out, DEFAULT_SPLINE_ORDER, polynome))
             return false;
-        ImageDouble2QImage(out, result);
+        ImageDouble2QImage(out, imageOut);
     } else {
         libMsg::cout<<"Color type: RGB "<<libMsg::endl;
         ImageRGB<double> in, out;
         QColorImage2ImageDoubleRGB(imageIn, in);
-        if (!DistortionModule::distortionCorrect_RGB(in, out, polynome))
+        if (!DistortionModule::correct_image_RGB(in, out, DEFAULT_SPLINE_ORDER, polynome))
             return false;
-        ImageDoubleRGB2QColorImage(out, result);
+        ImageDoubleRGB2QColorImage(out, imageOut);
     }
-    out = result;
     return true;
 }
 

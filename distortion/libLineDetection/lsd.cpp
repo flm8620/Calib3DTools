@@ -1077,7 +1077,7 @@ static void region2rect(struct point *reg, int reg_size, const ImageGray<double>
     tolerance 'prec', starting at point (x,y).
  */
 static void region_grow(int x, int y, const ImageGray<double> &angles, struct point *reg,
-                        int *reg_size, double *reg_angle, ImageGray<BYTE> &used, double prec)
+                        int *reg_size, double *reg_angle, ImageGray<pixel::BYTE> &used, double prec)
 {
     double sumdx, sumdy;
     int xx, yy, i;
@@ -1228,7 +1228,7 @@ static double rect_improve(struct rect *rec, const ImageGray<double> &angles, do
  */
 static int reduce_region_radius(struct point *reg, int *reg_size, const ImageGray<double> &modgrad,
                                 double reg_angle, double prec, double p, struct rect *rec,
-                                ImageGray<BYTE> &used, double density_th)
+                                ImageGray<pixel::BYTE> &used, double density_th)
 {
     double density, rad1, rad2, rad, xc, yc;
     int i;
@@ -1300,7 +1300,7 @@ static int reduce_region_radius(struct point *reg, int *reg_size, const ImageGra
     'reduce_region_radius' is called to try to satisfy this condition.
  */
 static int refine(struct point *reg, int *reg_size, const ImageGray<double> &modgrad,
-                  double reg_angle, double prec, double p, struct rect *rec, ImageGray<BYTE> &used,
+                  double reg_angle, double prec, double p, struct rect *rec, ImageGray<pixel::BYTE> &used,
                   const ImageGray<double> &angles, double density_th)
 {
     double angle, ang_d, mean_angle, tau, density, xc, yc, ang_c, sum, s_sum;
@@ -1380,7 +1380,7 @@ ntuple_list LineSegmentDetection(const ImageGray<double> &image, double scale, d
 {
     ntuple_list out = new_ntuple_list(5);
     ImageGray<double> angles, modgrad;
-    ImageGray<BYTE> used;
+    ImageGray<pixel::BYTE> used;
     struct coorlist *list_p;
     void *mem_p;
     struct rect rec;

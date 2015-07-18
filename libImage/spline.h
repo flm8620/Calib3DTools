@@ -30,7 +30,7 @@ bool interpolate_spline(const ImageGray<double> &im, int order,
                         double paramKeys=-.5);
 bool interpolate_spline_RGB(const ImageRGB<double> &image, int order,
                         double x, double y,
-                        double &Rout, double &Gout, double &Bout,
+                        pixel::RGB<double> &out,
                         double paramKeys=-.5);
 
 

@@ -7,6 +7,10 @@ template<typename T>
 struct Bi
 {
     T x,y;
+
+    Bi(){}
+    Bi( const Bi<T>& original ) : x(original.x), y(original.y) {}
+    Bi( const T& x, const T& y ) : x(x), y(y) {}
     template<typename R>
     inline Bi<T>& operator =( const Bi<R>& r ) { x=static_cast<T>(r.x); y=static_cast<T>(r.y); return *this; }
     template<typename R>

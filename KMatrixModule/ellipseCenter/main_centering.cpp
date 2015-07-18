@@ -24,6 +24,9 @@ static concurrent::AbstractThreadPool& DEFAULT_THREAD_POOL = QThreadpoolBridge::
 #include <atomic>
 #include <algorithm>
 using namespace libNumerics;
+using namespace pixel;
+
+
 void average_image(const ImageGray<double> &img, ImageGray<double> &img_avg)
 {
     int w = img.xsize();
@@ -381,15 +384,15 @@ bool circleRedefineSegment(const ImageGray<double> *img, ImageRGB<BYTE> *feedbac
         // draw feedback: rect of SubImg[
         for (int j = 0; j < wi; ++j) {
             if (feedback->pixelInside(j+x0, y0))
-                feedback->pixel_R(j+x0, y0) = 0;
+                feedback->pixel(j+x0, y0).r = 0;
             if (feedback->pixelInside(j+x0, y0+he-1))
-                feedback->pixel_R(j+x0, y0+he-1) = 0;
+                feedback->pixel(j+x0, y0+he-1).r = 0;
         }
         for (int k = 0; k < he; ++k) {
             if (feedback->pixelInside(x0, k+y0))
-                feedback->pixel_R(x0, k+y0) = 0;
+                feedback->pixel(x0, k+y0).r = 0;
             if (feedback->pixelInside(x0+wi-1, k+y0))
-                feedback->pixel_R(x0+wi-1, k+y0) = 0;
+                feedback->pixel(x0+wi-1, k+y0).r = 0;
         }
         // feed back]
         //if (!centerLMA<double>(sub_img, clr, cx, cy, P)) return false;
@@ -443,8 +446,8 @@ bool keypnts_circle_no_refine(const ImageGray<double> &img, ImageRGB<BYTE> &imgF
     img_extremas(img, minColor, maxColor);
     BYTE thre = (BYTE)(0.4*(maxColor-minColor));
     ImageGray<BYTE> imgBi;
-    imgBi.resize(wi, he, 255);
-    imgFeedback.resize(wi, he, 255, 255, 255);
+    imgBi.resize(wi, he, BYTE::WHITE);
+    imgFeedback.resize(wi, he, RGB<BYTE>::WHITE);
     binarization(imgBi, img, thre);
     // write_pgm_image_double(imgbiB, "rawdata/b.pgm");
 
@@ -477,8 +480,8 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
     img_extremas(img, minColor, maxColor);
     BYTE thre = (BYTE)(0.4*(maxColor-minColor));
     ImageGray<BYTE> imgBi;
-    imgBi.resize(wi, he, 255);
-    imgFeedback.resize(wi, he, 255, 255, 255);
+    imgBi.resize(wi, he, BYTE::WHITE);
+    imgFeedback.resize(wi, he, RGB<BYTE>::WHITE);
     binarization(imgBi, img, thre);
     // write_pgm_image_double(imgbiB, "rawdata/b.pgm");
 

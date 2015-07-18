@@ -1,21 +1,19 @@
 #ifndef ABBERATION_H
 #define ABBERATION_H
 
-#include <stack>
 #include <vector>
-#include <cmath>
 #include "image.h"
+#include "commondefs.h"
 
-#define PI 3.14159265358979323
-
-class Pixel
-{
-public: int x, y;
-    Pixel(int X, int Y)
-    {
-        x = X, y = Y;
-    }
-};
+typedef Bi<int> Pixel;
+//class Pixel
+//{
+//public: int x, y;
+//    Pixel(int X, int Y)
+//    {
+//        x = X, y = Y;
+//    }
+//};
 
 class CCStats
 {
@@ -25,13 +23,13 @@ public:
     int perimeter; // need to calculate compactness measure of shape to eliminate noise
 };
 // Leman: const Pixel& p
-int white_neighbors(const Pixel &p,const ImageGray<BYTE> &img);
+int white_neighbors(const Pixel &p,const ImageGray<pixel::BYTE> &img);
 
-void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<BYTE> &img);
+void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<pixel::BYTE> &img);
 
-int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img);
+int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<pixel::BYTE> &img);
 
-bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BYTE> &imgFeedback);
+bool CC(std::vector<CCStats> &ccstats, const ImageGray<pixel::BYTE> &imgbi, ImageRGB<pixel::BYTE> &imgFeedback);
 
 // finds corresponding circle center match among two channels
 template<typename T>

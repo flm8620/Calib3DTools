@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.2.3)
 project(DistortionCorrection)
 
 INCLUDE_DIRECTORIES(
+${CMAKE_SOURCE_DIR}/
 ${CMAKE_SOURCE_DIR}/libMessager
 ${CMAKE_SOURCE_DIR}/libImage
 ${CMAKE_SOURCE_DIR}/libNumerics

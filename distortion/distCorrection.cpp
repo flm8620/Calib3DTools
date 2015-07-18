@@ -36,10 +36,6 @@
 // libConcurrent
 #include "abstractthreadpool.h"
 #include "stlCallable.h"
-//#include "simplethreadpool.h"
-//static concurrent::AbstractThreadPool& DEFAULT_THREAD_POOL = concurrent::SimpleThreadPool::DEFAULT;
-#include "qthreadpoolbridge.h"
-static concurrent::AbstractThreadPool& DEFAULT_THREAD_POOL = QThreadpoolBridge::DEFAULT;
 
 #include <atomic>
 #include <thread>
@@ -47,7 +43,7 @@ static concurrent::AbstractThreadPool& DEFAULT_THREAD_POOL = QThreadpoolBridge::
 #include <iostream>
 #include <ctime>
 
-
+namespace DistortionModule {
 
 /*----------------------------------------------------------------------------*/
 /* Static parameters.
@@ -144,8 +140,7 @@ static void correctSegment(const ImageGray<double> *in, ImageGray<double> *out,
         for (int x = 0; x < wi; x++) {
             /* do the correction for every pixel */
             Vector2D poisition = undistortPixel(*poly_params_inv, {static_cast<double>(x)-origin.x,
-                                                                   static_cast<double>(y)
-                                                                   -origin.y});
+                                                                   static_cast<double>(y)-origin.y});
             double clrR;
             if (!interpolate_spline(*in, spline_order, poisition.x+origin.x, poisition.y+origin.y,
                                     clrR))
@@ -160,9 +155,9 @@ static void correctSegment(const ImageGray<double> *in, ImageGray<double> *out,
 
 const static int TASK_BATCH_SIZE = 100;
 /* Given an image and a correction polynomial. Apply it to every pixel and save result to output folder */
-static bool correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_order,
+bool correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_order,
                           const Bi<std::vector<double> > &poly_params_inv,
-                          concurrent::AbstractThreadPool& thPool =DEFAULT_THREAD_POOL)
+                          concurrent::AbstractThreadPool& thPool)
 {
     auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -228,25 +223,23 @@ static void correctRGBSegment(const ImageRGB<double> *in, ImageRGB<double> *out,
             Vector2D poisition = undistortPixel(*poly_params_inv, {static_cast<double>(x)-origin.x,
                                                                    static_cast<double>(y)
                                                                    -origin.y});
-            double R, G, B;
+            pixel::RGB<double> color;
             if (!interpolate_spline_RGB(*in, spline_order, poisition.x+origin.x,
-                                        poisition.y+origin.y, R, G, B))
-                R = G = B = 0.;
-            R = std::min(std::max(R, 0.), 255.);
-            G = std::min(std::max(G, 0.), 255.);
-            B = std::min(std::max(B, 0.), 255.);
-            out->pixel_R(x, y) = R;
-            out->pixel_G(x, y) = G;
-            out->pixel_B(x, y) = B;
+                                        poisition.y+origin.y, color))
+                color = {0.,0.,0.};
+//            R = std::min(std::max(R, 0.), 255.);
+//            G = std::min(std::max(G, 0.), 255.);
+//            B = std::min(std::max(B, 0.), 255.);
+            out->pixel(x, y) = color;
         }
         progress->fetch_add(1, memory_order_relaxed);
     }
     libMsg::abortIfAsked();
 }
 
-static bool correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int spline_order,
+bool correct_image_RGB(ImageRGB<double> &in, ImageRGB<double> &out, int spline_order,
                               const Bi<std::vector<double> > &poly_params_inv,
-                              concurrent::AbstractThreadPool& thPool =DEFAULT_THREAD_POOL)
+                              concurrent::AbstractThreadPool& thPool)
 {
     auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -341,26 +334,17 @@ int coefIdx(int degree, int x, int y)
 
 /*----------------------------------------------------------------------------*/
 
-bool DistortionModule::distortionCorrect_RGB(ImageRGB<double> &in, ImageRGB<double> &out,
+
+bool distortionCorrect_RGB(ImageRGB<double> &in, ImageRGB<double> &out,
                                              const Bi<std::vector<double> > &polynome)
 {
-    if (!correct_image_RGB(in, out, 5, polynome))
-        return false;
-    return true;
+    return correct_image_RGB(in, out, 5, polynome);
 }
 
-bool DistortionModule::distortionCorrect(ImageGray<double> &in, ImageGray<double> &out,
-                                         const Bi<std::vector<double> > &polynome)
-{
-    // need double
-    if (!correct_image(in, out, 5, polynome))
-        return false;
-    return true;
-}
 
 template<typename T>
 static bool read_images(DistortedLines<T> &distLines,
-                        const std::vector<ImageGray<BYTE> > &imageList, int length_thresh,
+                        const std::vector<ImageGray<pixel::BYTE> > &imageList, int length_thresh,
                         int down_factor)
 {
     int w_tmp = 0, h_tmp = 0;
@@ -531,10 +515,9 @@ static vector<T> polyInv(const vector<T> &poly_params, const int degX, const int
                         yp);
 }
 
-bool DistortionModule::polyEstime(const std::vector<ImageGray<BYTE> > &list,
-                                  std::vector<double> &polynome, int order,
-                                  std::vector<std::vector<std::vector<std::pair<double,
-                                                                                double> > > > &detectedLines)
+bool polyEstime(const std::vector<ImageGray<pixel::BYTE> > &list,
+                std::vector<double> &polynome, int order,
+                std::vector<LineCollection> &detectedLines)
 {
     unsigned int w, h;
     // check: same size for all image
@@ -561,14 +544,13 @@ bool DistortionModule::polyEstime(const std::vector<ImageGray<BYTE> > &list,
     detectedLines.clear();
     detectedLines.resize(nImage);
     for (int i = 0; i < nImage; ++i) {
-        std::vector<std::vector<std::pair<double, double> > > &linesInImage = detectedLines[i];
+        LineCollection &linesInImage = detectedLines[i];
         linesInImage.resize(distLines.nlines4Group[i]);
         for (int j = 0; j < distLines.nlines4Group[i]; ++j) {
-            std::vector<std::pair<double, double> > &oneLine = linesInImage[j];
+            Line &oneLine = linesInImage[j];
             for (int k = 0; k < distLines._line.at(count+j).sizeLine(); ++k) {
-                double x = distLines._line.at(count+j).x(k);
-                double y = distLines._line.at(count+j).y(k);
-                oneLine.push_back(std::make_pair(x, y));
+                Vector2D point = { distLines._line.at(count+j).x(k), distLines._line.at(count+j).y(k)};
+                oneLine.push_back(point);
             }
         }
         count += distLines.nlines4Group[i];
@@ -588,3 +570,5 @@ bool DistortionModule::polyEstime(const std::vector<ImageGray<BYTE> > &list,
 
     return true;
 }
+
+}//namespace DistortionModule

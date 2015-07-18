@@ -17,12 +17,14 @@
 */
 
 #include "spline.h"
-#include "../commondefs.h"
+#include "commondefs.h"
 // #include "libIO/nan.h"
 #include <cmath>
 #include <cfloat>
 #include <cstring>
 #include <assert.h>
+
+using pixel::RGB;
 
 const static unsigned int MAX_ORDER = 11;
 const static int INIT_SPLINE_N_ARRARY_START = 4;
@@ -84,13 +86,14 @@ const static double Z_LAMBDAS[] = {
 #undef _
 };
 
-static void invspline1D(double * const c, const int step, const int size, const int order)
+template<typename PIXELVALUE, class=pixel::ValidValuetype<PIXELVALUE>>
+static void invspline1D(PIXELVALUE * const c, const int step, const int size, const int order)
 {
-    double * const lastc = c + step*(size-1);
+    PIXELVALUE * const lastc = c + step*(size-1);
 
     /* normalization */
     const double lambda = Z_LAMBDAS[order-Z_FILTERS_ARRARY_START];
-    for (double* ck = lastc; ck >=c; ck-=step) *ck *= lambda;
+    for (PIXELVALUE* ck = lastc; ck >=c; ck-=step) *ck *= lambda;
 
     int npoles = order/2;
     for (int k = 0; k < npoles; k++) { // Loop on poles
@@ -101,15 +104,16 @@ static void invspline1D(double * const c, const int step, const int size, const 
         const double zkr = Z_RECIPROCALS[order-Z_FILTERS_ARRARY_START][k]; // 1/zk
 
         /* forward recursion */
-        double zn =zk, z2n =ipow(zk, size-1), sum = *c + *lastc*z2n;
+        double zn =zk, z2n =ipow(zk, size-1);
+        PIXELVALUE sum = *c + *lastc*z2n;
         z2n=z2n*z2n*zkr;
-        for (double* cp=c+step; cp<lastc; cp+=step, zn*=zk, z2n*=zkr) sum += *cp*(zn+z2n);
+        for (PIXELVALUE* cp=c+step; cp<lastc; cp+=step, zn*=zk, z2n*=zkr) sum += *cp*(zn+z2n);
         *c = sum/(1.-zn*zn); //init causal
-        for (double last =*c, *cp =c+step; cp<=lastc; cp+=step) last = *cp = *cp + last*zk;
+        for (PIXELVALUE last =*c, *cp =c+step; cp<=lastc; cp+=step) last = *cp = *cp + last*zk;
 
         /* backward recursion */
         *lastc = (*lastc*zk + *(lastc-step)*zk2)/(zk2-1.); // initial anti causal
-        for (double last =*lastc, *cp =lastc-step; cp >=c; cp-=step) last = *cp = (last - *cp)*zk;
+        for (PIXELVALUE last =*lastc, *cp =lastc-step; cp >=c; cp-=step) last = *cp = (last - *cp)*zk;
     }
 }
 
@@ -136,15 +140,17 @@ bool prepare_spline_RGB(ImageRGB<double> &image, int order)
 
     if(order>=3) {
         for (int y = 0; y < image.ysize(); y++) {     // Filter on lines
-            invspline1D(&(image.pixel_R(0, y)), 1, image.xsize(), order);
-            invspline1D(&(image.pixel_G(0, y)), 1, image.xsize(), order);
-            invspline1D(&(image.pixel_B(0, y)), 1, image.xsize(), order);
+//            invspline1D(&(image.pixel_R(0, y)), 1, image.xsize(), order);
+//            invspline1D(&(image.pixel_G(0, y)), 1, image.xsize(), order);
+//            invspline1D(&(image.pixel_B(0, y)), 1, image.xsize(), order);
+            invspline1D(&image.pixel(0, y), 1, image.xsize(), order);
         }
 
         for (int x = 0; x < image.xsize(); x++) {     // Filter on columns
-            invspline1D(&image.pixel_R(x, 0), image.xsize(), image.ysize(), order);
-            invspline1D(&image.pixel_G(x, 0), image.xsize(), image.ysize(), order);
-            invspline1D(&image.pixel_B(x, 0), image.xsize(), image.ysize(), order);
+//            invspline1D(&image.pixel_R(x, 0), image.xsize(), image.ysize(), order);
+//            invspline1D(&image.pixel_G(x, 0), image.xsize(), image.ysize(), order);
+//            invspline1D(&image.pixel_B(x, 0), image.xsize(), image.ysize(), order);
+            invspline1D(&image.pixel(x, 0), image.xsize(), image.ysize(), order);
         }
     }
 
@@ -287,39 +293,34 @@ bool interpolate_spline(const ImageGray<double> &image, int order, double x, dou
 }
 
 static bool zero_order_interpolation_rgb(const ImageRGB<double> &image, int x, int y,
-                                         double &Rout, double &Gout, double &Bout )
+                                         RGB<double> &out)
 {
     if (!image.pixelInside(x, y))
         return false;
 
-    Rout = image.pixel_R(x, y);
-    Gout = image.pixel_G(x, y);
-    Bout = image.pixel_B(x, y);
+    out = image.pixel(x, y);
     return true;
 }
 
 static void do_interpolation_rgb(const ImageRGB<double> &image, int x, int y, int radius,
                                  const double coefficients_x[], const double coefficients_y[],
-                                 double &Rout, double &Gout, double &Bout)
+                                 RGB<double> &out)
 {
     int low_margin = 1-radius;
-    Rout = Gout = Bout = 0.0;
+    out = { 0.,0.,0. };
     /* this test saves computation time */
     if (!image.pixelInside(x+low_margin, y+low_margin) || !image.pixelInside(x+radius, y+radius))
         return ;
     const int y_step = image.xsize();
     for (int dy = low_margin, rowAdrs = (y+low_margin)*y_step + x+low_margin;
-         dy <= radius; dy++, rowAdrs+=y_step)
-        for (int dx =low_margin, adrs =rowAdrs; dx <= radius; dx++, adrs++) {
-            Rout += coefficients_y[radius-dy]*coefficients_x[radius-dx] * image.Rdata(adrs);
-            Gout += coefficients_y[radius-dy]*coefficients_x[radius-dx] * image.Gdata(adrs);
-            Bout += coefficients_y[radius-dy]*coefficients_x[radius-dx] * image.Bdata(adrs);
-        }
-
+         dy <= radius;
+         dy++, rowAdrs+=y_step)
+        for (int dx =low_margin, adrs =rowAdrs; dx <= radius; dx++, adrs++)
+            out += coefficients_y[radius-dy]*coefficients_x[radius-dx] * image.data(adrs);
 }
 
 bool interpolate_spline_RGB(const ImageRGB<double> &image, int order, double x, double y,
-                            double &Rout, double &Gout, double &Bout, double paramKeys)
+                            RGB<double> &out, double paramKeys)
 {
     /* CHECK PARAMETERS */
     if(x<0.0 || x>static_cast<double>(image.xsize()) || y<0.0 || y>static_cast<double>(image.ysize()))
@@ -339,7 +340,7 @@ bool interpolate_spline_RGB(const ImageRGB<double> &image, int order, double x, 
     /* INTERPOLATION */
     switch (order) {
     case 0:      // zero order interpolation (pixel replication)
-        return zero_order_interpolation_rgb(image, static_cast<int>(floor(x)), static_cast<int>(floor(y)), Rout, Gout, Bout);
+        return zero_order_interpolation_rgb(image, static_cast<int>(floor(x)), static_cast<int>(floor(y)), out);
 
     case 1: /* first order interpolation (bilinear) */
         coefficients_x[0] = ux;
@@ -371,7 +372,7 @@ bool interpolate_spline_RGB(const ImageRGB<double> &image, int order, double x, 
     default:
         return false;
     }
-    do_interpolation_rgb( image, xi, yi, radius, coefficients_x, coefficients_y, Rout, Gout, Bout );
+    do_interpolation_rgb( image, xi, yi, radius, coefficients_x, coefficients_y, out );
     return true;
 }
 

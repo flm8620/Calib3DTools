@@ -81,7 +81,7 @@ ntuple_list devernay(const ImageGray<double> &image, double sigma, double th_low
     grady(xsize, ysize, 0.0),
     modgrad(xsize, ysize, 0.0),
     offset(xsize, ysize, -1000.0);
-    ImageGray<BYTE> canny(xsize, ysize, 0);
+    std::vector<bool> canny(xsize*ysize, false);
 
     /* compute gradient */
     for (x = 1; x < (xsize-1); x++)
@@ -129,7 +129,7 @@ ntuple_list devernay(const ImageGray<double> &image, double sigma, double th_low
                                      / 2.0;
                 /* Hi Canny threshold on gradient */
                 if (mod > th_hi) { /* a Canny point found */
-                    canny.pixel(x, y) = 255;
+                    canny[x+y*xsize] = true;
                     add_2tuple(out, (double)x, (double)y);
                 }
             }
@@ -146,10 +146,10 @@ ntuple_list devernay(const ImageGray<double> &image, double sigma, double th_low
         /* check all 8-connected neightbors */
         for (xx = x-1; xx <= x+1; xx++)
             for (yy = y-1; yy <= y+1; yy++)
-                if (canny.pixel(xx, yy) == 0   /* not marked as Canny P. */
+                if (!canny[xx+yy*xsize]   /* not marked as Canny P. */
                     && offset.pixel(xx, yy) > -1.0 /* local maxima */
                     && modgrad.pixel(xx, yy) >= th_low) {
-                    canny.pixel(xx, yy) = 255;
+                    canny[xx+yy*xsize] = true;
                     add_2tuple(out, (double)xx, (double)yy);
                 }
     }

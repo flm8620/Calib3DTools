@@ -1,8 +1,16 @@
 #include "abberation.h"
-
 #include <iostream>
-
+#include <stack>
+#include <cmath>
 #include "messager.h"
+
+using namespace pixel;
+const static double PI = static_cast<double>(std::acos(-1.0L));
+const static RGB<BYTE> COLOR_DELETED = RGB<BYTE>::BLACK;
+const static RGB<BYTE> COLOR_NOT_A_CIRCLE = RGB<BYTE>(150,0,0);
+const static RGB<BYTE> COLOR_TOO_SMALL = RGB<BYTE>(0,150,0);
+const static RGB<BYTE> COLOR_FILTERED = RGB<BYTE>(0,0,150);
+
 int white_neighbors(const Pixel &p, const ImageGray<BYTE> &img)
 {
     int nn = 0;
@@ -114,18 +122,14 @@ bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BY
                     for (int k = 0; k < ccC.size(); ++k) {
                         Pixel p = ccC[k];
                         // black means detected
-                        imgFeedback.pixel_R(p.x, p.y) = 0;
-                        imgFeedback.pixel_G(p.x, p.y) = 0;
-                        imgFeedback.pixel_B(p.x, p.y) = 0;
+                        imgFeedback.pixel(p.x, p.y) = COLOR_DELETED;
                     }
                 } else {
                     // draw Feedback
                     for (int k = 0; k < ccC.size(); ++k) {
                         Pixel p = ccC[k];
                         // red means it's not a circle
-                        imgFeedback.pixel_R(p.x, p.y) = 150;
-                        imgFeedback.pixel_G(p.x, p.y) = 0;
-                        imgFeedback.pixel_B(p.x, p.y) = 0;
+                        imgFeedback.pixel(p.x, p.y) = COLOR_NOT_A_CIRCLE;
                     }
                 }
             } else {
@@ -133,9 +137,7 @@ bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BY
                 for (int k = 0; k < ccC.size(); ++k) {
                     Pixel p = ccC[k];
                     // green means it's too small
-                    imgFeedback.pixel_R(p.x, p.y) = 0;
-                    imgFeedback.pixel_G(p.x, p.y) = 150;
-                    imgFeedback.pixel_B(p.x, p.y) = 0;
+                    imgFeedback.pixel(p.x, p.y) = COLOR_TOO_SMALL;
                 }
             }
         }
@@ -259,9 +261,7 @@ bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BY
             for (int k = 0; k < ccC.size(); ++k) {
                 Pixel p = ccC[k];
                 // blue means filtered
-                imgFeedback.pixel_R(p.x, p.y) = 0;
-                imgFeedback.pixel_G(p.x, p.y) = 0;
-                imgFeedback.pixel_B(p.x, p.y) = 150;
+                imgFeedback.pixel(p.x, p.y) = COLOR_FILTERED;
             }
         }
     }

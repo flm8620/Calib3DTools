@@ -15,6 +15,7 @@
 #include <utility>
 #include <iomanip>
 using namespace libNumerics;
+using namespace pixel;
 static double cross2D(vector<double> v1, vector<double> v2)
 {
     return v1(0)*v2(1)-v2(0)*v1(1);
