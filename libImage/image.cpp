@@ -4,10 +4,10 @@
 #include <math.h>
 #include "image.h"
 
-void imageDoubleFromImageBYTE(const ImageGray<pixel::BYTE> &in, ImageGray<double> &out)
+void imageDoubleFromImageBYTE(const ImageGray<pixel::Byte> &in, ImageGray<double> &out)
 {
     out.resize(in.width(), in.height());
-    const pixel::BYTE* inp = in.rawData();
+    const pixel::Byte* inp = in.rawData();
     double * outp = out.rawData();
     const double * lastOutP = out.lastData();
     while(outp<=lastOutP) *(outp++) = static_cast<double>(*(inp++));
@@ -33,19 +33,16 @@ ImageBase::~ImageBase()
 
 void ImageBase::resize(size_t width, size_t height)
 {
-    const size_t valueSize = valuetype.size;
     if(!this->isNull()) {
         free(_dataptr);
     }
 
     this->_width = width, this->_height = height;
-    this->rowDistance = width*valueSize;
-    this->imageDistance = height*this->rowDistance;
-    const size_t datasize = width*height*valueSize;
+    const size_t datasize = width*height*this->pixelSize;
     this->_dataptr = malloc(datasize);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpointer-arith"
-    this->_lastData = this->_dataptr + datasize - valueSize;
+    this->_lastData = this->_dataptr + datasize - this->pixelSize;
 #pragma GCC diagnostic pop
 }
 

@@ -25,7 +25,7 @@ bool correct_image(ImageGray<double> &in, ImageGray<double> &out, int spline_ord
 
 typedef std::vector<Vector2D> Line;
 typedef std::vector<Line> LineCollection;
-bool polyEstime(const std::vector<ImageGray<pixel::BYTE> > &list,
+bool polyEstime(const std::vector<ImageGray<pixel::Byte> > &list,
                 std::vector<double> &polynome, int order,
                 std::vector<LineCollection> &detectedLines);
 }

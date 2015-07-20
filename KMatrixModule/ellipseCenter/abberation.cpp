@@ -6,12 +6,12 @@
 
 using namespace pixel;
 const static double PI = static_cast<double>(std::acos(-1.0L));
-const static RGB<BYTE> COLOR_DELETED = RGB<BYTE>::BLACK;
-const static RGB<BYTE> COLOR_NOT_A_CIRCLE = RGB<BYTE>(150,0,0);
-const static RGB<BYTE> COLOR_TOO_SMALL = RGB<BYTE>(0,150,0);
-const static RGB<BYTE> COLOR_FILTERED = RGB<BYTE>(0,0,150);
+const static RGBValue<Byte> COLOR_DELETED = RGBValue<Byte>::BLACK;
+const static RGBValue<Byte> COLOR_NOT_A_CIRCLE = RGBValue<Byte>(150,0,0);
+const static RGBValue<Byte> COLOR_TOO_SMALL = RGBValue<Byte>(0,150,0);
+const static RGBValue<Byte> COLOR_FILTERED = RGBValue<Byte>(0,0,150);
 
-int white_neighbors(const Pixel &p, const ImageGray<BYTE> &img)
+int white_neighbors(const Pixel &p, const ImageGray<Byte> &img)
 {
     int nn = 0;
     Pixel p1(p.x-1, p.y);
@@ -50,7 +50,7 @@ int white_neighbors(const Pixel &p, const ImageGray<BYTE> &img)
     return nn;
 }
 
-void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<BYTE> &img)
+void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<Byte> &img)
 {
     stats.nPoints = cc.size();
     stats.perimeter = 0;
@@ -71,10 +71,10 @@ void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<BYT
     stats.radius2 = 0.5 * (maxY - minY);
 }
 
-int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img)
+int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<Byte> &img)
 {
     std::stack<Pixel> s;
-    BYTE *pColor;
+    Byte *pColor;
     if (img.pixelInside(p.x, p.y))
         pColor = &img.pixel(p.x, p.y);
     else
@@ -99,9 +99,9 @@ int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<BYTE> &img)
     return cc.size();
 }
 
-bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BYTE> &imgFeedback)
+bool CC(std::vector<CCStats> &ccstats, const ImageGray<Byte> &imgbi, ImageRGB<Byte> &imgFeedback)
 {
-    ImageGray<BYTE> img_copy(imgbi);
+    ImageGray<Byte> img_copy(imgbi);
     std::vector<Pixel> firstPixels;
     double meansize = 0;
     for (int i = 0; i < imgbi.xsize(); i++) {
@@ -248,7 +248,7 @@ bool CC(std::vector<CCStats> &ccstats, const ImageGray<BYTE> &imgbi, ImageRGB<BY
     libMsg::cout<<"Region found after filter: [ "<<ccstats.size()<<" ]"<<libMsg::endl;
     if (erasedCCStats.size() > 0) {
         libMsg::cout<<"Erased circles:"<<libMsg::endl;
-        ImageGray<BYTE> img_copy2(imgbi);
+        ImageGray<Byte> img_copy2(imgbi);
         for (int i = 0; i < erasedCCStats.size(); ++i) {
             CCStats &stats = erasedCCStats[i];
             libMsg::cout<<"circle "<<i<<libMsg::endl;

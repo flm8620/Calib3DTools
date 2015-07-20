@@ -13,41 +13,33 @@ typedef enum { Stop=0, Mirror, Loop, Exceed } BoundaryAction;
 
 class ImageBase
 {
-protected:
-
-
+public:
+    const int pixelType;
+    const size_t pixelSize;
 private:
-    const struct {
-        int typeindex;
-        size_t size;
-    } valuetype;
     void * _dataptr = nullptr;
     void * _lastData = nullptr;
     size_t _width =0, _height =0;
     size_t rowDistance, imageDistance;
 protected:
-    inline void * data() { return this->_dataptr; }
-    inline const void * data() const { return this->_dataptr; }
-    inline const void * last() const { return this->_lastData; }
-
     template<typename T, class=pixel::ValidValuetype<T>>
     inline T * dataptr()
     {
-        return pixel::ValidValuetype<T>::typeindex==valuetype.typeindex ?
+        return pixel::ValidValuetype<T>::typeindex==pixelType ?
                     reinterpret_cast<T*>(_dataptr) : nullptr;
     }
 
     template<typename T, class=pixel::ValidValuetype<T>>
     inline const T * dataptr() const
     {
-        return pixel::ValidValuetype<T>::typeindex==valuetype.typeindex ?
+        return pixel::ValidValuetype<T>::typeindex==this->pixelType ?
                     reinterpret_cast<const T*>(_dataptr) : nullptr;
     }
 
 public:
     template<typename T, class=pixel::ValidValuetype<T>>
     ImageBase(const T * valueP, size_t xsize=0, size_t ysize=0)
-        : valuetype({pixel::ValidValuetype<T>::typeindex, pixel::ValidValuetype<T>::size})
+        : pixelType(pixel::ValidValuetype<T>::typeindex), pixelSize(pixel::ValidValuetype<T>::size)
     {
         if(xsize!=0 && ysize!=0)
             this->resize(xsize, ysize);
@@ -67,11 +59,11 @@ public:
     typename pixel::ValidValuetype<T>::type& pixel(int x, int y)
     {
         const static int resultTypeIndex = pixel::ValuetypeIndex<T>::value;
-        if(resultTypeIndex!=valuetype.typeindex)
+        if(resultTypeIndex!=this->pixelType)
             throw new std::bad_cast();
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpointer-arith"
-        return *reinterpret_cast<T*>(_dataptr+(y*_width + x)*valuetype.size);
+        return *reinterpret_cast<T*>(_dataptr+(y*_width + x)*this->pixelSize);
 #pragma GCC diagnostic pop
     }
 
@@ -79,15 +71,18 @@ public:
     const typename pixel::ValidValuetype<T>::type& pixel(int x, int y) const
     {
         const static int resultTypeIndex = pixel::ValuetypeIndex<T>::value;
-        if(resultTypeIndex!=valuetype.typeindex)
+        if(resultTypeIndex!=this->pixelType)
             throw new std::bad_cast();
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpointer-arith"
-        return *reinterpret_cast<const T*>(_dataptr+(y*_width + x)*valuetype.size);
+        return *reinterpret_cast<const T*>(_dataptr+(y*_width + x)*this->pixelSize);
 #pragma GCC diagnostic push
     }
 
+    inline void * rawData() { return this->_dataptr; }
+    inline const void * rawData() const { return this->_dataptr; }
+    inline const void * lastData() const { return this->_lastData; }
     inline size_t width() const { return this->_width; }
     inline size_t height() const { return this->_height; }
 };
@@ -97,9 +92,9 @@ class Image : public ImageBase
 {
     typedef ImageBase SUPER;
 public:
-    inline T * rawData() { return reinterpret_cast<T*>(this->SUPER::data()); }
-    inline const T * rawData() const { return reinterpret_cast<const T*>(this->SUPER::data()); }
-    inline const T * lastData() const { return reinterpret_cast<const T*>(this->last()); }
+    inline T * rawData() { return reinterpret_cast<T*>(this->SUPER::rawData()); }
+    inline const T * rawData() const { return reinterpret_cast<const T*>(this->SUPER::rawData()); }
+    inline const T * lastData() const { return reinterpret_cast<const T*>(this->SUPER::lastData()); }
 
     Image(size_t width=0, size_t height=0)
         : SUPER(reinterpret_cast<const T*>(0), width, height) {}
@@ -329,21 +324,7 @@ template<typename T>
 using ImageGray = Image<T>;
 
 template<typename T>
-using ImageRGB = Image<pixel::RGB<T>>;
+using ImageRGB = Image<pixel::RGBValue<T>>;
 
-//template<typename T, class = pixel::ValidValuetype<pixel::RGB<T>>>
-//class ImageRGB : public Image<pixel::RGB<T>>
-//{
-//    typedef Image<pixel::RGB<T>> SUPER;
-//public:
-//    ImageRGB(size_t xsize=0, size_t ysize=0) : SUPER(xsize,ysize)
-//    { }
-
-//    ImageRGB(unsigned int xsize, unsigned int ysize, T RfillValue, T GfillValue, T BfillValue)
-//        :SUPER(xsize, ysize, {RfillValue,GfillValue,BfillValue})
-//    { }
-
-//};
-
-void imageDoubleFromImageBYTE(const ImageGray<pixel::BYTE> &in, ImageGray<double> &out);
+void imageDoubleFromImageBYTE(const ImageGray<pixel::Byte> &in, ImageGray<double> &out);
 #endif

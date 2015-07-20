@@ -223,7 +223,7 @@ static void correctRGBSegment(const ImageRGB<double> *in, ImageRGB<double> *out,
             Vector2D poisition = undistortPixel(*poly_params_inv, {static_cast<double>(x)-origin.x,
                                                                    static_cast<double>(y)
                                                                    -origin.y});
-            pixel::RGB<double> color;
+            pixel::RGBValue<double> color;
             if (!interpolate_spline_RGB(*in, spline_order, poisition.x+origin.x,
                                         poisition.y+origin.y, color))
                 color = {0.,0.,0.};
@@ -344,7 +344,7 @@ bool distortionCorrect_RGB(ImageRGB<double> &in, ImageRGB<double> &out,
 
 template<typename T>
 static bool read_images(DistortedLines<T> &distLines,
-                        const std::vector<ImageGray<pixel::BYTE> > &imageList, int length_thresh,
+                        const std::vector<ImageGray<pixel::Byte> > &imageList, int length_thresh,
                         int down_factor)
 {
     int w_tmp = 0, h_tmp = 0;
@@ -515,7 +515,7 @@ static vector<T> polyInv(const vector<T> &poly_params, const int degX, const int
                         yp);
 }
 
-bool polyEstime(const std::vector<ImageGray<pixel::BYTE> > &list,
+bool polyEstime(const std::vector<ImageGray<pixel::Byte> > &list,
                 std::vector<double> &polynome, int order,
                 std::vector<LineCollection> &detectedLines)
 {

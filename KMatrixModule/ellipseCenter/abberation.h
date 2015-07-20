@@ -23,13 +23,13 @@ public:
     int perimeter; // need to calculate compactness measure of shape to eliminate noise
 };
 // Leman: const Pixel& p
-int white_neighbors(const Pixel &p,const ImageGray<pixel::BYTE> &img);
+int white_neighbors(const Pixel &p,const ImageGray<pixel::Byte> &img);
 
-void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<pixel::BYTE> &img);
+void extract_CCStats(std::vector<Pixel> &cc, CCStats &stats, const ImageGray<pixel::Byte> &img);
 
-int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<pixel::BYTE> &img);
+int extract_cc_(Pixel p, std::vector<Pixel> &cc, ImageGray<pixel::Byte> &img);
 
-bool CC(std::vector<CCStats> &ccstats, const ImageGray<pixel::BYTE> &imgbi, ImageRGB<pixel::BYTE> &imgFeedback);
+bool CC(std::vector<CCStats> &ccstats, const ImageGray<pixel::Byte> &imgbi, ImageRGB<pixel::Byte> &imgFeedback);
 
 // finds corresponding circle center match among two channels
 template<typename T>

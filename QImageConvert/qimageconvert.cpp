@@ -22,7 +22,7 @@ void QImage2ImageDouble(const QImage &in, ImageGray<double> &out)
             out.pixel(x, y) = qGray(in.pixel(x, y));
 }
 
-void ImageByte2QImage(ImageGray<pixel::BYTE> &in, QImage &out)
+void ImageByte2QImage(ImageGray<pixel::Byte> &in, QImage &out)
 {
     int w = in.xsize(), h = in.ysize();
     out = QImage(w, h, QImage::Format_RGB32);
@@ -35,7 +35,7 @@ void ImageByte2QImage(ImageGray<pixel::BYTE> &in, QImage &out)
     }
 }
 
-void QImage2ImageByte(const QImage &in, ImageGray<pixel::BYTE> &out)
+void QImage2ImageByte(const QImage &in, ImageGray<pixel::Byte> &out)
 {
     checkQImageMemory(in);
     int w = in.width(), h = in.height();
@@ -58,8 +58,8 @@ void QColorImage2ImageDoubleRGB(const QImage &in, ImageRGB<double> &out)
     }
 }
 
-using pixel::RGB;
-using pixel::BYTE;
+using pixel::RGBValue;
+using pixel::Byte;
 void ImageDoubleRGB2QColorImage(const ImageRGB<double> &in, QImage &out)
 {
     int w = in.xsize(), h = in.ysize();
@@ -67,21 +67,21 @@ void ImageDoubleRGB2QColorImage(const ImageRGB<double> &in, QImage &out)
     checkQImageMemory(out);
     for (int x = 0; x < w; ++x) {
         for (int y = 0; y < h; y++) {
-            RGB<BYTE> color = static_cast<RGB<BYTE>>(in.pixel(x,y));
+            RGBValue<Byte> color = static_cast<RGBValue<Byte>>(in.pixel(x,y));
             out.setPixel(x, y, qRgb(color.r, color.g, color.b));
         }
     }
 }
 
 
-void ImageByteRGB2QColorImage(const ImageRGB<pixel::BYTE> &in, QImage &out)
+void ImageByteRGB2QColorImage(const ImageRGB<pixel::Byte> &in, QImage &out)
 {
     int w = in.xsize(), h = in.ysize();
     out = QImage(w, h, QImage::Format_RGB32);
     checkQImageMemory(out);
     for (int x = 0; x < w; ++x) {
         for (int y = 0; y < h; y++) {
-            RGB<BYTE> color = static_cast<RGB<BYTE>>(in.pixel(x,y));
+            RGBValue<Byte> color = static_cast<RGBValue<Byte>>(in.pixel(x,y));
             out.setPixel(x, y, qRgb(color.r, color.g, color.b));
         }
     }

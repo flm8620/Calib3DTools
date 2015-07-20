@@ -368,7 +368,7 @@ void img_extremas(const ImageGray<double> &img, T &min, T &max)
     }
 }
 
-bool circleRedefineSegment(const ImageGray<double> *img, ImageRGB<BYTE> *feedback,
+bool circleRedefineSegment(const ImageGray<double> *img, ImageRGB<Byte> *feedback,
                            vector<double> *x, vector<double> *y, const vector<double> *r,
                            double scale, bool clr, std::vector<vector<double> > *Pout, int from,
                            int count, std::atomic_int *progress)
@@ -437,17 +437,17 @@ bool circleRedefineSegment(const ImageGray<double> *img, ImageRGB<BYTE> *feedbac
 // return true;
 // }
 
-bool keypnts_circle_no_refine(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback,
+bool keypnts_circle_no_refine(const ImageGray<double> &img, ImageRGB<Byte> &imgFeedback,
                               vector<double> &x, vector<double> &y, vector<double> &r)
 {
     int wi = img.xsize(), he = img.ysize();
     double maxColor = 0;
     double minColor = 255;
     img_extremas(img, minColor, maxColor);
-    BYTE thre = (BYTE)(0.4*(maxColor-minColor));
-    ImageGray<BYTE> imgBi;
-    imgBi.resize(wi, he, BYTE::WHITE);
-    imgFeedback.resize(wi, he, RGB<BYTE>::WHITE);
+    Byte thre = (Byte)(0.4*(maxColor-minColor));
+    ImageGray<Byte> imgBi;
+    imgBi.resize(wi, he, Byte::WHITE);
+    imgFeedback.resize(wi, he, RGBValue<Byte>::WHITE);
     binarization(imgBi, img, thre);
     // write_pgm_image_double(imgbiB, "rawdata/b.pgm");
 
@@ -467,7 +467,7 @@ bool keypnts_circle_no_refine(const ImageGray<double> &img, ImageRGB<BYTE> &imgF
     return true;
 }
 
-bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, vector<double> &x,
+bool keypnts_circle(const ImageGray<double> &img, ImageRGB<Byte> &imgFeedback, vector<double> &x,
                     vector<double> &y, vector<double> &r, double scale,
                     std::vector<vector<double> > &P,
                     concurrent::AbstractThreadPool& pool = DEFAULT_THREAD_POOL)
@@ -478,10 +478,10 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
     double maxColor = 0;
     double minColor = 255;
     img_extremas(img, minColor, maxColor);
-    BYTE thre = (BYTE)(0.4*(maxColor-minColor));
-    ImageGray<BYTE> imgBi;
-    imgBi.resize(wi, he, BYTE::WHITE);
-    imgFeedback.resize(wi, he, RGB<BYTE>::WHITE);
+    Byte thre = (Byte)(0.4*(maxColor-minColor));
+    ImageGray<Byte> imgBi;
+    imgBi.resize(wi, he, Byte::WHITE);
+    imgFeedback.resize(wi, he, RGBValue<Byte>::WHITE);
     binarization(imgBi, img, thre);
     // write_pgm_image_double(imgbiB, "rawdata/b.pgm");
 
@@ -541,7 +541,7 @@ bool keypnts_circle(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback, v
     }
 }
 
-bool detectEllipseCenters(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback,
+bool detectEllipseCenters(const ImageGray<double> &img, ImageRGB<Byte> &imgFeedback,
                           vector<double> &x, vector<double> &y, vector<double> &r,
                           std::vector<vector<double> > &P, double scale)
 {
@@ -549,7 +549,7 @@ bool detectEllipseCenters(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedb
     return true;
 }
 
-bool detectEllipseCenters_noRefine(const ImageGray<double> &img, ImageRGB<BYTE> &imgFeedback,
+bool detectEllipseCenters_noRefine(const ImageGray<double> &img, ImageRGB<Byte> &imgFeedback,
                                    vector<double> &x, vector<double> &y, vector<double> &r)
 {
     if (!keypnts_circle_no_refine(img, imgFeedback, x, y, r)) return false;

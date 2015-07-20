@@ -24,7 +24,7 @@
 #include <cstring>
 #include <assert.h>
 
-using pixel::RGB;
+using pixel::RGBValue;
 
 const static unsigned int MAX_ORDER = 11;
 const static int INIT_SPLINE_N_ARRARY_START = 4;
@@ -293,7 +293,7 @@ bool interpolate_spline(const ImageGray<double> &image, int order, double x, dou
 }
 
 static bool zero_order_interpolation_rgb(const ImageRGB<double> &image, int x, int y,
-                                         RGB<double> &out)
+                                         RGBValue<double> &out)
 {
     if (!image.pixelInside(x, y))
         return false;
@@ -304,7 +304,7 @@ static bool zero_order_interpolation_rgb(const ImageRGB<double> &image, int x, i
 
 static void do_interpolation_rgb(const ImageRGB<double> &image, int x, int y, int radius,
                                  const double coefficients_x[], const double coefficients_y[],
-                                 RGB<double> &out)
+                                 RGBValue<double> &out)
 {
     int low_margin = 1-radius;
     out = { 0.,0.,0. };
@@ -320,7 +320,7 @@ static void do_interpolation_rgb(const ImageRGB<double> &image, int x, int y, in
 }
 
 bool interpolate_spline_RGB(const ImageRGB<double> &image, int order, double x, double y,
-                            RGB<double> &out, double paramKeys)
+                            RGBValue<double> &out, double paramKeys)
 {
     /* CHECK PARAMETERS */
     if(x<0.0 || x>static_cast<double>(image.xsize()) || y<0.0 || y>static_cast<double>(image.ysize()))

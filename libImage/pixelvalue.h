@@ -7,16 +7,16 @@
 
 namespace pixel {
 
-struct BYTE;
+struct Byte;
 template<typename T, class =std::enable_if<std::is_arithmetic<T>::value>>
-struct RGB;
+struct RGBValue;
 
 /**
  * @brief AllowedValuetypes, The data types suitable for pixel data in an Image
  */
 typedef std::tuple<
-            BYTE, double, long double,
-            RGB<BYTE>, RGB<double>, RGB<long double>>
+            Byte, double, long double,
+            RGBValue<Byte>, RGBValue<double>, RGBValue<long double>>
             AllowedValuetypes;
 
 /**
@@ -47,6 +47,12 @@ struct ValidValuetype
     constexpr static size_t size = sizeof(T);
 };
 
+template<int I>
+struct Valuetype
+{
+    typedef typename std::tuple_element<I, AllowedValuetypes>::type type;
+};
+
 template<typename T, class =std::enable_if<std::is_arithmetic<T>::value>>
 static inline unsigned char byteTruncate(T value)
 {
@@ -60,73 +66,73 @@ static inline unsigned char byteTruncate(T value)
 /**
  * @brief Image data type
  */
-struct BYTE
+struct Byte
 {
     unsigned char value;
 
-    inline BYTE(){}
-    inline BYTE(unsigned char value) : value(value){}
+    inline Byte(){}
+    inline Byte(unsigned char value) : value(value){}
     inline operator unsigned char() const { return this->value; }
-    template<typename T>
-    inline BYTE(T value) { this->operator =(value); }
+    template<typename T, class =std::enable_if<std::is_arithmetic<T>::value>>
+    explicit inline Byte(T value) { this->operator =(value); }
 
-    const static BYTE WHITE;
-    const static BYTE BLACK;
+    const static Byte WHITE;
+    const static Byte BLACK;
 
     template<typename T, class =std::enable_if<std::is_arithmetic<T>::value>>
-    inline BYTE& operator =(T value) { this->value = byteTruncate(value); return *this; }
-    inline BYTE& operator =(unsigned char value) { this->value = value; return *this; }
-    inline BYTE& operator =(const BYTE& original) { this->value = original.value; return *this; }
+    inline Byte& operator =(T value) { this->value = byteTruncate(value); return *this; }
+    inline Byte& operator =(unsigned char value) { this->value = value; return *this; }
+    inline Byte& operator =(const Byte& original) { this->value = original.value; return *this; }
 
     template<typename T>
     inline bool operator ==(T other) const { return this->value==other; }
-    inline bool operator ==(const BYTE& other) const { return this->value==other.value; }
+    inline bool operator ==(const Byte& other) const { return this->value==other.value; }
     template<typename T>
     inline bool operator !=(T other) const { return this->value!=other; }
-    inline bool operator !=(const BYTE& other) const { return this->value!=other.value; }
+    inline bool operator !=(const Byte& other) const { return this->value!=other.value; }
     template<typename T>
     inline bool operator >(T other) const { return this->value>other; }
-    inline bool operator >(const BYTE& other) const { return this->value>other.value; }
+    inline bool operator >(const Byte& other) const { return this->value>other.value; }
     template<typename T>
     inline bool operator <(T other) const { return this->value<other; }
-    inline bool operator <(const BYTE& other) const { return this->value<other.value; }
+    inline bool operator <(const Byte& other) const { return this->value<other.value; }
     template<typename T>
     inline bool operator >=(T other) const { return this->value>=other; }
-    inline bool operator >=(const BYTE& other) const { return this->value>=other.value; }
+    inline bool operator >=(const Byte& other) const { return this->value>=other.value; }
     template<typename T>
     inline bool operator <=(T other) const { return this->value<=other; }
-    inline bool operator <=(const BYTE& other) const { return this->value<=other.value; }
+    inline bool operator <=(const Byte& other) const { return this->value<=other.value; }
 
     template<typename T, class =std::enable_if<std::is_arithmetic<T>::value>>
     inline T operator +(T other) const { return other + this->value; }
-    inline int operator +(const BYTE& other) const { return int(this->value) + int(other.value); }
+    inline int operator +(const Byte& other) const { return int(this->value) + int(other.value); }
     template<typename T, class =std::enable_if<std::is_arithmetic<T>::value>>
     inline T operator -(T other) const { return - other + this->value; }
-    inline int operator -(const BYTE& other) const { return int(this->value) - int(other.value); }
+    inline int operator -(const Byte& other) const { return int(this->value) - int(other.value); }
     template<typename T, class =std::enable_if<std::is_arithmetic<T>::value>>
     inline T operator *(T other) const { return other * this->value; }
-    inline int operator *(const BYTE& other) const { return int(this->value) * int(other.value); }
+    inline int operator *(const Byte& other) const { return int(this->value) * int(other.value); }
     template<typename T, class =std::enable_if<std::is_arithmetic<T>::value>>
     inline T operator /(T other) const { return (static_cast<T>(1)/other) * this->value; }
-    inline int operator /(const BYTE& other) { return int(this->value) / int(other.value); }
+    inline int operator /(const Byte& other) { return int(this->value) / int(other.value); }
 
     template<typename T>
-    inline BYTE& operator +=(T other) { return *this = *this + other; }
+    inline Byte& operator +=(T other) { return *this = *this + other; }
     template<typename T>
-    inline BYTE& operator -=(T other) { return *this = *this - other; }
+    inline Byte& operator -=(T other) { return *this = *this - other; }
     template<typename T>
-    inline BYTE& operator *=(T other) { return *this = *this * other; }
+    inline Byte& operator *=(T other) { return *this = *this * other; }
     template<typename T>
-    inline BYTE& operator /=(T other) { return *this = *this / other; }
+    inline Byte& operator /=(T other) { return *this = static_cast<T>(*this) / other; }
 
-    inline BYTE& operator ++() { return *this+=1; }
+    inline Byte& operator ++() { return *this+=1; }
 //    inline const Byte operator ++()
 //    {
 //        Byte result(*this);
 //        *this += 1;
 //        return result;
 //    }
-    inline BYTE& operator --() { return *this-=1; }
+    inline Byte& operator --() { return *this-=1; }
 //    inline const Byte operator --()
 //    {
 //        Byte result(*this);
@@ -140,26 +146,26 @@ struct BYTE
  * @brief Image color data type
  */
 template<typename T>
-struct RGB<T>
+struct RGBValue<T>
 {
     typename std::enable_if<
                 std::is_arithmetic<T>::value ||
-                std::is_same<T,BYTE>::value,
+                std::is_same<T,Byte>::value,
                 T>::type r,g,b;
 
-    inline RGB(){}
-    explicit inline RGB(T luma ) : r(luma), g(luma), b(luma) {}
-    inline RGB(T r, T g, T b ) : r(r), g(g), b(b) {}
-    inline RGB(const RGB<T>& value) : r(value.r), g(value.g), b(value.b) {}
+    inline RGBValue(){}
+    explicit inline RGBValue(T luma ) : r(luma), g(luma), b(luma) {}
+    inline RGBValue(T r, T g, T b ) : r(r), g(g), b(b) {}
+    inline RGBValue(const RGBValue<T>& value) : r(value.r), g(value.g), b(value.b) {}
 
-    const static RGB<T> WHITE;
-    const static RGB<T> BLACK;
+    const static RGBValue<T> WHITE;
+    const static RGBValue<T> BLACK;
 
     template<typename V, class=std::enable_if<std::is_arithmetic<V>::value>>
-    explicit inline RGB(const RGB<V>& value)
+    explicit inline RGBValue(const RGBValue<V>& value)
         :r(static_cast<T>(value.r)), g(static_cast<T>(value.g)),b(static_cast<T>(value.b)) {}
 
-    inline RGB<T>& operator =(const RGB<T>& value)
+    inline RGBValue<T>& operator =(const RGBValue<T>& value)
     {
         this->r=value.r;
         this->g=value.g;
@@ -168,7 +174,7 @@ struct RGB<T>
     }
 
     template<typename V, class =std::enable_if<std::is_arithmetic<V>::value>>
-    inline RGB<T>& operator =(const RGB<V>& value)
+    inline RGBValue<T>& operator =(const RGBValue<V>& value)
     {
         this->r = static_cast<T>(value.r);
         this->g = static_cast<T>(value.g);
@@ -177,7 +183,7 @@ struct RGB<T>
     }
 
     template<typename V, class =std::enable_if<std::is_arithmetic<V>::value>>
-    inline RGB<T>& operator +=(const RGB<V>& addend)
+    inline RGBValue<T>& operator +=(const RGBValue<V>& addend)
     {
         this->r += addend.r;
         this->g += addend.g;
@@ -186,7 +192,7 @@ struct RGB<T>
     }
 
     template<typename V, class =std::enable_if<std::is_arithmetic<V>::value>>
-    inline RGB<T>& operator +=(V addend)
+    inline RGBValue<T>& operator +=(V addend)
     {
         this->r += addend;
         this->g += addend;
@@ -195,11 +201,11 @@ struct RGB<T>
     }
 
     template<typename V>
-    inline RGB<T>& operator -=(const V& substrahend)
+    inline RGBValue<T>& operator -=(const V& substrahend)
     { return *this += -substrahend; }
 
     template<typename V, class =std::enable_if<std::is_arithmetic<V>::value>>
-    inline RGB<T>& operator *=(const RGB<V>& multiplicand)
+    inline RGBValue<T>& operator *=(const RGBValue<V>& multiplicand)
     {
         this->r *= multiplicand.r;
         this->g *= multiplicand.g;
@@ -208,7 +214,7 @@ struct RGB<T>
     }
 
     template<typename V, class =std::enable_if<std::is_arithmetic<V>::value>>
-    inline RGB<T>& operator *=(V multiplicand)
+    inline RGBValue<T>& operator *=(V multiplicand)
     {
         this->r *= multiplicand;
         this->g *= multiplicand;
@@ -217,34 +223,34 @@ struct RGB<T>
     }
 
     template<typename V, class =std::enable_if<std::is_arithmetic<V>::value>>
-    inline RGB<T>& operator /=(V divisor)
+    inline RGBValue<T>& operator /=(V divisor)
     {
         return *this *= 1.0/static_cast<double>(divisor);
     }
 
-    inline RGB<T>& operator /=(long double divisor)
+    inline RGBValue<T>& operator /=(long double divisor)
     {
         return *this *= 1.0L/divisor;
     }
 
     template<typename V, class =std::enable_if<std::is_arithmetic<V>::value>>
-    inline RGB<T>& operator /=(const RGB<V>& divisor)
+    inline RGBValue<T>& operator /=(const RGBValue<V>& divisor)
     {
-        return (*this *= RGB<double>({1.0/static_cast<double>(divisor.r),
+        return (*this *= RGBValue<double>({1.0/static_cast<double>(divisor.r),
                                       1.0/static_cast<double>(divisor.g),
                                       1.0/static_cast<double>(divisor.b) }) );
     }
 
-    inline RGB<T>& operator /=(RGB<long double> divisor)
+    inline RGBValue<T>& operator /=(RGBValue<long double> divisor)
     {
-        return *this *= RGB<long double>(
+        return *this *= RGBValue<long double>(
                                {1.0L/static_cast<long double>(divisor.r),
                                 1.0L/static_cast<long double>(divisor.g),
                                 1.0L/static_cast<long double>(divisor.b)});
     }
 
-    inline RGB<T>& operator ++() { return *this += static_cast<T>(1); }
-    inline RGB<T>& operator --() { return *this -= static_cast<T>(1); }
+    inline RGBValue<T>& operator ++() { return *this += static_cast<T>(1); }
+    inline RGBValue<T>& operator --() { return *this -= static_cast<T>(1); }
 //    inline RGB<T> operator ++()
 //    {
 //        RGB<T> result(*this);
@@ -261,32 +267,32 @@ struct RGB<T>
     template<typename V, class =std::enable_if<std::is_arithmetic<V>::value>>
     explicit operator V()
     {
-        const static RGB<double> BT601LUMA(0.299, 0.587, 0.114);
+        const static RGBValue<double> BT601LUMA(0.299, 0.587, 0.114);
         return static_cast<V>( this->r*BT601LUMA.r + this->g*BT601LUMA.g + this->b*BT601LUMA.b );
     }
 
-    explicit operator BYTE()
+    explicit operator Byte()
     {
-        const static RGB<double> BT601LUMA(0.299, 0.587, 0.114);
+        const static RGBValue<double> BT601LUMA(0.299, 0.587, 0.114);
         return byteTruncate( this->r*BT601LUMA.r + this->g*BT601LUMA.g + this->b*BT601LUMA.b );
     }
 };
 
 
 template<typename T>
-const RGB<T> RGB<T>::WHITE(BYTE::WHITE);
+const RGBValue<T> RGBValue<T>::WHITE(Byte::WHITE);
 template<typename T>
-const RGB<T> RGB<T>::BLACK(BYTE::BLACK);
+const RGBValue<T> RGBValue<T>::BLACK(Byte::BLACK);
 
 template<typename T, class =std::enable_if<std::is_arithmetic<T>::value>>
-inline RGB<T> operator -(const RGB<T>& original)
-{ return RGB<T>(-original.r, -original.g, -original.b); }
+inline RGBValue<T> operator -(const RGBValue<T>& original)
+{ return RGBValue<T>(-original.r, -original.g, -original.b); }
 
-inline RGB<int> operator -(const RGB<BYTE>& original)
-{ return -RGB<int>(original); }
+inline RGBValue<int> operator -(const RGBValue<Byte>& original)
+{ return -RGBValue<int>(original); }
 
 template<typename T, typename V>
-inline RGB<T> operator +(const RGB<T>& addend1, const RGB<V>& addend2)
+inline RGBValue<T> operator +(const RGBValue<T>& addend1, const RGBValue<V>& addend2)
 {
     return {
             addend1.r + addend2.r,
@@ -295,7 +301,7 @@ inline RGB<T> operator +(const RGB<T>& addend1, const RGB<V>& addend2)
 }
 
 template<typename T, typename V>
-inline RGB<T> operator +(const RGB<T>& addend1, V addend2)
+inline RGBValue<T> operator +(const RGBValue<T>& addend1, V addend2)
 {
     return {addend1.r + addend2,
             addend1.g + addend2,
@@ -303,15 +309,15 @@ inline RGB<T> operator +(const RGB<T>& addend1, V addend2)
 }
 
 template<typename T, typename V>
-inline RGB<V> operator +(T addend1, const RGB<V>& addend2) { return addend2 + addend1; }
+inline RGBValue<V> operator +(T addend1, const RGBValue<V>& addend2) { return addend2 + addend1; }
 
 
 template<typename T, typename V>
-inline RGB<T> operator -(const RGB<T>& minus, const V& substrahend)
+inline RGBValue<T> operator -(const RGBValue<T>& minus, const V& substrahend)
 { return minus + -substrahend; }
 
 template<typename T, typename V>
-inline RGB<T> operator *(const RGB<T>& multiplier, const RGB<V>& multiplicand)
+inline RGBValue<T> operator *(const RGBValue<T>& multiplier, const RGBValue<V>& multiplicand)
 {
     return {multiplier.r * multiplicand.r,
             multiplier.g * multiplicand.g,
@@ -319,7 +325,7 @@ inline RGB<T> operator *(const RGB<T>& multiplier, const RGB<V>& multiplicand)
 }
 
 template<typename T, typename V>
-inline RGB<T> operator *(const RGB<T>& multiplier, V multiplicand)
+inline RGBValue<T> operator *(const RGBValue<T>& multiplier, V multiplicand)
 {
     return {multiplier.r * multiplicand,
             multiplier.g * multiplicand,
@@ -327,10 +333,10 @@ inline RGB<T> operator *(const RGB<T>& multiplier, V multiplicand)
 }
 
 template<typename T, typename V>
-inline RGB<V> operator *(T multiplier, const RGB<V>& multiplicand) { return multiplicand*multiplier; }
+inline RGBValue<V> operator *(T multiplier, const RGBValue<V>& multiplicand) { return multiplicand*multiplier; }
 
 template<typename T, typename V>
-inline RGB<T> operator /(const RGB<T>& multiplier, const RGB<V>& multiplicand)
+inline RGBValue<T> operator /(const RGBValue<T>& multiplier, const RGBValue<V>& multiplicand)
 {
     return {multiplier.r / static_cast<double>(multiplicand.r),
             multiplier.g / static_cast<double>(multiplicand.g),
@@ -338,7 +344,7 @@ inline RGB<T> operator /(const RGB<T>& multiplier, const RGB<V>& multiplicand)
 }
 
 template<typename T, typename V>
-inline RGB<T> operator /(const RGB<T>& dividend, V divisor)
+inline RGBValue<T> operator /(const RGBValue<T>& dividend, V divisor)
 {
     double invDivisor = 1.0/static_cast<double>(divisor);
     return dividend * invDivisor;

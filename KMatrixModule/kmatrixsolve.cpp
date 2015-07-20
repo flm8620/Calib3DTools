@@ -293,7 +293,7 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
     for (int i = 0; i < nImage; ++i) {
         libMsg::cout<<"Image "<<i+1<<'/'<<nImage<<libMsg::endl;
         vector<double> x, y, r;
-        ImageRGB<BYTE> imgFeedback;
+        ImageRGB<Byte> imgFeedback;
         {
             ImageGray<double> imageDouble;
             QImage2ImageDouble(imageList[i], imageDouble);
@@ -349,7 +349,7 @@ bool KMatrixSolve::KMatrixSolver(std::vector<QImage> &imageList, std::vector<QIm
     for (int i = 0; i < nImage; ++i) {
         libMsg::cout<<"\nImage "<<i+1<<'/'<<nImage<<libMsg::endl;
         vector<double> x, y, r;
-        ImageRGB<BYTE> imgFeedback;
+        ImageRGB<Byte> imgFeedback;
         std::vector<vector<double> > P;
         {
             ImageGray<double> imageDouble;
