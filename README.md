@@ -1,8 +1,11 @@
 # Calib3DTools
-* This software is a tool for image processing. It is in fact a result of my 3-month internship in __IMAGINE Laboratory__ (http://imagine.enpc.fr), a a joint research group between __Ecole des Ponts ParisTech__ and __Centre Scientifique et Technique du Batiment__.
-* This software intergrates some results of research, especially some algorithms and methodologies invented by researchers in __IMAGINE Laboratory__. The goal of this projet is to evaluate the precision of state-of-art method of 3D reconstruction by stereovision, which is similar to this article[7].
-* It uses a small part of code in the OpenMVG library[3] (https://github.com/openMVG/openMVG)
-* It consists of the following modules:
+This software is a tool for image processing. It is in fact a result of my 3-month internship in __IMAGINE Laboratory__ (http://imagine.enpc.fr), a joint research group between __Ecole des Ponts ParisTech__ and __Centre Scientifique et Technique du Batiment__.
+
+This software intergrates some results of research, especially some algorithms and methodologies invented by researchers in __IMAGINE Laboratory__. The goal of this projet is to evaluate the precision of state-of-art method of 3D reconstruction by stereovision, which is similar to this article[7].
+
+It uses a small part of code in the OpenMVG library[3] (https://github.com/openMVG/openMVG)
+
+It consists of the following modules:
 1. "Distortion" : High-precision camera distortion using the "harp methode"[1], this module will calculate a distortion polynomial from some "harp" photos.
 2. "Photo" : Where you load photos, correct the distortion by applying distortion polynomial transformation and then save them.
 3. "KMatrix" : Calculation of K Matrix using the "circular control points" [2]
