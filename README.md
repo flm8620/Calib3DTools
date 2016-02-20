@@ -14,10 +14,16 @@
 
 # Reference
 [1] Z. Tang et al. « High-precision camera distortion measurements with a “calibration harp” ». In : JOSA A 29.10 (2012), p. 2134–2143.
+
 [2] V. Rudakova et P. Monasse. « Camera matrix calibration using circular control points and separate correction of the geometric distortion field ». In : Computer and Robot Vision (CRV), 2014 Canadian Conference on. IEEE. 2014, p. 195–202.
+
 [3] P. Moulon. OpenMVG. 2015. url : https://github.com/openMVG/ openMVG (visité le 16/07/2015).
+
 [4] P. Moulon, P. Monasse et R. Marlet. « Adaptive structure from motion with a contrario model estimation ». In : Computer Vision–ACCV 2012. Springer, 2013, p. 257–270.
+
 [5] P. Moulon, P. Monasse et R. Marlet. « Global fusion of relative motions for robust, accurate and scalable structure from motion ». In : Computer Vision (ICCV), 2013 IEEE International Conference on. IEEE. 2013, p. 3248–3255.
+
 [6] L. Moisan, P. Moulon et P. Monasse. « Automatic homographic registration of a pair of images, with a contrario elimination of outliers ». In : Image Processing On Line 2 (2012), p. 56–73.
+
 [7] C. Strecha et al. « On benchmarking camera calibration and multiview stereo for high resolution imagery ». In : Computer Vision and Pattern Recognition, 2008. CVPR 2008. IEEE Conference on. IEEE. 2008, p. 1–8.
 
