@@ -3,6 +3,7 @@
 #include "messager.h"
 #include <vector>
 #include <cmath>
+#include <algorithm>
 /** Image data type
  *
  */

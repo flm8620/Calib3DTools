@@ -43,6 +43,7 @@ ostream &ostream::setprecision(int precision)
 {
     this->doublePrecision = precision > 2 ? precision : 2;
     ss.precision(doublePrecision);
+	return *this;
 }
 
 ostream &flush(ostream &os)
