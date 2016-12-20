@@ -380,32 +380,32 @@ bool Solver::runInThread(bool (Solver::*fun)())
     return ok;
 }
 
-bool Solver::onCalculateDistortion()
+void Solver::onCalculateDistortion()
 {
     QtConcurrent::run(this, &Solver::runInThread, &Solver::calculateDistortion);
 }
 
-bool Solver::onCalculateK()
+void Solver::onCalculateK()
 {
     QtConcurrent::run(this, &Solver::runInThread, &Solver::calculateK);
 }
 
-bool Solver::onCorrectPhoto()
+void Solver::onCorrectPhoto()
 {
     QtConcurrent::run(this, &Solver::runInThread, &Solver::correctPhoto);
 }
 
-bool Solver::onCorrectCircle()
+void Solver::onCorrectCircle()
 {
     QtConcurrent::run(this, &Solver::runInThread, &Solver::correctCircle);
 }
 
-bool Solver::onSolveStrecha()
+void Solver::onSolveStrecha()
 {
     QtConcurrent::run(this, &Solver::runInThread, &Solver::solveCamPos);
 }
 
-bool Solver::onCompareCam()
+void Solver::onCompareCam()
 {
     QtConcurrent::run(this, &Solver::runInThread, &Solver::compareCam);
 }

@@ -8,7 +8,7 @@ class ImageListWithPoint2D : public ImageList
     Q_OBJECT
 public:
     ImageListWithPoint2D(QObject *parent = 0);
-    bool clearPoint();
+    void clearPoint();
     void clear();
     int pointCount() const;
     void append(const QString &name, const QImage &image);

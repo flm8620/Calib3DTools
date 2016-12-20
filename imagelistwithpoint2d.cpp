@@ -4,7 +4,7 @@ ImageListWithPoint2D::ImageListWithPoint2D(QObject *parent) : ImageList(parent)
 {
 }
 
-bool ImageListWithPoint2D::clearPoint()
+void ImageListWithPoint2D::clearPoint()
 {
     {
         QWriteLocker locker(&this->rwLock);

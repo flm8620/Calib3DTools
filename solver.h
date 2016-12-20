@@ -24,12 +24,12 @@ public:
                         libMsg::Messager *messager = 0);
 
 public slots:
-    bool onCalculateDistortion();
-    bool onCalculateK();
-    bool onCorrectPhoto();
-    bool onCorrectCircle();
-    bool onSolveStrecha();
-    bool onCompareCam();
+    void onCalculateDistortion();
+    void onCalculateK();
+    void onCorrectPhoto();
+    void onCorrectCircle();
+    void onSolveStrecha();
+    void onCompareCam();
 private:
     bool calculateDistortion();
     bool calculateK();
